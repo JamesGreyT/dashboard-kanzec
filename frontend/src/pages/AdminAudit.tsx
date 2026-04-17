@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
 import PageHeading from "../components/PageHeading";
 import Card from "../components/Card";
@@ -22,6 +23,7 @@ interface Row {
 }
 
 export default function AdminAudit() {
+  const { t, i18n } = useTranslation();
   const [action, setAction] = useState("");
   const [offset, setOffset] = useState(0);
   const limit = 100;
@@ -41,15 +43,19 @@ export default function AdminAudit() {
   return (
     <div>
       <PageHeading
-        crumb={["Dashboard", "Admin", "Audit"]}
-        title="Audit"
-        subtitle="Every mutation lands here."
+        crumb={[
+          t("dashboard.crumb_dashboard"),
+          t("admin.crumb"),
+          t("admin.audit_crumb"),
+        ]}
+        title={t("admin.audit_title")}
+        subtitle={t("admin.audit_subtitle")}
       />
 
       <div className="mt-6 flex items-center gap-4 max-w-md">
         <div className="flex-1">
           <Input
-            placeholder="filter by action — e.g. backfill_enqueue"
+            placeholder={t("admin.audit_filter_placeholder")}
             value={action}
             onChange={(e) => {
               setAction(e.target.value);
@@ -63,12 +69,18 @@ export default function AdminAudit() {
         <table className="w-full border-separate border-spacing-0">
           <thead>
             <tr>
-              {["When", "Who", "Action", "Target", "IP"].map((h) => (
+              {[
+                "admin.audit_col_when",
+                "admin.audit_col_who",
+                "admin.audit_col_action",
+                "admin.audit_col_target",
+                "admin.audit_col_ip",
+              ].map((key) => (
                 <th
-                  key={h}
+                  key={key}
                   className="h-10 px-4 border-b border-rule sticky top-0 bg-card eyebrow font-semibold text-ink-3 text-left"
                 >
-                  {h}
+                  {t(key)}
                 </th>
               ))}
             </tr>
@@ -101,7 +113,7 @@ export default function AdminAudit() {
               <tr>
                 <td colSpan={5}>
                   <div className="py-14 text-center caption italic text-ink-3">
-                    — no dispatches on record —
+                    {t("common.no_dispatches")}
                   </div>
                 </td>
               </tr>
@@ -123,27 +135,32 @@ export default function AdminAudit() {
         )}
       </Card>
 
-      <Drawer open={!!openRow} onClose={() => setOpenRow(null)} title="Audit entry">
+      <Drawer
+        open={!!openRow}
+        onClose={() => setOpenRow(null)}
+        title={t("admin.audit_drawer_title")}
+      >
         {openRow && (
           <div>
             <dl className="grid grid-cols-[140px_1fr] gap-y-3 gap-x-4">
-              <dt className="eyebrow">When</dt>
+              <dt className="eyebrow">{t("admin.audit_drawer_when")}</dt>
               <dd className="text-body text-ink tabular-nums">
-                {new Date(openRow.created_at).toLocaleString("en-GB", {
-                  timeZone: "Asia/Tashkent",
-                })}
+                {new Date(openRow.created_at).toLocaleString(
+                  i18n.resolvedLanguage || "en-GB",
+                  { timeZone: "Asia/Tashkent" },
+                )}
               </dd>
-              <dt className="eyebrow">Who</dt>
+              <dt className="eyebrow">{t("admin.audit_drawer_who")}</dt>
               <dd className="text-body text-ink">{openRow.username ?? "—"}</dd>
-              <dt className="eyebrow">Action</dt>
+              <dt className="eyebrow">{t("admin.audit_drawer_action")}</dt>
               <dd className="mono text-mono-sm text-mark">{openRow.action}</dd>
-              <dt className="eyebrow">Target</dt>
+              <dt className="eyebrow">{t("admin.audit_drawer_target")}</dt>
               <dd className="mono text-mono-sm text-ink-2">{openRow.target ?? "—"}</dd>
-              <dt className="eyebrow">IP</dt>
+              <dt className="eyebrow">{t("admin.audit_drawer_ip")}</dt>
               <dd className="mono text-mono-sm text-ink-3">{openRow.ip_address ?? "—"}</dd>
             </dl>
             <div className="mt-8">
-              <div className="eyebrow mb-3">Details</div>
+              <div className="eyebrow mb-3">{t("admin.audit_drawer_details")}</div>
               <JsonBlock value={openRow.details ?? {}} />
             </div>
           </div>

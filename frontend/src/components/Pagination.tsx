@@ -1,10 +1,6 @@
 import { FormEvent, useState } from "react";
+import { useTranslation } from "react-i18next";
 
-/**
- * Pagination strip rendered inside a card's bottom rule.
- *   showing 231–280 of 68,851           ‹ prev   next ›
- *                                       page [   3  ] of 1,378   (appears if pages > 5)
- */
 export default function Pagination({
   offset,
   limit,
@@ -16,6 +12,7 @@ export default function Pagination({
   total: number;
   onOffset: (o: number) => void;
 }) {
+  const { t } = useTranslation();
   const from = total === 0 ? 0 : offset + 1;
   const to = Math.min(offset + limit, total);
   const pages = Math.max(1, Math.ceil(total / limit));
@@ -36,13 +33,23 @@ export default function Pagination({
   return (
     <div className="h-14 px-6 flex items-center justify-between gap-6 border-t border-rule">
       <div className="caption text-ink-3 tabular-nums">
-        showing {from.toLocaleString()}–{to.toLocaleString()} of{" "}
-        {total.toLocaleString()}
+        {t("common.showing_range", {
+          from: from.toLocaleString(),
+          to: to.toLocaleString(),
+          total: total.toLocaleString(),
+        })}
       </div>
       <div className="flex items-center gap-6">
         {showJump && (
-          <form onSubmit={submitJump} className="flex items-center gap-2 caption text-ink-3">
-            <span>page</span>
+          <form
+            onSubmit={submitJump}
+            className="flex items-center gap-2 caption text-ink-3"
+          >
+            <span>
+              {t("common.page_of", { input: "", total: pages.toLocaleString() }).split(
+                "[",
+              )[0].trim()}
+            </span>
             <input
               value={jumpDraft}
               onChange={(e) => setJumpDraft(e.target.value.replace(/\D/g, ""))}
@@ -50,7 +57,12 @@ export default function Pagination({
               placeholder={String(currentPage)}
               aria-label="Jump to page"
             />
-            <span>of {pages.toLocaleString()}</span>
+            <span>
+              {t("common.page_of", { input: "", total: pages.toLocaleString() })
+                .split("]")
+                .pop()
+                ?.trim()}
+            </span>
           </form>
         )}
         <div className="flex items-center gap-6 text-label">
@@ -59,14 +71,14 @@ export default function Pagination({
             disabled={!canPrev}
             className="text-ink hover:text-mark hover:underline decoration-mark underline-offset-[3px] disabled:text-ink-3 disabled:no-underline disabled:cursor-not-allowed"
           >
-            ‹ prev
+            {t("common.prev")}
           </button>
           <button
             onClick={() => onOffset(offset + limit)}
             disabled={!canNext}
             className="text-ink hover:text-mark hover:underline decoration-mark underline-offset-[3px] disabled:text-ink-3 disabled:no-underline disabled:cursor-not-allowed"
           >
-            next ›
+            {t("common.next")}
           </button>
         </div>
       </div>

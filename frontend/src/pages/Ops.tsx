@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { api, getAccessToken } from "../lib/api";
 import PageHeading from "../components/PageHeading";
 import Card from "../components/Card";
@@ -28,14 +29,8 @@ interface Report {
   backfill_queue_len: number;
 }
 
-// Editorial subline per report — hardcoded, Almanac voice.
-const SUBLINE: Record<string, string> = {
-  order: "Transactional deliveries — pulled hourly, deep daily.",
-  payment: "Incoming payments — all channels.",
-  legal_person: "Client register — refreshed every six hours.",
-};
-
 export default function Ops() {
+  const { t } = useTranslation();
   const q = useQuery({
     queryKey: ["ops.reports"],
     queryFn: () => api<{ reports: Report[] }>("/api/ops/reports"),
@@ -48,9 +43,9 @@ export default function Ops() {
   return (
     <div>
       <PageHeading
-        crumb={["Dashboard", "Operations"]}
-        title="Operations"
-        subtitle="Report workers, their last pulls, and the backfill queue."
+        crumb={[t("dashboard.crumb_dashboard"), t("ops.crumb")]}
+        title={t("ops.title")}
+        subtitle={t("ops.subtitle")}
       />
 
       <div className="mt-8 flex flex-col gap-6">
@@ -89,6 +84,7 @@ function ReportCard({
   onBackfill: () => void;
   onLogs: () => void;
 }) {
+  const { t } = useTranslation();
   const tone: StatusTone =
     r.systemd_active === "active" && !isStale(r.last_recent_at, 2 * 60 * 60)
       ? "live"
@@ -99,14 +95,15 @@ function ReportCard({
       : "quiet";
   const toneLabel =
     tone === "live"
-      ? "live"
+      ? t("ops.status_live")
       : r.systemd_active === "failed"
-      ? "failed"
+      ? t("ops.status_failed")
       : r.systemd_active === "active"
-      ? "staged"
+      ? t("ops.status_staged")
       : r.systemd_active;
 
-  const subline = SUBLINE[r.key] ?? "";
+  const sublineKey = `ops.subline_${r.key}`;
+  const subline = t(sublineKey, { defaultValue: "" });
 
   return (
     <Card accent={tone === "live"} className="p-8">
@@ -134,7 +131,7 @@ function ReportCard({
       {/* Two-column stat block — RECENT | DEEP */}
       <div className="grid grid-cols-1 md:grid-cols-2 relative">
         <div className="md:pr-8">
-          <div className="eyebrow text-ink-3">Recent window</div>
+          <div className="eyebrow text-ink-3">{t("ops.recent_window")}</div>
           <div className="mt-2 mono text-mono-sm text-ink-2 tabular-nums">
             {r.last_recent_label ?? "—"}
           </div>
@@ -144,7 +141,7 @@ function ReportCard({
                 ? r.last_recent_rows.toLocaleString()
                 : "—"}
             </span>
-            <span className="caption text-ink-3">rows</span>
+            <span className="caption text-ink-3">{t("common.rows")}</span>
           </div>
           <div className="mt-3 caption text-ink-3 tabular-nums">
             {r.last_recent_ms != null
@@ -161,7 +158,7 @@ function ReportCard({
         />
 
         <div className="md:pl-8 mt-6 md:mt-0">
-          <div className="eyebrow text-ink-3">Deep window</div>
+          <div className="eyebrow text-ink-3">{t("ops.deep_window")}</div>
           <div className="mt-2 mono text-mono-sm text-ink-2 tabular-nums">
             {r.last_deep_label ?? "—"}
           </div>
@@ -171,7 +168,7 @@ function ReportCard({
                 ? r.last_deep_rows.toLocaleString()
                 : "—"}
             </span>
-            <span className="caption text-ink-3">rows</span>
+            <span className="caption text-ink-3">{t("common.rows")}</span>
           </div>
           <div className="mt-3 caption text-ink-3 tabular-nums">
             <RelativeTime iso={r.last_deep_at} />
@@ -183,22 +180,25 @@ function ReportCard({
 
       {/* Metadata strip */}
       <div className="grid grid-cols-[120px_1fr] gap-y-2 gap-x-4 items-baseline">
-        <div className="eyebrow">Queue</div>
+        <div className="eyebrow">{t("ops.queue")}</div>
         <div className="text-body text-ink">
           {r.backfill_queue_len === 0 ? (
-            <span className="text-ink-3">— no chunks pending —</span>
+            <span className="text-ink-3">{t("common.no_pending")}</span>
           ) : (
             <>
               <span className="serif nums tabular-nums">
                 {r.backfill_queue_len}
               </span>{" "}
               <span className="text-ink-2">
-                chunk{r.backfill_queue_len === 1 ? "" : "s"} pending
+                {r.backfill_queue_len === 1
+                  ? t("common.chunk_singular")
+                  : t("common.chunk_plural")}{" "}
+                {t("common.pending")}
               </span>
             </>
           )}
         </div>
-        <div className="eyebrow">Errors</div>
+        <div className="eyebrow">{t("ops.errors")}</div>
         <div className="text-body">
           {r.last_error ? (
             <span className="block border-l-2 border-risk pl-3 caption text-risk">
@@ -224,14 +224,14 @@ function ReportCard({
             className="text-ink-3 group-hover:text-mark transition-colors"
           />
           <span className="group-hover:underline decoration-mark underline-offset-[3px]">
-            Enqueue backfill
+            {t("ops.enqueue_backfill")}
           </span>
         </button>
         <button
           onClick={onLogs}
           className="text-label text-ink-2 hover:text-mark hover:underline decoration-mark underline-offset-[3px] transition-colors"
         >
-          Read the dispatches
+          {t("ops.read_dispatches")}
         </button>
       </div>
     </Card>
@@ -251,6 +251,7 @@ function BackfillModal({
   reportKey: string;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -279,20 +280,17 @@ function BackfillModal({
   }
 
   return (
-    <Modal open onClose={onClose} title={`Enqueue backfill · ${reportKey}`}>
+    <Modal open onClose={onClose} title={t("ops.backfill_title", { key: reportKey })}>
       {count != null ? (
         <div>
           <div className="text-body text-ink">
-            Queued{" "}
-            <span className="serif nums tabular-nums">
-              {count.toLocaleString()}
-            </span>{" "}
-            chunk{count === 1 ? "" : "s"}. The worker will drain them at its
-            next cycle.
+            {count === 1
+              ? t("ops.backfill_queued_singular")
+              : t("ops.backfill_queued_plural", { count: count.toLocaleString() })}
           </div>
           <div className="mt-6 flex justify-end">
             <Button variant="primary" onClick={onClose}>
-              Done.
+              {t("ops.backfill_done")}
             </Button>
           </div>
         </div>
@@ -300,7 +298,7 @@ function BackfillModal({
         <form onSubmit={submit} className="flex flex-col gap-5">
           <Input
             layout="inline"
-            label="From"
+            label={t("ops.backfill_from")}
             type="date"
             value={from}
             onChange={(e) => setFrom(e.target.value)}
@@ -308,14 +306,14 @@ function BackfillModal({
           />
           <Input
             layout="inline"
-            label="To"
+            label={t("ops.backfill_to")}
             type="date"
             value={to}
             onChange={(e) => setTo(e.target.value)}
             required
           />
           <label className="grid grid-cols-[100px_1fr] items-center gap-x-4">
-            <span className="eyebrow text-right">Chunk</span>
+            <span className="eyebrow text-right">{t("ops.backfill_chunk")}</span>
             <div className="flex gap-2">
               {(["year", "month", "week"] as const).map((v) => (
                 <button
@@ -328,7 +326,7 @@ function BackfillModal({
                       : "bg-paper-2 text-ink-2 hover:text-ink"
                   }`}
                 >
-                  {v}
+                  {t(`ops.backfill_${v}`)}
                 </button>
               ))}
             </div>
@@ -340,14 +338,16 @@ function BackfillModal({
           )}
           <div className="flex items-center justify-end gap-5 mt-2">
             <Button variant="link" onClick={onClose} type="button">
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               variant="primary"
               type="submit"
               disabled={!from || !to || m.isPending}
             >
-              {m.isPending ? "Queueing…" : "Queue backfill."}
+              {m.isPending
+                ? t("ops.backfill_queueing")
+                : t("ops.backfill_submit")}
             </Button>
           </div>
         </form>
@@ -363,6 +363,7 @@ function LogsDrawer({
   reportKey: string;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const [lines, setLines] = useState<string[]>([]);
   const boxRef = useRef<HTMLDivElement>(null);
 
@@ -413,13 +414,18 @@ function LogsDrawer({
   }, [lines]);
 
   return (
-    <Drawer open onClose={onClose} title={`DISPATCHES · ${reportKey}`} width={720}>
+    <Drawer
+      open
+      onClose={onClose}
+      title={t("ops.dispatches_heading", { key: reportKey })}
+      width={720}
+    >
       <div
         ref={boxRef}
         className="h-full overflow-auto bg-paper-2 mono text-mono-xs leading-[1.6] p-4 rounded-[8px] whitespace-pre-wrap"
       >
         {lines.length === 0 && (
-          <div className="text-ink-3 italic">— awaiting the wire —</div>
+          <div className="text-ink-3 italic">{t("common.awaiting_wire")}</div>
         )}
         {lines.map((l, i) => {
           const tone = /ERROR|CRITICAL/.test(l)

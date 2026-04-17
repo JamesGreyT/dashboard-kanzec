@@ -8,6 +8,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
 import Button from "./Button";
 
@@ -75,6 +76,7 @@ export default function ColumnFilter({
   onChange: (v: ColumnFilterValue | undefined) => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState<ColumnFilterValue>(value ?? {});
   const [valSearch, setValSearch] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -186,13 +188,13 @@ export default function ColumnFilter({
       className="z-50 bg-card rounded-[10px] shadow-card border border-rule p-4 animate-enter-up"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="eyebrow">Filter · {col.label}</div>
+      <div className="eyebrow">{t("data.filter", { label: col.label })}</div>
       <div className="leader" />
 
       {showRange && (
         <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1.5">
-            <span className="caption text-ink-3">From</span>
+            <span className="caption text-ink-3">{t("data.filter_range_from")}</span>
             <input
               type={rangeInputType(col.type)}
               value={draft.from ?? ""}
@@ -202,7 +204,7 @@ export default function ColumnFilter({
             />
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="caption text-ink-3">To</span>
+            <span className="caption text-ink-3">{t("data.filter_range_to")}</span>
             <input
               type={rangeInputType(col.type)}
               value={draft.to ?? ""}
@@ -218,13 +220,12 @@ export default function ColumnFilter({
 
       {showContains && (
         <label className="flex flex-col gap-1.5">
-          <span className="caption text-ink-3">Contains</span>
+          <span className="caption text-ink-3">{t("data.filter_contains")}</span>
           <input
             value={draft.contains ?? ""}
             onChange={(e) => setDraft({ ...draft, contains: e.target.value || undefined })}
             onKeyDown={(e) => e.key === "Enter" && apply()}
             className="h-9 bg-paper-2 px-3 rounded-[8px] text-body text-ink border-0 focus:outline-none focus:ring-2 focus:ring-mark/35"
-            placeholder="e.g. Maqsud"
           />
         </label>
       )}
@@ -234,22 +235,22 @@ export default function ColumnFilter({
       {showValues && (
         <div>
           <div className="flex items-center justify-between mb-2">
-            <span className="caption text-ink-3">Values</span>
+            <span className="caption text-ink-3">{t("data.filter_values")}</span>
             <div className="flex items-center gap-3 text-caption">
               <button
                 type="button"
-                className="text-ink-2 hover:text-mark hover:underline decoration-mark"
+                className="text-ink-2 hover:text-mark hover:underline decoration-mark underline-offset-[3px]"
                 onClick={selectAllVisible}
               >
-                select shown
+                {t("data.filter_select_shown")}
               </button>
               {draft.values && draft.values.length > 0 && (
                 <button
                   type="button"
-                  className="text-ink-2 hover:text-mark hover:underline decoration-mark"
+                  className="text-ink-2 hover:text-mark hover:underline decoration-mark underline-offset-[3px]"
                   onClick={() => setDraft({ ...draft, values: undefined })}
                 >
-                  clear picks
+                  {t("data.filter_clear_picks")}
                 </button>
               )}
             </div>
@@ -258,14 +259,16 @@ export default function ColumnFilter({
             value={valSearch}
             onChange={(e) => setValSearch(e.target.value)}
             className="w-full h-8 bg-paper-2 px-2.5 rounded-[6px] text-body text-ink border-0 focus:outline-none focus:ring-2 focus:ring-mark/35 mb-2"
-            placeholder="search values…"
+            placeholder={t("data.filter_search_values_placeholder")}
           />
           <div className="max-h-[220px] overflow-auto border border-rule rounded-[8px]">
             {distinctQ.isLoading && (
-              <div className="px-3 py-3 caption text-ink-3">reading…</div>
+              <div className="px-3 py-3 caption text-ink-3">{t("data.reading")}</div>
             )}
             {distinctQ.isError && (
-              <div className="px-3 py-3 caption text-risk">couldn't read values.</div>
+              <div className="px-3 py-3 caption text-risk">
+                {t("data.filter_cant_read")}
+              </div>
             )}
             {distinctQ.data?.values.map(({ value: v, count }) => (
               <label
@@ -280,7 +283,7 @@ export default function ColumnFilter({
                 />
                 <span className="text-body text-ink truncate max-w-[170px]">
                   {v === "" || v == null ? (
-                    <span className="italic text-ink-3">(empty)</span>
+                    <span className="italic text-ink-3">{t("data.filter_empty")}</span>
                   ) : (
                     v
                   )}
@@ -292,12 +295,12 @@ export default function ColumnFilter({
               </label>
             ))}
             {distinctQ.data && distinctQ.data.values.length === 0 && (
-              <div className="px-3 py-3 caption text-ink-3">no matches.</div>
+              <div className="px-3 py-3 caption text-ink-3">{t("data.filter_no_matches")}</div>
             )}
           </div>
           {distinctQ.data?.limited && (
             <div className="mt-1 caption text-ink-3">
-              showing first 300 — refine with search above.
+              {t("data.filter_limited_hint")}
             </div>
           )}
         </div>
@@ -307,7 +310,7 @@ export default function ColumnFilter({
 
       {showEquals && (
         <label className="flex flex-col gap-1.5">
-          <span className="caption text-ink-3">Equals</span>
+          <span className="caption text-ink-3">{t("data.filter_equals")}</span>
           <input
             value={draft.equals ?? ""}
             onChange={(e) => setDraft({ ...draft, equals: e.target.value || undefined })}
@@ -324,10 +327,10 @@ export default function ColumnFilter({
           type="button"
           className="text-label text-ink-2 hover:text-mark hover:underline decoration-mark underline-offset-[3px]"
         >
-          clear
+          {t("common.clear")}
         </button>
         <Button variant="primary" onClick={apply} className="h-8 px-3 text-caption">
-          Apply filter.
+          {t("common.apply")}
         </Button>
       </div>
     </div>,

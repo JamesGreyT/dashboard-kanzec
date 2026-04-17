@@ -1,5 +1,6 @@
 import { ReactNode, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
 
 export default function Drawer({
   open,
@@ -25,6 +26,7 @@ export default function Drawer({
   onNext?: () => void;
   footer?: ReactNode;
 }) {
+  const { t } = useTranslation();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -64,8 +66,8 @@ export default function Drawer({
           <button
             onClick={onClose}
             className="text-ink-3 hover:text-mark serif text-[18px] leading-none shrink-0"
-            aria-label="Close"
-            title="Close — esc"
+            aria-label={t("common.close")}
+            title={t("common.close_hint")}
           >
             ×
           </button>

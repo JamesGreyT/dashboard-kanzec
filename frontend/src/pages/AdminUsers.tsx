@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { XCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import PageHeading from "../components/PageHeading";
@@ -24,6 +25,7 @@ interface UserRow {
 }
 
 export default function AdminUsers() {
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const qc = useQueryClient();
   const q = useQuery({
@@ -65,14 +67,18 @@ export default function AdminUsers() {
   return (
     <div>
       <PageHeading
-        crumb={["Dashboard", "Admin", "Users"]}
-        title="Users"
-        subtitle="Who's on the register."
+        crumb={[
+          t("dashboard.crumb_dashboard"),
+          t("admin.crumb"),
+          t("admin.users_crumb"),
+        ]}
+        title={t("admin.users_title")}
+        subtitle={t("admin.users_subtitle")}
       />
 
       <div className="mt-6 flex items-center justify-end">
         <Button variant="primary" onClick={() => setCreate(true)}>
-          + Enroll user.
+          {t("admin.new_user")}
         </Button>
       </div>
 
@@ -80,18 +86,23 @@ export default function AdminUsers() {
         <table className="w-full border-separate border-spacing-0">
           <thead>
             <tr>
-              {["Username", "Role", "Active", "Last login", "Created", "Actions"].map(
-                (h, i) => (
-                  <th
-                    key={h}
-                    className={`h-10 px-4 border-b border-rule sticky top-0 bg-card eyebrow font-semibold text-ink-3 ${
-                      i >= 5 ? "text-right" : "text-left"
-                    }`}
-                  >
-                    {h}
-                  </th>
-                ),
-              )}
+              {[
+                { key: "admin.col_username", last: false },
+                { key: "admin.col_role", last: false },
+                { key: "admin.col_active", last: false },
+                { key: "admin.col_last_login", last: false },
+                { key: "admin.col_created", last: false },
+                { key: "admin.col_actions", last: true },
+              ].map((h) => (
+                <th
+                  key={h.key}
+                  className={`h-10 px-4 border-b border-rule sticky top-0 bg-card eyebrow font-semibold text-ink-3 ${
+                    h.last ? "text-right" : "text-left"
+                  }`}
+                >
+                  {t(h.key)}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -100,7 +111,9 @@ export default function AdminUsers() {
                 <td className="h-[52px] px-4 border-b border-rule text-body text-ink">
                   {u.username}{" "}
                   {u.id === user?.id && (
-                    <span className="caption text-ink-3">(you)</span>
+                    <span className="caption text-ink-3">
+                      ({t("common.you")})
+                    </span>
                   )}
                 </td>
                 <td className="h-[52px] px-4 border-b border-rule">
@@ -118,7 +131,7 @@ export default function AdminUsers() {
                     className="text-left"
                   >
                     <StatusPill tone={u.is_active ? "live" : "quiet"}>
-                      {u.is_active ? "active" : "inactive"}
+                      {u.is_active ? t("admin.active") : t("admin.inactive")}
                     </StatusPill>
                   </button>
                 </td>
@@ -126,9 +139,10 @@ export default function AdminUsers() {
                   <RelativeTime iso={u.last_login_at} />
                 </td>
                 <td className="h-[52px] px-4 border-b border-rule caption text-ink-3 tabular-nums">
-                  {new Date(u.created_at).toLocaleDateString("en-GB", {
-                    timeZone: "Asia/Tashkent",
-                  })}
+                  {new Date(u.created_at).toLocaleDateString(
+                    i18n.resolvedLanguage || "en-GB",
+                    { timeZone: "Asia/Tashkent" },
+                  )}
                 </td>
                 <td className="h-[52px] px-4 border-b border-rule text-right">
                   <div className="inline-flex items-center gap-4 text-label">
@@ -136,24 +150,30 @@ export default function AdminUsers() {
                       className="text-ink hover:text-mark hover:underline decoration-mark underline-offset-[3px]"
                       onClick={() => setResetFor(u)}
                     >
-                      reset password
+                      {t("admin.reset_password")}
                     </button>
                     <button
                       className="group inline-flex items-center gap-1.5 text-ink-2 hover:text-mark transition-colors"
                       onClick={() => revoke.mutate(u.id)}
                     >
                       <XCircle size={12} strokeWidth={1.25} className="text-ink-3 group-hover:text-mark transition-colors" />
-                      <span className="group-hover:underline decoration-mark underline-offset-[3px]">revoke sessions</span>
+                      <span className="group-hover:underline decoration-mark underline-offset-[3px]">
+                        {t("admin.revoke_sessions")}
+                      </span>
                     </button>
                     {u.id !== user?.id && (
                       <button
                         className="text-risk hover:underline decoration-risk underline-offset-[3px]"
                         onClick={() => {
-                          if (confirm(`Delete user "${u.username}"? This cannot be undone.`))
+                          if (
+                            confirm(
+                              t("admin.delete_confirm", { username: u.username }),
+                            )
+                          )
                             del.mutate(u.id);
                         }}
                       >
-                        delete
+                        {t("admin.delete")}
                       </button>
                     )}
                   </div>
@@ -209,6 +229,7 @@ function RoleSegmented({
 }
 
 function EnrollUserModal({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -234,11 +255,11 @@ function EnrollUserModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <Modal open onClose={onClose} title="Enroll user">
+    <Modal open onClose={onClose} title={t("admin.enroll_modal_title")}>
       <form onSubmit={submit} className="flex flex-col gap-5">
         <Input
           layout="inline"
-          label="Username"
+          label={t("admin.form_username")}
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           required
@@ -246,7 +267,7 @@ function EnrollUserModal({ onClose }: { onClose: () => void }) {
         />
         <Input
           layout="inline"
-          label="Password"
+          label={t("admin.form_password")}
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -254,7 +275,7 @@ function EnrollUserModal({ onClose }: { onClose: () => void }) {
           required
         />
         <label className="grid grid-cols-[100px_1fr] items-center gap-x-4">
-          <span className="eyebrow text-right">Role</span>
+          <span className="eyebrow text-right">{t("admin.form_role")}</span>
           <div className="flex gap-2">
             {(["viewer", "operator", "admin"] as const).map((r) => (
               <button
@@ -267,7 +288,7 @@ function EnrollUserModal({ onClose }: { onClose: () => void }) {
                     : "bg-paper-2 text-ink-2 hover:text-ink"
                 }`}
               >
-                {r}
+                {t(`roles.${r}`)}
               </button>
             ))}
           </div>
@@ -277,14 +298,16 @@ function EnrollUserModal({ onClose }: { onClose: () => void }) {
         )}
         <div className="flex items-center justify-end gap-5 mt-2">
           <Button variant="link" type="button" onClick={onClose}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button
             variant="primary"
             type="submit"
             disabled={!username || password.length < 8 || m.isPending}
           >
-            {m.isPending ? "Saving…" : "Enroll user."}
+            {m.isPending
+              ? t("admin.form_saving")
+              : t("admin.form_submit_enroll")}
           </Button>
         </div>
       </form>
@@ -299,6 +322,7 @@ function ResetPasswordModal({
   user: UserRow;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const [password, setPassword] = useState("");
   const m = useMutation({
     mutationFn: () =>
@@ -309,7 +333,11 @@ function ResetPasswordModal({
     onSuccess: onClose,
   });
   return (
-    <Modal open onClose={onClose} title={`Reset password · ${user.username}`}>
+    <Modal
+      open
+      onClose={onClose}
+      title={t("admin.reset_modal_title", { username: user.username })}
+    >
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -319,7 +347,7 @@ function ResetPasswordModal({
       >
         <Input
           layout="inline"
-          label="New password"
+          label={t("admin.form_new_password")}
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -329,10 +357,10 @@ function ResetPasswordModal({
         />
         <div className="flex items-center justify-end gap-5 mt-2">
           <Button variant="link" type="button" onClick={onClose}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button variant="primary" type="submit" disabled={password.length < 8 || m.isPending}>
-            {m.isPending ? "Saving…" : "Reset password."}
+            {m.isPending ? t("admin.form_saving") : t("admin.form_submit_reset")}
           </Button>
         </div>
       </form>

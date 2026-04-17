@@ -1,26 +1,29 @@
 import { NavLink } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../lib/auth";
+import LangToggle from "./LangToggle";
 
 interface Item {
   to: string;
-  label: string;
+  labelKey: string;
   roles: Array<"admin" | "operator" | "viewer">;
 }
 
 const REGISTRY: Item[] = [
-  { to: "/dashboard", label: "Dashboard", roles: ["admin", "operator", "viewer"] },
-  { to: "/data", label: "Data", roles: ["admin", "operator", "viewer"] },
+  { to: "/dashboard", labelKey: "nav.dashboard", roles: ["admin", "operator", "viewer"] },
+  { to: "/data", labelKey: "nav.data", roles: ["admin", "operator", "viewer"] },
 ];
 const OPERATIONS: Item[] = [
-  { to: "/ops", label: "Reports", roles: ["admin", "operator"] },
+  { to: "/ops", labelKey: "nav.reports", roles: ["admin", "operator"] },
 ];
 const ADMIN: Item[] = [
-  { to: "/admin/users", label: "Users", roles: ["admin"] },
-  { to: "/admin/audit", label: "Audit", roles: ["admin"] },
+  { to: "/admin/users", labelKey: "nav.users", roles: ["admin"] },
+  { to: "/admin/audit", labelKey: "nav.audit", roles: ["admin"] },
 ];
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   if (!user) return null;
 
   return (
@@ -38,59 +41,63 @@ export default function Sidebar() {
           <div className="serif-italic text-[17px] leading-tight text-ink truncate">
             {user.username}
           </div>
-          <div className="eyebrow mt-1">{user.role}</div>
+          <div className="eyebrow mt-1">{t(`roles.${user.role}`)}</div>
         </div>
       </div>
 
       <div className="leader" />
 
-      <NavGroup title="Registry" items={REGISTRY} role={user.role} />
+      <NavGroup titleKey="nav.registry" items={REGISTRY} role={user.role} />
       {OPERATIONS.some((i) => i.roles.includes(user.role)) && (
         <>
           <div className="leader" />
-          <NavGroup title="Operations" items={OPERATIONS} role={user.role} />
+          <NavGroup titleKey="nav.operations" items={OPERATIONS} role={user.role} />
         </>
       )}
       {ADMIN.some((i) => i.roles.includes(user.role)) && (
         <>
           <div className="leader" />
-          <NavGroup title="Admin" items={ADMIN} role={user.role} />
+          <NavGroup titleKey="nav.admin" items={ADMIN} role={user.role} />
         </>
       )}
 
       <div className="flex-1" />
 
       <div className="leader" />
-      <button
-        onClick={() => void logout()}
-        className="group inline-flex items-center gap-2 text-label text-ink-2 hover:text-mark transition-colors text-left"
-      >
-        <span>Leave the register</span>
-        <span
-          aria-hidden
-          className="serif text-[15px] text-ink-3 group-hover:text-mark transition-[color,transform] translate-x-0 group-hover:translate-x-0.5"
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => void logout()}
+          className="group inline-flex items-center gap-2 text-label text-ink-2 hover:text-mark transition-colors text-left"
         >
-          ›
-        </span>
-      </button>
+          <span>{t("nav.signout")}</span>
+          <span
+            aria-hidden
+            className="serif text-[15px] text-ink-3 group-hover:text-mark transition-[color,transform] translate-x-0 group-hover:translate-x-0.5"
+          >
+            ›
+          </span>
+        </button>
+        <LangToggle />
+      </div>
     </aside>
   );
 }
 
 function NavGroup({
-  title,
+  titleKey,
   items,
   role,
 }: {
-  title: string;
+  titleKey: string;
   items: Item[];
   role: "admin" | "operator" | "viewer";
 }) {
+  const { t } = useTranslation();
   const visible = items.filter((i) => i.roles.includes(role));
   if (!visible.length) return null;
   return (
     <div>
-      <div className="eyebrow mb-3">{title}</div>
+      <div className="eyebrow mb-3">{t(titleKey)}</div>
       <ul className="flex flex-col gap-0.5">
         {visible.map((i) => (
           <li key={i.to}>
@@ -110,7 +117,7 @@ function NavGroup({
                   data-active={isActive ? "true" : "false"}
                   className="nav-sweep"
                 >
-                  {i.label}
+                  {t(i.labelKey)}
                 </span>
               )}
             </NavLink>

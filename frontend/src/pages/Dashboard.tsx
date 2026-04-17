@@ -7,6 +7,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
 import PageHeading from "../components/PageHeading";
 import StatCard from "../components/StatCard";
@@ -44,6 +45,7 @@ interface Overview {
 }
 
 export default function Dashboard() {
+  const { t, i18n } = useTranslation();
   const { data, isLoading, isError } = useQuery({
     queryKey: ["dashboard.overview"],
     queryFn: () => api<Overview>("/api/dashboard/overview"),
@@ -56,12 +58,12 @@ export default function Dashboard() {
   return (
     <div>
       <PageHeading
-        crumb={["Dashboard", "Overview"]}
-        title="Overview"
+        crumb={[t("dashboard.crumb_dashboard"), t("dashboard.crumb_overview")]}
+        title={t("dashboard.title")}
         subtitle={
           <>
-            <span className="serif-italic">Tashkent</span> ·{" "}
-            {new Date().toLocaleString("en-GB", {
+            <span className="serif-italic">{t("common.tashkent")}</span> ·{" "}
+            {new Date().toLocaleString(i18n.resolvedLanguage || "en-GB", {
               timeZone: "Asia/Tashkent",
               weekday: "long",
               day: "numeric",
@@ -76,7 +78,7 @@ export default function Dashboard() {
 
       {isError && (
         <div className="mt-6 caption text-risk border-l-2 border-risk pl-3">
-          — the press is down —
+          {t("common.error")}
         </div>
       )}
 
@@ -90,16 +92,17 @@ export default function Dashboard() {
         />
         <div className="grid grid-rows-2 gap-6">
           <StatCard
-            label="payments · today, USD"
+            label={t("dashboard.payments_today_usd")}
             value={fmt(data?.today.payments.amount)}
             trend={pctTrend(
               data?.today.payments.amount ?? 0,
               data?.yesterday.payments.amount ?? 0,
-              " vs yesterday",
+              ` ${t("dashboard.trend_vs_yesterday")}`,
+              t,
             )}
           />
           <StatCard
-            label="active clients · 30 days"
+            label={t("dashboard.active_clients_30d")}
             value={fmt(data?.active_clients_30d)}
           />
         </div>
@@ -108,8 +111,8 @@ export default function Dashboard() {
       {/* Row 2 — full-width chart card */}
       <Card
         className="mt-8"
-        eyebrow="LAST 30 DAYS"
-        title="Orders & payments"
+        eyebrow={t("dashboard.last_30_days")}
+        title={t("dashboard.orders_and_payments")}
       >
         <div className="h-[280px]">
           {isLoading ? (
@@ -166,7 +169,7 @@ export default function Dashboard() {
 
       {/* Row 3 — workers (1/3) + activity (2/3) */}
       <div className="mt-8 grid grid-cols-1 xl:grid-cols-[1fr_2fr] gap-6 items-stretch">
-        <Card eyebrow="REPORT WORKERS" title="Register">
+        <Card eyebrow={t("dashboard.report_workers")} title={t("dashboard.register")}>
           {(data?.worker_health ?? []).length === 0 && !isLoading && (
             <Phrase kind="empty" />
           )}
@@ -181,7 +184,9 @@ export default function Dashboard() {
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <StatusPill tone={workerTone(w.last_recent_at, w.last_error_at)}>
-                    {w.last_error_at && recentErr(w) ? "failed" : "live"}
+                    {w.last_error_at && recentErr(w)
+                      ? t("dashboard.failed")
+                      : t("dashboard.live")}
                   </StatusPill>
                   <span className="text-body text-ink truncate">{w.key}</span>
                 </div>
@@ -193,7 +198,7 @@ export default function Dashboard() {
           </div>
         </Card>
 
-        <Card eyebrow="TODAY" title="Recent activity">
+        <Card eyebrow={t("dashboard.today")} title={t("dashboard.recent_activity")}>
           {(data?.recent_activity.length ?? 0) === 0 && !isLoading && (
             <Phrase kind="empty" />
           )}
@@ -208,19 +213,29 @@ export default function Dashboard() {
               >
                 <div className="flex items-baseline gap-4 min-w-0">
                   <span className="mono text-mono-sm text-ink-3 tabular-nums shrink-0">
-                    {new Date(a.ts).toLocaleTimeString("en-GB", {
-                      timeZone: "Asia/Tashkent",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      second: "2-digit",
-                    })}
+                    {new Date(a.ts).toLocaleTimeString(
+                      i18n.resolvedLanguage || "en-GB",
+                      {
+                        timeZone: "Asia/Tashkent",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      },
+                    )}
                   </span>
-                  <span className="eyebrow">{a.kind}</span>
-                  <span className="text-body text-ink truncate">{a.subject ?? "—"}</span>
+                  <span className="eyebrow">
+                    {t(`dashboard.kind_${a.kind}`)}
+                  </span>
+                  <span className="text-body text-ink truncate">
+                    {a.subject ?? "—"}
+                  </span>
                 </div>
                 {a.amount != null && (
                   <span className="serif nums text-body text-ink tabular-nums shrink-0">
-                    {a.amount.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+                    {a.amount.toLocaleString(
+                      i18n.resolvedLanguage || "en-US",
+                      { maximumFractionDigits: 2 },
+                    )}
                   </span>
                 )}
               </div>
@@ -248,10 +263,14 @@ function LedeOrdersCard({
   sparkline: { day: string; orders: number }[];
   weekTotal: number | undefined;
 }) {
-  const trend = value != null ? deltaTrend(value, prev, " from yesterday") : undefined;
+  const { t } = useTranslation();
+  const trend =
+    value != null
+      ? deltaTrend(value, prev, ` ${t("dashboard.trend_from_yesterday")}`, t)
+      : undefined;
   return (
     <Card className="relative flex flex-col min-h-[260px]" accent>
-      <div className="eyebrow">orders · today</div>
+      <div className="eyebrow">{t("dashboard.orders_today")}</div>
       <div className="flex-1 flex items-end justify-end">
         <div className="serif nums text-[96px] leading-none text-ink tabular-nums">
           {value != null ? value.toLocaleString() : "—"}
@@ -271,7 +290,7 @@ function LedeOrdersCard({
             </div>
             {weekTotal != null && (
               <div className="caption text-ink-3">
-                <span className="eyebrow mr-2">7D</span>
+                <span className="eyebrow mr-2">{t("dashboard.last_7_days")}</span>
                 <span className="serif nums text-ink tabular-nums">
                   {weekTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </span>
@@ -311,11 +330,20 @@ function fmt(n: number | undefined, digits = 0): string {
   });
 }
 
-function deltaTrend(cur: number, prev: number, suffix: string) {
+function deltaTrend(
+  cur: number,
+  prev: number,
+  suffix: string,
+  t: (key: string) => string,
+) {
   if (prev === 0 && cur === 0) return undefined;
   const d = cur - prev;
   if (d === 0)
-    return { arrow: "—", text: `no change${suffix}`, toneClass: "text-ink-3" };
+    return {
+      arrow: "—",
+      text: t("dashboard.trend_no_change_from_yesterday"),
+      toneClass: "text-ink-3",
+    };
   return {
     arrow: d > 0 ? "↗" : "↘",
     text: `${Math.abs(d).toLocaleString()}${suffix}`,
@@ -323,15 +351,28 @@ function deltaTrend(cur: number, prev: number, suffix: string) {
   };
 }
 
-function pctTrend(cur: number, prev: number, suffix: string) {
+function pctTrend(
+  cur: number,
+  prev: number,
+  suffix: string,
+  t: (key: string) => string,
+) {
   if (prev === 0)
     return cur === 0
       ? undefined
-      : { tone: "good" as const, arrow: "↗", text: `new${suffix}` };
+      : {
+          tone: "good" as const,
+          arrow: "↗",
+          text: `${t("dashboard.trend_new")}${suffix}`,
+        };
   const pct = ((cur - prev) / prev) * 100;
   const rounded = Math.round(pct);
   if (rounded === 0)
-    return { tone: "quiet" as const, arrow: "—", text: `flat${suffix}` };
+    return {
+      tone: "quiet" as const,
+      arrow: "—",
+      text: t("dashboard.trend_flat_vs_yesterday"),
+    };
   return {
     tone: rounded > 0 ? ("good" as const) : ("risk" as const),
     arrow: rounded > 0 ? "↗" : "↘",

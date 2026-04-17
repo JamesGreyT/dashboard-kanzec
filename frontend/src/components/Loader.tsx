@@ -1,39 +1,36 @@
+import { useTranslation } from "react-i18next";
+
+export type PhraseKind = "loading" | "empty" | "filtered" | "error" | "no_dispatches" | "awaiting_wire";
+
 /**
- * Editorial loading + empty phrases. No spinners, no shimmer, no skeleton.
- * The Almanac's answer to async state is typeset copy.
+ * Editorial loading / empty phrases. No spinners, no shimmer — just type.
+ * All four base phrases are translated per-locale (see i18n/locales/*.json).
  */
-
-const PHRASE = {
-  loading: "setting in type",
-  empty: "no entries on record",
-  filtered: "no entries match this filter",
-  error: "the press is down",
-} as const;
-
 export function Phrase({
   kind = "loading",
   className = "",
 }: {
-  kind?: keyof typeof PHRASE;
+  kind?: PhraseKind;
   className?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <div
       className={`py-10 text-center caption italic text-ink-3 ${
         kind === "error" ? "border-l-2 border-risk pl-3 text-risk" : ""
       } ${className}`}
     >
-      — {PHRASE[kind]} —
+      {t(`common.${kind}`)}
     </div>
   );
 }
 
 /**
- * Ruled-paper loader — draws N staggered 1px rules at the height of a
- * data row. The visual metaphor: the sheet has been laid down, the
- * type hasn't been set yet. Fades out when real rows arrive.
+ * Ruled-paper loader — 7 staggered 1px rules at the height of a data row
+ * with the localized loading phrase below.
  */
 export function RuledLoader({ rows = 7 }: { rows?: number }) {
+  const { t } = useTranslation();
   const widths = ["72%", "54%", "86%", "46%", "62%", "78%", "40%"];
   return (
     <div>
@@ -47,7 +44,7 @@ export function RuledLoader({ rows = 7 }: { rows?: number }) {
         ))}
       </div>
       <div className="pb-6 text-center caption italic text-ink-3">
-        — {PHRASE.loading} —
+        {t("common.loading")}
       </div>
     </div>
   );

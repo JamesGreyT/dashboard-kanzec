@@ -1,9 +1,12 @@
 import { FormEvent, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ApiError, useAuth } from "../lib/auth";
+import LangToggle from "../components/LangToggle";
 
 export default function Login() {
   const { user, loading, login } = useAuth();
+  const { t } = useTranslation();
   const loc = useLocation() as { state?: { from?: { pathname?: string } } };
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -12,8 +15,8 @@ export default function Login() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-paper flex items-center justify-center text-ink-3 caption">
-        reading the register…
+      <div className="min-h-screen bg-paper flex items-center justify-center text-ink-3 caption italic">
+        {t("common.reading_the_register")}
       </div>
     );
   }
@@ -30,9 +33,9 @@ export default function Login() {
       await login(username, password);
     } catch (ex) {
       if (ex instanceof ApiError && ex.status === 401) {
-        setErr("Those credentials aren't right.");
+        setErr(t("login.invalid_credentials"));
       } else {
-        setErr("Couldn't reach the register. Try again.");
+        setErr(t("login.network_error"));
       }
     } finally {
       setBusy(false);
@@ -41,10 +44,11 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-paper flex flex-col">
-      <div className="px-12 py-6 flex items-baseline justify-between">
-        <div className="eyebrow">Kanzec · Operations</div>
-        <div className="eyebrow text-ink-3">
-          Tashkent · An Almanac for the trade
+      <div className="px-12 py-6 flex items-baseline justify-between gap-4">
+        <div className="eyebrow">{t("login.masthead_left")}</div>
+        <div className="flex items-center gap-6">
+          <LangToggle />
+          <div className="eyebrow text-ink-3">{t("login.masthead_right")}</div>
         </div>
       </div>
 
@@ -53,11 +57,11 @@ export default function Login() {
       <div className="flex-1 flex items-center justify-center px-6 animate-enter-up">
         <div className="w-[420px]">
           <h1 className="serif text-heading-xl text-ink leading-none">
-            Log&#8209;in<span className="mark-stop">.</span>
+            {t("login.title")}
+            <span className="mark-stop">.</span>
           </h1>
           <p className="text-body text-ink-2 mt-3 max-w-[380px]">
-            A record of the trade — deliveries, payments, and ledgers, kept
-            daily. Sign in to read the register.
+            {t("login.lede")}
           </p>
 
           {err && (
@@ -68,7 +72,7 @@ export default function Login() {
 
           <form onSubmit={submit} className="mt-8 flex flex-col gap-6" noValidate>
             <label className="flex flex-col gap-2">
-              <span className="eyebrow">Name</span>
+              <span className="eyebrow">{t("login.username_label")}</span>
               <input
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -78,12 +82,12 @@ export default function Login() {
                 className="h-11 bg-paper-2 text-body text-ink px-3 rounded-[10px]
                            border-0 placeholder:italic placeholder:text-ink-3
                            focus:outline-none focus:ring-2 focus:ring-mark/35"
-                placeholder="e.g. admin"
+                placeholder={t("login.username_placeholder")}
               />
             </label>
 
             <label className="flex flex-col gap-2">
-              <span className="eyebrow">Key</span>
+              <span className="eyebrow">{t("login.password_label")}</span>
               <input
                 type="password"
                 value={password}
@@ -106,13 +110,13 @@ export default function Login() {
                          disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <span className="primary-underline-sweep">
-                {busy ? "Opening the register…" : "Enter the register."}
+                {busy ? t("login.submitting") : t("login.submit")}
               </span>
             </button>
           </form>
 
           <div className="mt-10 caption text-ink-3 text-right italic">
-            Kanzec · Internal · Volume I
+            {t("login.colophon_right")}
           </div>
         </div>
       </div>
@@ -123,7 +127,7 @@ export default function Login() {
           className="caption text-ink-3 uppercase"
           style={{ letterSpacing: "0.12em" }}
         >
-          Set in Newsreader &amp; Fustat
+          {t("login.set_in")}
         </div>
         <div className="caption text-ink-3 mono">kanzec.ilhom.work</div>
       </div>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
+import { useTranslation } from "react-i18next";
 import { api, getAccessToken } from "../lib/api";
 import PageHeading from "../components/PageHeading";
 import Card from "../components/Card";
@@ -48,7 +49,14 @@ function readDensity(): Density {
   return v === "comfortable" ? "comfortable" : "compact";
 }
 
+const TABLE_LABEL_KEYS: Record<string, string> = {
+  deal_order: "data.orders",
+  payment: "data.payments",
+  legal_person: "data.legal_persons",
+};
+
 export default function DataViewer() {
+  const { t } = useTranslation();
   const tables = useQuery({
     queryKey: ["data.tables"],
     queryFn: () => api<{ tables: TableMeta[] }>("/api/data/tables"),
@@ -232,34 +240,40 @@ export default function DataViewer() {
   return (
     <div>
       <PageHeading
-        crumb={["Dashboard", "Data", activeTable?.label ?? "—"]}
-        title="Data"
+        crumb={[
+          t("dashboard.crumb_dashboard"),
+          t("data.crumb_data"),
+          activeTable ? t(TABLE_LABEL_KEYS[activeTable.key] ?? activeTable.label) : "—",
+        ]}
+        title={t("data.title")}
         subtitle={
           activeTable && rowsQ.data
-            ? `${rowsQ.data.total.toLocaleString()} rows · latest first`
+            ? t("data.subtitle_rows", {
+                count: rowsQ.data.total.toLocaleString(),
+              })
             : undefined
         }
       />
 
       {/* Table tabs */}
       <div className="mt-8 flex items-center gap-6 border-b border-rule">
-        {tablesList.map((t) => (
+        {tablesList.map((tab) => (
           <button
-            key={t.key}
+            key={tab.key}
             onClick={() => {
-              setActiveKey(t.key);
+              setActiveKey(tab.key);
               setOffset(0);
               setOpenFilterCol(null);
               setOpenRowIdx(null);
             }}
             className={[
               "pb-3 text-label transition-colors",
-              t.key === activeKey
+              tab.key === activeKey
                 ? "text-mark border-b-2 border-mark -mb-px"
                 : "text-ink-2 hover:text-ink border-b-2 border-transparent",
             ].join(" ")}
           >
-            {t.label}
+            {t(TABLE_LABEL_KEYS[tab.key] ?? tab.label)}
           </button>
         ))}
       </div>
@@ -268,7 +282,7 @@ export default function DataViewer() {
       <div className="mt-6 flex items-center gap-4">
         <div className="flex-1">
           <Input
-            placeholder="query the roll…"
+            placeholder={t("data.search_placeholder")}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -277,7 +291,7 @@ export default function DataViewer() {
           />
         </div>
         <div className="flex items-center gap-3 caption text-ink-3">
-          <span>density</span>
+          <span>{t("common.density")}</span>
           <button
             type="button"
             onClick={() => setDensity("compact")}
@@ -287,7 +301,7 @@ export default function DataViewer() {
                 : "text-ink-2 hover:text-ink"
             }`}
           >
-            compact
+            {t("common.compact")}
           </button>
           <span>·</span>
           <button
@@ -299,10 +313,10 @@ export default function DataViewer() {
                 : "text-ink-2 hover:text-ink"
             }`}
           >
-            comfortable
+            {t("common.comfortable")}
           </button>
         </div>
-        <Button onClick={exportCsv}>CSV</Button>
+        <Button onClick={exportCsv}>{t("common.csv")}</Button>
       </div>
 
       {/* Active filter chips — slides in when count goes 0 → ≥1 */}
@@ -337,7 +351,7 @@ export default function DataViewer() {
               onClick={clearAllFilters}
               className="caption text-ink-2 hover:text-mark hover:underline decoration-mark underline-offset-[3px] ml-2"
             >
-              clear all
+              {t("common.clear_all")}
             </button>
           </motion.div>
         )}
@@ -371,7 +385,11 @@ export default function DataViewer() {
       <Drawer
         open={!!openRow}
         onClose={() => setOpenRowIdx(null)}
-        title={activeTable?.label ?? ""}
+        title={
+          activeTable
+            ? t(TABLE_LABEL_KEYS[activeTable.key] ?? activeTable.label)
+            : ""
+        }
         pk={openRow && activeTable ? activeTable.pk.map((p) => String(openRow[p] ?? "—")).join(" · ") : undefined}
         onPrev={openRowIdx != null && openRowIdx > 0 ? () => setOpenRowIdx(openRowIdx - 1) : undefined}
         onNext={openRowIdx != null && openRowIdx < rows.length - 1 ? () => setOpenRowIdx(openRowIdx + 1) : undefined}
@@ -379,11 +397,15 @@ export default function DataViewer() {
           openRowIdx != null && rows.length > 0 ? (
             <div className="caption text-ink-3 tabular-nums flex items-center justify-between">
               <span>
-                row {openRowIdx + 1} of {rows.length} (on this page)
+                {t("data.drawer_row_of_page", {
+                  n: openRowIdx + 1,
+                  total: rows.length,
+                })}
               </span>
               <span>
                 <kbd className="mono text-mono-xs">←</kbd>{" "}
-                <kbd className="mono text-mono-xs">→</kbd> to navigate
+                <kbd className="mono text-mono-xs">→</kbd>{" "}
+                {t("data.drawer_nav_hint")}
               </span>
             </div>
           ) : undefined
