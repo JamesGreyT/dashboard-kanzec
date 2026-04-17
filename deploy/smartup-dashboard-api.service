@@ -1,0 +1,28 @@
+[Unit]
+Description=Kanzec Operations Dashboard API
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=smartup-etl
+Group=smartup-etl
+WorkingDirectory=/opt/dashboard-kanzec/backend
+EnvironmentFile=/opt/dashboard-kanzec/.env
+ExecStart=/opt/dashboard-kanzec/backend/.venv/bin/uvicorn \
+  --host 127.0.0.1 --port 8081 --workers 2 --no-access-log \
+  app.main:app
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# FS / caps lockdown (same shape as the ETL workers)
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/dashboard-kanzec
+
+[Install]
+WantedBy=multi-user.target

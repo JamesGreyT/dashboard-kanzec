@@ -1,0 +1,115 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   The Almanac — palette + type + utilities
+   ------------------------------------------------------------
+   Warm paper, one vermilion mark, herbarium status tones.
+   Every colour flows from CSS variables so we can theme later.
+   ============================================================ */
+
+:root {
+  --paper:      #f5f1ea;
+  --paper-2:    #efe9df;
+  --card:       #faf7f0;
+  --ink:        #1a1713;
+  --ink-2:      #5a5147;
+  --ink-3:      #8f8678;
+  --rule:       #d9d1c1;
+  --rule-2:     #bcb19e;
+
+  --mark:       #b33522;
+  --mark-2:     #e6a99d;
+  --mark-bg:    #f6dfd8;
+
+  --good:       #4c6a47;
+  --good-bg:    #dfe6d5;
+  --warn:       #8e6a2c;
+  --warn-bg:    #ece2c9;
+  --risk:       #8e3a32;
+  --risk-bg:    #ebd4cf;
+  --quiet:      #6b6556;
+  --quiet-bg:   #e4ddce;
+
+  --font-serif: "Newsreader", ui-serif, Georgia, serif;
+  --font-sans:  "Fustat", ui-sans-serif, system-ui, sans-serif;
+  --font-mono:  "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+
+html,
+body,
+#root {
+  background: var(--paper-2);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+}
+
+/* Tabular lining figures everywhere numbers matter. */
+.nums,
+.serif,
+table td.num,
+table th.num {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* The serif is used specifically; apply with class rather than globally. */
+.serif {
+  font-family: var(--font-serif);
+  font-weight: 400;
+}
+
+.serif-italic {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-style: italic;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+.eyebrow {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.6875rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* Underlines only ever render in vermilion. */
+a,
+a:link {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--mark);
+  text-decoration: underline;
+  text-decoration-color: var(--mark);
+  text-underline-offset: 3px;
+}
+
+/* Focus ring — vermilion, never blue. */
+*:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--mark) 35%, transparent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Section break. */
+.rule {
+  height: 1px;
+  background: var(--rule);
+}
