@@ -1,6 +1,5 @@
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { XCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -10,6 +9,7 @@ import Button from "../components/Button";
 import Input from "../components/Input";
 import Modal from "../components/Modal";
 import StatusPill from "../components/StatusPill";
+import RolePicker from "../components/RolePicker";
 import RelativeTime from "../components/RelativeTime";
 import { Phrase } from "../components/Loader";
 
@@ -117,9 +117,10 @@ export default function AdminUsers() {
                   )}
                 </td>
                 <td className="h-[52px] px-4 border-b border-rule">
-                  <RoleSegmented
+                  <RolePicker
                     value={u.role}
                     onChange={(role) => changeRole.mutate({ id: u.id, role })}
+                    disabled={u.id === user?.id}
                   />
                 </td>
                 <td className="h-[52px] px-4 border-b border-rule">
@@ -145,36 +146,37 @@ export default function AdminUsers() {
                   )}
                 </td>
                 <td className="h-[52px] px-4 border-b border-rule text-right">
-                  <div className="inline-flex items-center gap-4 text-label">
+                  <div className="inline-flex items-center gap-0 text-caption text-ink-2 whitespace-nowrap">
                     <button
-                      className="text-ink hover:text-mark hover:underline decoration-mark underline-offset-[3px]"
+                      className="px-2 hover:text-mark hover:underline decoration-mark underline-offset-[3px]"
                       onClick={() => setResetFor(u)}
                     >
                       {t("admin.reset_password")}
                     </button>
+                    <span className="text-ink-3" aria-hidden>·</span>
                     <button
-                      className="group inline-flex items-center gap-1.5 text-ink-2 hover:text-mark transition-colors"
+                      className="px-2 hover:text-mark hover:underline decoration-mark underline-offset-[3px]"
                       onClick={() => revoke.mutate(u.id)}
                     >
-                      <XCircle size={12} strokeWidth={1.25} className="text-ink-3 group-hover:text-mark transition-colors" />
-                      <span className="group-hover:underline decoration-mark underline-offset-[3px]">
-                        {t("admin.revoke_sessions")}
-                      </span>
+                      {t("admin.revoke_sessions")}
                     </button>
                     {u.id !== user?.id && (
-                      <button
-                        className="text-risk hover:underline decoration-risk underline-offset-[3px]"
-                        onClick={() => {
-                          if (
-                            confirm(
-                              t("admin.delete_confirm", { username: u.username }),
+                      <>
+                        <span className="text-ink-3" aria-hidden>·</span>
+                        <button
+                          className="px-2 text-risk hover:underline decoration-risk underline-offset-[3px]"
+                          onClick={() => {
+                            if (
+                              confirm(
+                                t("admin.delete_confirm", { username: u.username }),
+                              )
                             )
-                          )
-                            del.mutate(u.id);
-                        }}
-                      >
-                        {t("admin.delete")}
-                      </button>
+                              del.mutate(u.id);
+                          }}
+                        >
+                          {t("admin.delete")}
+                        </button>
+                      </>
                     )}
                   </div>
                 </td>
@@ -193,37 +195,6 @@ export default function AdminUsers() {
       {resetFor && (
         <ResetPasswordModal user={resetFor} onClose={() => setResetFor(null)} />
       )}
-    </div>
-  );
-}
-
-const ROLE_CLASSES: Record<Role, string> = {
-  admin: "bg-good-bg text-good",
-  operator: "bg-warn-bg text-warn",
-  viewer: "bg-quiet-bg text-quiet",
-};
-
-function RoleSegmented({
-  value,
-  onChange,
-}: {
-  value: Role;
-  onChange: (r: Role) => void;
-}) {
-  const opts: Role[] = ["viewer", "operator", "admin"];
-  return (
-    <div className="inline-flex gap-1">
-      {opts.map((o) => (
-        <button
-          key={o}
-          onClick={() => o !== value && onChange(o)}
-          className={`h-7 px-3 text-caption rounded-[8px] transition-colors ${
-            o === value ? ROLE_CLASSES[o] : "text-ink-3 hover:text-ink"
-          }`}
-        >
-          {o}
-        </button>
-      ))}
     </div>
   );
 }

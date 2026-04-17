@@ -20,8 +20,11 @@ export default function StatusPill({
 }) {
   if (tone === "live") {
     return (
-      <span className="inline-flex items-center gap-2 text-caption font-medium text-good whitespace-nowrap">
-        <span className="block w-[2px] h-[11px] bg-mark shrink-0" />
+      <span className="inline-flex items-center gap-1.5 text-caption font-medium text-good whitespace-nowrap leading-none">
+        <span
+          aria-hidden
+          className="block w-[2px] h-[10px] bg-mark shrink-0 translate-y-[-0.5px]"
+        />
         {children}
       </span>
     );
