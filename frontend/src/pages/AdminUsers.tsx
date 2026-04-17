@@ -15,6 +15,45 @@ import { Phrase } from "../components/Loader";
 
 type Role = "admin" | "operator" | "viewer";
 
+/**
+ * Compact action link for table rows. Caption-size typography is set
+ * explicitly here because Tailwind preflight's `font-size: 100%` on
+ * <button> collapses back to the 15px root when the parent uses a
+ * `text-caption` utility, giving us oversized action links otherwise.
+ */
+function ActionLink({
+  children,
+  onClick,
+  danger,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "text-caption leading-none px-2.5 py-1 transition-colors underline-offset-[3px]",
+        danger
+          ? "text-risk hover:underline decoration-risk"
+          : "text-ink-2 hover:text-mark hover:underline decoration-mark",
+      ].join(" ")}
+    >
+      {children}
+    </button>
+  );
+}
+
+function ActionDot() {
+  return (
+    <span aria-hidden className="text-caption text-ink-3/60 select-none">
+      ·
+    </span>
+  );
+}
+
 interface UserRow {
   id: number;
   username: string;
@@ -146,25 +185,19 @@ export default function AdminUsers() {
                   )}
                 </td>
                 <td className="h-[52px] px-4 border-b border-rule text-right">
-                  <div className="inline-flex items-center gap-0 text-caption text-ink-2 whitespace-nowrap">
-                    <button
-                      className="px-2 hover:text-mark hover:underline decoration-mark underline-offset-[3px]"
-                      onClick={() => setResetFor(u)}
-                    >
+                  <div className="inline-flex items-center whitespace-nowrap leading-none">
+                    <ActionLink onClick={() => setResetFor(u)}>
                       {t("admin.reset_password")}
-                    </button>
-                    <span className="text-ink-3" aria-hidden>·</span>
-                    <button
-                      className="px-2 hover:text-mark hover:underline decoration-mark underline-offset-[3px]"
-                      onClick={() => revoke.mutate(u.id)}
-                    >
+                    </ActionLink>
+                    <ActionDot />
+                    <ActionLink onClick={() => revoke.mutate(u.id)}>
                       {t("admin.revoke_sessions")}
-                    </button>
+                    </ActionLink>
                     {u.id !== user?.id && (
                       <>
-                        <span className="text-ink-3" aria-hidden>·</span>
-                        <button
-                          className="px-2 text-risk hover:underline decoration-risk underline-offset-[3px]"
+                        <ActionDot />
+                        <ActionLink
+                          danger
                           onClick={() => {
                             if (
                               confirm(
@@ -175,7 +208,7 @@ export default function AdminUsers() {
                           }}
                         >
                           {t("admin.delete")}
-                        </button>
+                        </ActionLink>
                       </>
                     )}
                   </div>
