@@ -54,6 +54,18 @@ async def list_rows(
     )
 
 
+@router.get("/{key}/distinct/{column}")
+async def distinct_values(
+    key: str,
+    column: str,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    q: str | None = None,
+    limit: int = Query(200, ge=1, le=500),
+) -> dict:
+    return await service.distinct_values(session, key, column, search=q, limit=limit)
+
+
 @router.get("/{key}/row/{pk}")
 async def get_row(
     key: str,

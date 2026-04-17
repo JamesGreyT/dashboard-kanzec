@@ -106,6 +106,7 @@ export default function DataViewer() {
         numeric: c.numeric,
         idColumn: c.id_column,
         currency: c.currency,
+        width: widthFor(c),
         hasActiveFilter: hasActive(filters[c.name]),
         filter: (
           <div className="relative">
@@ -126,6 +127,7 @@ export default function DataViewer() {
             {openFilterCol === c.name && (
               <ColumnFilter
                 col={c}
+                tableKey={activeKey}
                 value={filters[c.name] ?? initialFilterFor(c)}
                 onChange={(v) => updateFilter(c.name, v)}
                 onClose={() => setOpenFilterCol(null)}
@@ -135,7 +137,7 @@ export default function DataViewer() {
         ),
       }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTable, filters, openFilterCol]);
+  }, [activeTable, filters, openFilterCol, activeKey]);
 
   function exportCsv() {
     const token = getAccessToken();
@@ -332,6 +334,22 @@ function formatDetail(v: unknown, currency: string | null) {
     }
   }
   return String(v);
+}
+
+function widthFor(c: {
+  type: string;
+  numeric: boolean;
+  id_column: boolean;
+  name: string;
+}): string {
+  if (c.type === "date") return "118px";
+  if (c.type === "timestamp") return "156px";
+  if (c.numeric) return c.name === "amount" || c.name === "product_amount" ? "124px" : "96px";
+  if (c.id_column) return "140px";
+  // Long-text columns — give them room but truncate if overflowing.
+  if (c.name === "product_name" || c.name === "client_name") return "280px";
+  if (c.name === "name") return "280px";
+  return "160px";
 }
 
 function FilterIcon() {

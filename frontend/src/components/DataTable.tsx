@@ -39,8 +39,9 @@ export default function DataTable<R extends Record<string, unknown>>({
                   "h-11 px-4 border-b border-rule sticky top-0 bg-card z-10",
                   "text-eyebrow font-semibold uppercase tracking-[0.16em] text-ink-3",
                   c.numeric ? "text-right" : "text-left",
+                  "whitespace-nowrap",
                 ].join(" ")}
-                style={c.width ? { width: c.width } : undefined}
+                style={c.width ? { width: c.width, minWidth: c.width } : undefined}
               >
                 <div
                   className={[
@@ -93,11 +94,13 @@ export default function DataTable<R extends Record<string, unknown>>({
                   <td
                     key={c.name}
                     className={[
-                      "h-[52px] px-4 border-b border-rule",
-                      c.numeric ? "text-right" : "",
+                      "h-[52px] px-4 border-b border-rule whitespace-nowrap",
+                      c.numeric ? "text-right" : "overflow-hidden text-ellipsis",
                       c.idColumn ? "mono text-mono-sm text-ink-2" : "text-body text-ink",
                       c.numeric ? "serif nums" : "",
                     ].join(" ")}
+                    style={c.width ? { width: c.width, maxWidth: c.width } : undefined}
+                    title={c.numeric ? undefined : stringify(r[c.name])}
                   >
                     {c.render ? c.render(r) : formatCell(r[c.name], c)}
                   </td>
@@ -108,6 +111,12 @@ export default function DataTable<R extends Record<string, unknown>>({
       </table>
     </div>
   );
+}
+
+function stringify(v: unknown): string {
+  if (v == null) return "";
+  if (typeof v === "string") return v;
+  return String(v);
 }
 
 function formatCell<R>(value: unknown, col: Column<R>): ReactNode {

@@ -69,12 +69,25 @@ def _build_where(
                 status.HTTP_400_BAD_REQUEST,
                 f"operator {op!r} not allowed for column {col_name}",
             )
-        value = _parse_filter_value(col, value_str)
         pname = f"f{i}"
-        if op == "ilike":
+        if op == "in":
+            # value is a pipe-separated list: "USD|UZS|EUR"
+            raw_values = [v for v in value_str.split("|") if v != ""]
+            if not raw_values:
+                # empty IN → no match; keep the SQL valid by matching nothing.
+                clauses.append("false")
+                continue
+            parsed = [_parse_filter_value(col, v) for v in raw_values]
+            placeholders = ", ".join(f":{pname}_{j}" for j in range(len(parsed)))
+            clauses.append(f'"{col_name}" IN ({placeholders})')
+            for j, v in enumerate(parsed):
+                params[f"{pname}_{j}"] = v
+        elif op == "ilike":
+            value = _parse_filter_value(col, value_str)
             clauses.append(f'"{col_name}"::text ILIKE :{pname}')
             params[pname] = f"%{value}%"
         else:
+            value = _parse_filter_value(col, value_str)
             clauses.append(f'"{col_name}" {op} :{pname}')
             params[pname] = value
 
@@ -155,6 +168,51 @@ async def list_rows(
         "total": total,
         "limit": limit,
         "offset": offset,
+    }
+
+
+async def distinct_values(
+    session: AsyncSession,
+    key: str,
+    column: str,
+    *,
+    search: str | None,
+    limit: int,
+) -> dict[str, Any]:
+    """Return up to `limit` distinct values of `column`, with counts, ordered
+    by frequency (desc) then value (asc). Powers the Excel-style checkbox
+    filter."""
+    table = _table(key)
+    col = table.columns.get(column)
+    if col is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"unknown column {column!r}")
+    # Cap hard so a rogue client can't pull 1M distincts.
+    limit = max(1, min(limit, 500))
+
+    params: dict[str, Any] = {"lim": limit + 1}
+    where = ""
+    if search:
+        where = f'WHERE "{column}"::text ILIKE :q'
+        params["q"] = f"%{search}%"
+
+    rows = (
+        await session.execute(
+            text(f"""
+                SELECT "{column}"::text AS v, COUNT(*) AS c
+                  FROM "{table.schema}"."{table.table}"
+                  {where}
+                 GROUP BY 1
+                 ORDER BY c DESC NULLS LAST, v ASC NULLS LAST
+                 LIMIT :lim
+            """),
+            params,
+        )
+    ).all()
+    limited = len(rows) > limit
+    rows = rows[:limit]
+    return {
+        "values": [{"value": r.v, "count": int(r.c)} for r in rows],
+        "limited": limited,
     }
 
 
