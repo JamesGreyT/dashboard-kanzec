@@ -1,31 +1,40 @@
 export type StatusTone = "live" | "staged" | "failed" | "quiet";
 
-const MAP: Record<StatusTone, { bg: string; fg: string; dot: string; pulse: boolean }> = {
-  live:   { bg: "bg-good-bg",  fg: "text-good",  dot: "bg-good",  pulse: true  },
-  staged: { bg: "bg-warn-bg",  fg: "text-warn",  dot: "bg-warn",  pulse: false },
-  failed: { bg: "bg-risk-bg",  fg: "text-risk",  dot: "bg-risk",  pulse: false },
-  quiet:  { bg: "bg-quiet-bg", fg: "text-quiet", dot: "bg-quiet", pulse: false },
-};
-
+/**
+ * Status glyph.
+ *
+ *   live   → 2px vermilion composing-stick bar + "live" in good
+ *   staged → soft mustard pill
+ *   failed → soft brick pill
+ *   quiet  → soft olive pill
+ *
+ * Only `live` gets the standout bar. Keeps the eye's attention on fresh
+ * things and lets the other tones sit quietly as tinted labels.
+ */
 export default function StatusPill({
   tone,
   children,
-  showDot = true,
 }: {
   tone: StatusTone;
   children: React.ReactNode;
-  showDot?: boolean;
 }) {
-  const m = MAP[tone];
+  if (tone === "live") {
+    return (
+      <span className="inline-flex items-center gap-2 text-caption font-medium text-good whitespace-nowrap">
+        <span className="block w-[2px] h-[11px] bg-mark shrink-0" />
+        {children}
+      </span>
+    );
+  }
+  const m = {
+    staged: "bg-warn-bg text-warn",
+    failed: "bg-risk-bg text-risk",
+    quiet: "bg-quiet-bg text-quiet",
+  }[tone];
   return (
     <span
-      className={`inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full ${m.bg} ${m.fg} text-caption font-medium`}
+      className={`inline-flex items-center h-[22px] px-2.5 rounded-full ${m} text-caption font-medium whitespace-nowrap`}
     >
-      {showDot && (
-        <span
-          className={`w-1.5 h-1.5 rounded-full ${m.dot} ${m.pulse ? "animate-live-pulse" : ""}`}
-        />
-      )}
       {children}
     </span>
   );

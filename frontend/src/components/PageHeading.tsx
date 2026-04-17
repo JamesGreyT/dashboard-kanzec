@@ -21,12 +21,12 @@ export default function PageHeading({
       </div>
       <h1 className="serif text-heading-lg text-ink mt-2 leading-none">
         {title}
-        <span className="text-mark">.</span>
+        <span className="mark-stop">.</span>
       </h1>
       {subtitle && (
         <div className="text-body text-ink-2 mt-3">{subtitle}</div>
       )}
-      <div className="rule mt-6" />
+      <div className="leader mt-6" />
     </div>
   );
 }

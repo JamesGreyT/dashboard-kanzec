@@ -1,5 +1,6 @@
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { XCircle } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import PageHeading from "../components/PageHeading";
@@ -9,6 +10,7 @@ import Input from "../components/Input";
 import Modal from "../components/Modal";
 import StatusPill from "../components/StatusPill";
 import RelativeTime from "../components/RelativeTime";
+import { Phrase } from "../components/Loader";
 
 type Role = "admin" | "operator" | "viewer";
 
@@ -70,7 +72,7 @@ export default function AdminUsers() {
 
       <div className="mt-6 flex items-center justify-end">
         <Button variant="primary" onClick={() => setCreate(true)}>
-          + New user
+          + Enroll user.
         </Button>
       </div>
 
@@ -131,20 +133,21 @@ export default function AdminUsers() {
                 <td className="h-[52px] px-4 border-b border-rule text-right">
                   <div className="inline-flex items-center gap-4 text-label">
                     <button
-                      className="text-ink hover:text-mark hover:underline decoration-mark"
+                      className="text-ink hover:text-mark hover:underline decoration-mark underline-offset-[3px]"
                       onClick={() => setResetFor(u)}
                     >
                       reset password
                     </button>
                     <button
-                      className="text-ink-2 hover:text-mark hover:underline decoration-mark"
+                      className="group inline-flex items-center gap-1.5 text-ink-2 hover:text-mark transition-colors"
                       onClick={() => revoke.mutate(u.id)}
                     >
-                      revoke sessions
+                      <XCircle size={12} strokeWidth={1.25} className="text-ink-3 group-hover:text-mark transition-colors" />
+                      <span className="group-hover:underline decoration-mark underline-offset-[3px]">revoke sessions</span>
                     </button>
                     {u.id !== user?.id && (
                       <button
-                        className="text-risk hover:underline decoration-risk"
+                        className="text-risk hover:underline decoration-risk underline-offset-[3px]"
                         onClick={() => {
                           if (confirm(`Delete user "${u.username}"? This cannot be undone.`))
                             del.mutate(u.id);
@@ -159,16 +162,14 @@ export default function AdminUsers() {
             ))}
             {q.isLoading && (
               <tr>
-                <td colSpan={6} className="py-10 text-center caption text-ink-3">
-                  reading…
-                </td>
+                <td colSpan={6}><Phrase /></td>
               </tr>
             )}
           </tbody>
         </table>
       </Card>
 
-      {create && <NewUserModal onClose={() => setCreate(false)} />}
+      {create && <EnrollUserModal onClose={() => setCreate(false)} />}
       {resetFor && (
         <ResetPasswordModal user={resetFor} onClose={() => setResetFor(null)} />
       )}
@@ -207,7 +208,7 @@ function RoleSegmented({
   );
 }
 
-function NewUserModal({ onClose }: { onClose: () => void }) {
+function EnrollUserModal({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -233,9 +234,10 @@ function NewUserModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <Modal open onClose={onClose} title="New user">
+    <Modal open onClose={onClose} title="Enroll user">
       <form onSubmit={submit} className="flex flex-col gap-5">
         <Input
+          layout="inline"
           label="Username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
@@ -243,6 +245,7 @@ function NewUserModal({ onClose }: { onClose: () => void }) {
           autoFocus
         />
         <Input
+          layout="inline"
           label="Password"
           type="password"
           value={password}
@@ -250,8 +253,8 @@ function NewUserModal({ onClose }: { onClose: () => void }) {
           minLength={8}
           required
         />
-        <label className="flex flex-col gap-2">
-          <span className="eyebrow">Role</span>
+        <label className="grid grid-cols-[100px_1fr] items-center gap-x-4">
+          <span className="eyebrow text-right">Role</span>
           <div className="flex gap-2">
             {(["viewer", "operator", "admin"] as const).map((r) => (
               <button
@@ -269,9 +272,11 @@ function NewUserModal({ onClose }: { onClose: () => void }) {
             ))}
           </div>
         </label>
-        {err && <div className="caption text-risk">{err}</div>}
-        <div className="flex items-center justify-end gap-3 mt-2">
-          <Button type="button" onClick={onClose}>
+        {err && (
+          <div className="caption text-risk border-l-2 border-risk pl-3">{err}</div>
+        )}
+        <div className="flex items-center justify-end gap-5 mt-2">
+          <Button variant="link" type="button" onClick={onClose}>
             Cancel
           </Button>
           <Button
@@ -279,7 +284,7 @@ function NewUserModal({ onClose }: { onClose: () => void }) {
             type="submit"
             disabled={!username || password.length < 8 || m.isPending}
           >
-            {m.isPending ? "Saving…" : "Create"}
+            {m.isPending ? "Saving…" : "Enroll user."}
           </Button>
         </div>
       </form>
@@ -313,6 +318,7 @@ function ResetPasswordModal({
         className="flex flex-col gap-5"
       >
         <Input
+          layout="inline"
           label="New password"
           type="password"
           value={password}
@@ -321,12 +327,12 @@ function ResetPasswordModal({
           required
           autoFocus
         />
-        <div className="flex items-center justify-end gap-3 mt-2">
-          <Button type="button" onClick={onClose}>
+        <div className="flex items-center justify-end gap-5 mt-2">
+          <Button variant="link" type="button" onClick={onClose}>
             Cancel
           </Button>
           <Button variant="primary" type="submit" disabled={password.length < 8 || m.isPending}>
-            {m.isPending ? "Saving…" : "Reset"}
+            {m.isPending ? "Saving…" : "Reset password."}
           </Button>
         </div>
       </form>

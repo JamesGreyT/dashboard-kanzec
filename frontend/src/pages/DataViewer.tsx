@@ -1,12 +1,14 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { AnimatePresence, motion } from "motion/react";
 import { api, getAccessToken } from "../lib/api";
 import PageHeading from "../components/PageHeading";
 import Card from "../components/Card";
-import DataTable, { Column } from "../components/DataTable";
+import DataTable, { Column, Density } from "../components/DataTable";
 import Drawer from "../components/Drawer";
 import Button from "../components/Button";
 import Input from "../components/Input";
+import Pagination from "../components/Pagination";
 import ColumnFilter, {
   ColumnFilterValue,
   ColumnMeta,
@@ -36,6 +38,15 @@ interface RowsResp {
 
 type Row = Record<string, unknown>;
 type Filters = Record<string, ColumnFilterValue>;
+type SortState = { field: string; dir: "asc" | "desc" } | null;
+
+const DENSITY_KEY = "kanzec.density";
+
+function readDensity(): Density {
+  if (typeof localStorage === "undefined") return "compact";
+  const v = localStorage.getItem(DENSITY_KEY);
+  return v === "comfortable" ? "comfortable" : "compact";
+}
 
 export default function DataViewer() {
   const tables = useQuery({
@@ -47,13 +58,24 @@ export default function DataViewer() {
   const [search, setSearch] = useState("");
   const [offset, setOffset] = useState(0);
   const limit = 50;
-  const [openRow, setOpenRow] = useState<Row | null>(null);
+  const [openRowIdx, setOpenRowIdx] = useState<number | null>(null);
   const [openFilterCol, setOpenFilterCol] = useState<string | null>(null);
   const [filtersByTable, setFiltersByTable] = useState<Record<string, Filters>>({});
+  const [sortByTable, setSortByTable] = useState<Record<string, SortState>>({});
+  const [density, setDensity] = useState<Density>(readDensity);
   const filterBtnRefs = useRef<Map<string, HTMLButtonElement | null>>(new Map());
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(DENSITY_KEY, density);
+    } catch {
+      /* no-op */
+    }
+  }, [density]);
 
   const activeTable = tables.data?.tables.find((t) => t.key === activeKey);
   const filters = filtersByTable[activeKey] ?? {};
+  const sort = sortByTable[activeKey] ?? null;
 
   const filterTriples = useMemo<Array<[string, string, string]>>(() => {
     if (!activeTable) return [];
@@ -70,11 +92,12 @@ export default function DataViewer() {
     p.set("limit", String(limit));
     p.set("offset", String(offset));
     if (search) p.set("search", search);
+    if (sort) p.set("sort", `${sort.field}:${sort.dir}`);
     for (const [col, op, val] of filterTriples) {
       p.append("f", `${col}:${op}:${val}`);
     }
     return p.toString();
-  }, [limit, offset, search, filterTriples]);
+  }, [limit, offset, search, filterTriples, sort]);
 
   const rowsQ = useQuery({
     queryKey: ["data.rows", activeKey, qs],
@@ -97,6 +120,37 @@ export default function DataViewer() {
     setFiltersByTable((prev) => ({ ...prev, [activeKey]: {} }));
   };
 
+  const toggleSort = (colName: string) => {
+    setOffset(0);
+    setSortByTable((prev) => {
+      const cur = prev[activeKey] ?? null;
+      let next: SortState;
+      if (!cur || cur.field !== colName) next = { field: colName, dir: "desc" };
+      else if (cur.dir === "desc") next = { field: colName, dir: "asc" };
+      else next = null; // third click clears
+      return { ...prev, [activeKey]: next };
+    });
+  };
+
+  const rows = rowsQ.data?.rows ?? [];
+  const openRow = openRowIdx != null ? rows[openRowIdx] ?? null : null;
+
+  // Keyboard ← / → while drawer is open — jump prev / next row.
+  useEffect(() => {
+    if (openRowIdx == null) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft" && openRowIdx > 0) {
+        e.preventDefault();
+        setOpenRowIdx(openRowIdx - 1);
+      } else if (e.key === "ArrowRight" && openRowIdx < rows.length - 1) {
+        e.preventDefault();
+        setOpenRowIdx(openRowIdx + 1);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [openRowIdx, rows.length]);
+
   const columns = useMemo<Column<Row>[]>(() => {
     if (!activeTable) return [];
     return activeTable.columns
@@ -108,6 +162,7 @@ export default function DataViewer() {
         idColumn: c.id_column,
         currency: c.currency,
         width: widthFor(c),
+        sort: sort?.field === c.name ? sort.dir : null,
         hasActiveFilter: hasActive(filters[c.name]),
         filter: (
           <>
@@ -142,7 +197,7 @@ export default function DataViewer() {
         ),
       }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTable, filters, openFilterCol, activeKey]);
+  }, [activeTable, filters, openFilterCol, activeKey, sort]);
 
   function exportCsv() {
     const token = getAccessToken();
@@ -166,13 +221,13 @@ export default function DataViewer() {
         const v = filters[c.name];
         if (!v || !hasActive(v)) return [];
         return valueToFilterTriples(c, v).map(([col, op, val]) => ({
-          col,
-          label: c.label,
-          op,
-          val,
+          col, label: c.label, op, val,
         }));
       })
     : [];
+
+  const pkValue = (row: Row) =>
+    activeTable ? activeTable.pk.map((p) => row[p]).join("~") : "";
 
   return (
     <div>
@@ -195,6 +250,7 @@ export default function DataViewer() {
               setActiveKey(t.key);
               setOffset(0);
               setOpenFilterCol(null);
+              setOpenRowIdx(null);
             }}
             className={[
               "pb-3 text-label transition-colors",
@@ -208,11 +264,11 @@ export default function DataViewer() {
         ))}
       </div>
 
-      {/* Top strip */}
+      {/* Top strip — search + density toggle + CSV */}
       <div className="mt-6 flex items-center gap-4">
         <div className="flex-1">
           <Input
-            placeholder="search across all columns…"
+            placeholder="query the roll…"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -220,98 +276,162 @@ export default function DataViewer() {
             }}
           />
         </div>
+        <div className="flex items-center gap-3 caption text-ink-3">
+          <span>density</span>
+          <button
+            type="button"
+            onClick={() => setDensity("compact")}
+            className={`caption transition-colors ${
+              density === "compact"
+                ? "text-mark underline decoration-mark underline-offset-[3px]"
+                : "text-ink-2 hover:text-ink"
+            }`}
+          >
+            compact
+          </button>
+          <span>·</span>
+          <button
+            type="button"
+            onClick={() => setDensity("comfortable")}
+            className={`caption transition-colors ${
+              density === "comfortable"
+                ? "text-mark underline decoration-mark underline-offset-[3px]"
+                : "text-ink-2 hover:text-ink"
+            }`}
+          >
+            comfortable
+          </button>
+        </div>
         <Button onClick={exportCsv}>CSV</Button>
       </div>
 
-      {/* Active filter chips */}
-      {activeFilterChips.length > 0 && (
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          {activeFilterChips.map((chip, i) => {
-            const colMeta = activeTable!.columns.find((c) => c.name === chip.col)!;
-            return (
-              <button
-                key={`${chip.col}-${chip.op}-${i}`}
-                onClick={() => updateFilter(chip.col, undefined)}
-                className="group inline-flex items-center gap-2 h-7 px-3 rounded-full bg-mark-bg/60 hover:bg-mark-bg transition-colors caption text-ink"
-                title="Click to remove"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-mark" />
-                <span className="text-ink-2">{colMeta.label}</span>
-                <span className="mono text-mono-xs text-ink-3">{chip.op}</span>
-                <span className="text-ink tabular-nums">{chip.val}</span>
-                <span className="text-ink-3 group-hover:text-mark">×</span>
-              </button>
-            );
-          })}
-          <button
-            onClick={clearAllFilters}
-            className="caption text-ink-2 hover:text-mark hover:underline decoration-mark ml-2"
+      {/* Active filter chips — slides in when count goes 0 → ≥1 */}
+      <AnimatePresence initial={false}>
+        {activeFilterChips.length > 0 && (
+          <motion.div
+            key="chips"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
+            className="mt-4 flex flex-wrap items-center gap-2"
           >
-            clear all
-          </button>
-        </div>
-      )}
+            {activeFilterChips.map((chip, i) => {
+              const colMeta = activeTable!.columns.find((c) => c.name === chip.col)!;
+              return (
+                <button
+                  key={`${chip.col}-${chip.op}-${i}`}
+                  onClick={() => updateFilter(chip.col, undefined)}
+                  className="group inline-flex items-center gap-2 h-7 px-3 rounded-full bg-mark-bg/60 hover:bg-mark-bg transition-colors caption text-ink"
+                  title="Click to remove"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-mark" />
+                  <span className="text-ink-2">{colMeta.label}</span>
+                  <span className="mono text-mono-xs text-ink-3">{chip.op}</span>
+                  <span className="text-ink tabular-nums">{chip.val}</span>
+                  <span className="text-ink-3 group-hover:text-mark">×</span>
+                </button>
+              );
+            })}
+            <button
+              onClick={clearAllFilters}
+              className="caption text-ink-2 hover:text-mark hover:underline decoration-mark underline-offset-[3px] ml-2"
+            >
+              clear all
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <Card className="mt-4 p-0 overflow-hidden">
         <DataTable
           columns={columns}
-          rows={rowsQ.data?.rows ?? []}
-          onRowClick={(r) => setOpenRow(r)}
+          rows={rows}
+          density={density}
+          onRowClick={(r) => {
+            const idx = rows.indexOf(r);
+            if (idx >= 0) setOpenRowIdx(idx);
+          }}
+          onSort={toggleSort}
+          activeKey={openRow ? pkValue(openRow) : null}
+          rowKey={(r) => pkValue(r)}
           loading={rowsQ.isLoading}
+          emptyPhrase={activeFilterChips.length > 0 || search ? "filtered" : "empty"}
         />
         {rowsQ.data && (
-          <div className="h-14 px-6 flex items-center justify-between border-t border-rule">
-            <div className="caption text-ink-3 tabular-nums">
-              showing {rowsQ.data.total === 0 ? 0 : offset + 1}–
-              {Math.min(offset + limit, rowsQ.data.total)} of{" "}
-              {rowsQ.data.total.toLocaleString()}
-            </div>
-            <div className="flex items-center gap-6 text-label">
-              <button
-                onClick={() => setOffset(Math.max(0, offset - limit))}
-                disabled={offset === 0}
-                className="text-ink hover:text-mark hover:underline decoration-mark disabled:text-ink-3 disabled:no-underline disabled:cursor-not-allowed"
-              >
-                ← prev
-              </button>
-              <button
-                onClick={() => setOffset(offset + limit)}
-                disabled={offset + limit >= rowsQ.data.total}
-                className="text-ink hover:text-mark hover:underline decoration-mark disabled:text-ink-3 disabled:no-underline disabled:cursor-not-allowed"
-              >
-                next →
-              </button>
-            </div>
-          </div>
+          <Pagination
+            offset={offset}
+            limit={limit}
+            total={rowsQ.data.total}
+            onOffset={setOffset}
+          />
         )}
       </Card>
 
       <Drawer
         open={!!openRow}
-        onClose={() => setOpenRow(null)}
+        onClose={() => setOpenRowIdx(null)}
         title={activeTable?.label ?? ""}
+        pk={openRow && activeTable ? activeTable.pk.map((p) => String(openRow[p] ?? "—")).join(" · ") : undefined}
+        onPrev={openRowIdx != null && openRowIdx > 0 ? () => setOpenRowIdx(openRowIdx - 1) : undefined}
+        onNext={openRowIdx != null && openRowIdx < rows.length - 1 ? () => setOpenRowIdx(openRowIdx + 1) : undefined}
+        footer={
+          openRowIdx != null && rows.length > 0 ? (
+            <div className="caption text-ink-3 tabular-nums flex items-center justify-between">
+              <span>
+                row {openRowIdx + 1} of {rows.length} (on this page)
+              </span>
+              <span>
+                <kbd className="mono text-mono-xs">←</kbd>{" "}
+                <kbd className="mono text-mono-xs">→</kbd> to navigate
+              </span>
+            </div>
+          ) : undefined
+        }
       >
         {openRow && activeTable && (
-          <dl className="grid grid-cols-[160px_1fr] gap-y-3 gap-x-4">
+          <div className="flex flex-col gap-2">
             {activeTable.columns.map((c) => (
-              <div key={c.name} className="contents">
-                <dt className="eyebrow pt-1">{c.label}</dt>
-                <dd
+              <div
+                key={c.name}
+                className="flex items-baseline gap-2 py-1.5"
+              >
+                <span className="eyebrow text-right shrink-0" style={{ width: 140 }}>
+                  {c.label}
+                </span>
+                <span className="dotted-leader" />
+                <span
                   className={[
-                    "text-body",
+                    "text-body shrink-0 text-right",
                     c.id_column ? "mono text-mono-sm text-ink-2" : "text-ink",
                     c.numeric ? "serif nums tabular-nums" : "",
                   ].join(" ")}
+                  style={{ maxWidth: "60%" }}
                 >
                   {formatDetail(openRow[c.name], c.currency)}
-                </dd>
+                </span>
               </div>
             ))}
-          </dl>
+          </div>
         )}
       </Drawer>
     </div>
   );
+}
+
+function widthFor(c: {
+  type: string;
+  numeric: boolean;
+  id_column: boolean;
+  name: string;
+}): string {
+  if (c.type === "date") return "118px";
+  if (c.type === "timestamp") return "156px";
+  if (c.numeric) return c.name === "amount" || c.name === "product_amount" ? "124px" : "96px";
+  if (c.id_column) return "140px";
+  if (c.name === "product_name" || c.name === "client_name") return "280px";
+  if (c.name === "name") return "280px";
+  return "160px";
 }
 
 function formatDetail(v: unknown, currency: string | null) {
@@ -328,40 +448,22 @@ function formatDetail(v: unknown, currency: string | null) {
   }
   if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v)) {
     const d = new Date(v);
-    if (!Number.isNaN(d.getTime())) {
-      if (v.includes("T")) {
-        return (
-          <span className="tabular-nums">
-            {d.toLocaleString("en-GB", { timeZone: "Asia/Tashkent" })}
-          </span>
-        );
-      }
+    if (!Number.isNaN(d.getTime()) && v.includes("T")) {
+      return (
+        <span className="tabular-nums">
+          {d.toLocaleString("en-GB", { timeZone: "Asia/Tashkent" })}
+        </span>
+      );
     }
   }
   return String(v);
 }
 
-function widthFor(c: {
-  type: string;
-  numeric: boolean;
-  id_column: boolean;
-  name: string;
-}): string {
-  if (c.type === "date") return "118px";
-  if (c.type === "timestamp") return "156px";
-  if (c.numeric) return c.name === "amount" || c.name === "product_amount" ? "124px" : "96px";
-  if (c.id_column) return "140px";
-  // Long-text columns — give them room but truncate if overflowing.
-  if (c.name === "product_name" || c.name === "client_name") return "280px";
-  if (c.name === "name") return "280px";
-  return "160px";
-}
-
 function FilterIcon() {
   return (
     <svg
-      width="12"
-      height="12"
+      width="11"
+      height="11"
       viewBox="0 0 12 12"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -370,7 +472,7 @@ function FilterIcon() {
       <path
         d="M1 2h10l-4 5v3l-2 1V7L1 2z"
         stroke="currentColor"
-        strokeWidth="1.3"
+        strokeWidth="1.2"
         strokeLinejoin="round"
       />
     </svg>

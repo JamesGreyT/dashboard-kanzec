@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Calendar } from "lucide-react";
 import { api, getAccessToken } from "../lib/api";
 import PageHeading from "../components/PageHeading";
 import Card from "../components/Card";
@@ -9,6 +10,7 @@ import Modal from "../components/Modal";
 import Drawer from "../components/Drawer";
 import StatusPill, { StatusTone } from "../components/StatusPill";
 import RelativeTime from "../components/RelativeTime";
+import { Phrase } from "../components/Loader";
 
 interface Report {
   key: string;
@@ -25,6 +27,13 @@ interface Report {
   last_error: string | null;
   backfill_queue_len: number;
 }
+
+// Editorial subline per report — hardcoded, Almanac voice.
+const SUBLINE: Record<string, string> = {
+  order: "Transactional deliveries — pulled hourly, deep daily.",
+  payment: "Incoming payments — all channels.",
+  legal_person: "Client register — refreshed every six hours.",
+};
 
 export default function Ops() {
   const q = useQuery({
@@ -45,6 +54,11 @@ export default function Ops() {
       />
 
       <div className="mt-8 flex flex-col gap-6">
+        {q.isLoading && (
+          <Card>
+            <Phrase />
+          </Card>
+        )}
         {(q.data?.reports ?? []).map((r) => (
           <ReportCard
             key={r.key}
@@ -53,11 +67,6 @@ export default function Ops() {
             onLogs={() => setLogFor(r.key)}
           />
         ))}
-        {q.isLoading && (
-          <Card>
-            <div className="caption text-ink-3">reading the workers…</div>
-          </Card>
-        )}
       </div>
 
       {backfillFor && (
@@ -89,7 +98,7 @@ function ReportCard({
       ? "staged"
       : "quiet";
   const toneLabel =
-    r.systemd_active === "active" && tone === "live"
+    tone === "live"
       ? "live"
       : r.systemd_active === "failed"
       ? "failed"
@@ -97,27 +106,47 @@ function ReportCard({
       ? "staged"
       : r.systemd_active;
 
+  const subline = SUBLINE[r.key] ?? "";
+
   return (
-    <Card accent={tone === "live"}>
-      <div className="flex items-start justify-between gap-6">
-        <div>
-          <div className="eyebrow">SMARTUP-KANZEC-ETL-REPORT@{r.key}</div>
-          <div className="serif-italic text-heading-sm text-ink mt-1">{r.key}</div>
+    <Card accent={tone === "live"} className="p-8">
+      {/* Dateline — systemd unit + status pill */}
+      <div className="flex items-center justify-between">
+        <div className="eyebrow">
+          smartup-kanzec-etl-report@{r.key}.service
         </div>
         <StatusPill tone={tone}>{toneLabel}</StatusPill>
       </div>
 
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <div className="eyebrow">Recent window</div>
-          <div className="mt-2 text-body text-ink">
+      {/* Article title + subline */}
+      <div className="mt-6">
+        <h2 className="serif nums text-heading-md text-ink leading-none">
+          {r.key}
+          <span className="mark-stop">.</span>
+        </h2>
+        {subline && (
+          <div className="serif-italic text-body text-ink-2 mt-2">{subline}</div>
+        )}
+      </div>
+
+      <div className="leader" />
+
+      {/* Two-column stat block — RECENT | DEEP */}
+      <div className="grid grid-cols-1 md:grid-cols-2 relative">
+        <div className="md:pr-8">
+          <div className="eyebrow text-ink-3">Recent window</div>
+          <div className="mt-2 mono text-mono-sm text-ink-2 tabular-nums">
             {r.last_recent_label ?? "—"}
           </div>
-          <div className="mt-1 caption text-ink-3 tabular-nums">
-            {r.last_recent_rows != null
-              ? `${r.last_recent_rows.toLocaleString()} rows`
-              : "—"}
-            {" · "}
+          <div className="mt-5 flex items-baseline gap-2">
+            <span className="serif nums text-[44px] text-ink leading-none tabular-nums">
+              {r.last_recent_rows != null
+                ? r.last_recent_rows.toLocaleString()
+                : "—"}
+            </span>
+            <span className="caption text-ink-3">rows</span>
+          </div>
+          <div className="mt-3 caption text-ink-3 tabular-nums">
             {r.last_recent_ms != null
               ? `${(r.last_recent_ms / 1000).toFixed(1)} s`
               : "—"}
@@ -125,40 +154,85 @@ function ReportCard({
             <RelativeTime iso={r.last_recent_at ?? r.last_all_at} />
           </div>
         </div>
-        <div>
-          <div className="eyebrow">Deep window</div>
-          <div className="mt-2 text-body text-ink">
+
+        <div
+          aria-hidden
+          className="hidden md:block absolute left-1/2 top-0 bottom-0 w-px bg-rule"
+        />
+
+        <div className="md:pl-8 mt-6 md:mt-0">
+          <div className="eyebrow text-ink-3">Deep window</div>
+          <div className="mt-2 mono text-mono-sm text-ink-2 tabular-nums">
             {r.last_deep_label ?? "—"}
           </div>
-          <div className="mt-1 caption text-ink-3 tabular-nums">
-            {r.last_deep_rows != null
-              ? `${r.last_deep_rows.toLocaleString()} rows`
-              : "—"}
-            {" · "}
+          <div className="mt-5 flex items-baseline gap-2">
+            <span className="serif nums text-[44px] text-ink leading-none tabular-nums">
+              {r.last_deep_rows != null
+                ? r.last_deep_rows.toLocaleString()
+                : "—"}
+            </span>
+            <span className="caption text-ink-3">rows</span>
+          </div>
+          <div className="mt-3 caption text-ink-3 tabular-nums">
             <RelativeTime iso={r.last_deep_at} />
           </div>
         </div>
       </div>
 
-      {r.last_error && (
-        <div className="mt-6 p-3 rounded-[8px] bg-risk-bg caption text-risk">
-          <span className="eyebrow mr-2 text-risk">LAST ERROR</span>
-          {r.last_error}
-        </div>
-      )}
+      <div className="leader" />
 
-      <div className="mt-8 flex items-center justify-between">
-        <div className="caption text-ink-3">
-          backfill queue:{" "}
-          <span className="serif text-ink nums tabular-nums">
-            {r.backfill_queue_len}
-          </span>{" "}
-          chunk{r.backfill_queue_len === 1 ? "" : "s"}
+      {/* Metadata strip */}
+      <div className="grid grid-cols-[120px_1fr] gap-y-2 gap-x-4 items-baseline">
+        <div className="eyebrow">Queue</div>
+        <div className="text-body text-ink">
+          {r.backfill_queue_len === 0 ? (
+            <span className="text-ink-3">— no chunks pending —</span>
+          ) : (
+            <>
+              <span className="serif nums tabular-nums">
+                {r.backfill_queue_len}
+              </span>{" "}
+              <span className="text-ink-2">
+                chunk{r.backfill_queue_len === 1 ? "" : "s"} pending
+              </span>
+            </>
+          )}
         </div>
-        <div className="flex items-center gap-3">
-          <Button onClick={onBackfill}>+ Enqueue backfill</Button>
-          <Button onClick={onLogs}>View log tail</Button>
+        <div className="eyebrow">Errors</div>
+        <div className="text-body">
+          {r.last_error ? (
+            <span className="block border-l-2 border-risk pl-3 caption text-risk">
+              {r.last_error}
+            </span>
+          ) : (
+            <span className="text-ink-3">—</span>
+          )}
         </div>
+      </div>
+
+      <div className="leader" />
+
+      {/* Action line */}
+      <div className="flex items-center gap-7">
+        <button
+          onClick={onBackfill}
+          className="group inline-flex items-center gap-2 text-label text-ink hover:text-mark transition-colors"
+        >
+          <Calendar
+            size={14}
+            strokeWidth={1.25}
+            className="text-ink-3 group-hover:text-mark transition-colors"
+          />
+          <span className="group-hover:underline decoration-mark underline-offset-[3px]">
+            Enqueue backfill
+          </span>
+        </button>
+        <button
+          onClick={onLogs}
+          className="text-label text-ink-2 hover:text-mark hover:underline decoration-mark underline-offset-[3px] transition-colors"
+        >
+          Read the dispatches
+        </button>
       </div>
     </Card>
   );
@@ -188,10 +262,7 @@ function BackfillModal({
     mutationFn: () =>
       api<{ queued: number }>(
         `/api/ops/reports/${reportKey}/backfill`,
-        {
-          method: "POST",
-          body: JSON.stringify({ from, to, chunk }),
-        },
+        { method: "POST", body: JSON.stringify({ from, to, chunk }) },
       ),
     onSuccess: (res) => {
       setCount(res.queued);
@@ -212,35 +283,39 @@ function BackfillModal({
       {count != null ? (
         <div>
           <div className="text-body text-ink">
-            Queued {count} chunk{count === 1 ? "" : "s"}. The worker will drain
-            them at its next cycle.
+            Queued{" "}
+            <span className="serif nums tabular-nums">
+              {count.toLocaleString()}
+            </span>{" "}
+            chunk{count === 1 ? "" : "s"}. The worker will drain them at its
+            next cycle.
           </div>
           <div className="mt-6 flex justify-end">
             <Button variant="primary" onClick={onClose}>
-              Done
+              Done.
             </Button>
           </div>
         </div>
       ) : (
         <form onSubmit={submit} className="flex flex-col gap-5">
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="From"
-              type="date"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              required
-            />
-            <Input
-              label="To"
-              type="date"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              required
-            />
-          </div>
-          <label className="flex flex-col gap-2">
-            <span className="eyebrow">Chunk</span>
+          <Input
+            layout="inline"
+            label="From"
+            type="date"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+            required
+          />
+          <Input
+            layout="inline"
+            label="To"
+            type="date"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            required
+          />
+          <label className="grid grid-cols-[100px_1fr] items-center gap-x-4">
+            <span className="eyebrow text-right">Chunk</span>
             <div className="flex gap-2">
               {(["year", "month", "week"] as const).map((v) => (
                 <button
@@ -258,13 +333,21 @@ function BackfillModal({
               ))}
             </div>
           </label>
-          {err && <div className="caption text-risk">{err}</div>}
-          <div className="flex items-center justify-end gap-3 mt-2">
-            <Button onClick={onClose} type="button">
+          {err && (
+            <div className="caption text-risk border-l-2 border-risk pl-3">
+              {err}
+            </div>
+          )}
+          <div className="flex items-center justify-end gap-5 mt-2">
+            <Button variant="link" onClick={onClose} type="button">
               Cancel
             </Button>
-            <Button variant="primary" type="submit" disabled={!from || !to || m.isPending}>
-              {m.isPending ? "Queueing…" : "Queue backfill"}
+            <Button
+              variant="primary"
+              type="submit"
+              disabled={!from || !to || m.isPending}
+            >
+              {m.isPending ? "Queueing…" : "Queue backfill."}
             </Button>
           </div>
         </form>
@@ -330,13 +413,13 @@ function LogsDrawer({
   }, [lines]);
 
   return (
-    <Drawer open onClose={onClose} title={`LOG · ${reportKey}`} width={720}>
+    <Drawer open onClose={onClose} title={`DISPATCHES · ${reportKey}`} width={720}>
       <div
         ref={boxRef}
         className="h-full overflow-auto bg-paper-2 mono text-mono-xs leading-[1.6] p-4 rounded-[8px] whitespace-pre-wrap"
       >
         {lines.length === 0 && (
-          <div className="text-ink-3">streaming…</div>
+          <div className="text-ink-3 italic">— awaiting the wire —</div>
         )}
         {lines.map((l, i) => {
           const tone = /ERROR|CRITICAL/.test(l)

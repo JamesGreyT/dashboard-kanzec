@@ -186,10 +186,11 @@ export default function ColumnFilter({
       className="z-50 bg-card rounded-[10px] shadow-card border border-rule p-4 animate-enter-up"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="eyebrow mb-3">Filter · {col.label}</div>
+      <div className="eyebrow">Filter · {col.label}</div>
+      <div className="leader" />
 
       {showRange && (
-        <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1.5">
             <span className="caption text-ink-3">From</span>
             <input
@@ -213,8 +214,10 @@ export default function ColumnFilter({
         </div>
       )}
 
+      {showRange && (showContains || showValues || showEquals) && <div className="leader" />}
+
       {showContains && (
-        <label className="flex flex-col gap-1.5 mb-4">
+        <label className="flex flex-col gap-1.5">
           <span className="caption text-ink-3">Contains</span>
           <input
             value={draft.contains ?? ""}
@@ -226,8 +229,10 @@ export default function ColumnFilter({
         </label>
       )}
 
+      {showContains && showValues && <div className="leader" />}
+
       {showValues && (
-        <div className="mb-4">
+        <div>
           <div className="flex items-center justify-between mb-2">
             <span className="caption text-ink-3">Values</span>
             <div className="flex items-center gap-3 text-caption">
@@ -265,22 +270,23 @@ export default function ColumnFilter({
             {distinctQ.data?.values.map(({ value: v, count }) => (
               <label
                 key={v || "<null>"}
-                className="flex items-center gap-2 px-3 py-1.5 hover:bg-paper-2 cursor-pointer"
+                className="flex items-baseline gap-2 px-3 py-1.5 hover:bg-paper-2 cursor-pointer"
               >
                 <input
                   type="checkbox"
                   checked={pickedSet.has(v)}
                   onChange={() => togglePick(v)}
-                  className="accent-[var(--mark)]"
+                  className="accent-[var(--mark)] self-center"
                 />
-                <span className="flex-1 text-body text-ink truncate">
+                <span className="text-body text-ink truncate max-w-[170px]">
                   {v === "" || v == null ? (
                     <span className="italic text-ink-3">(empty)</span>
                   ) : (
                     v
                   )}
                 </span>
-                <span className="mono text-mono-xs text-ink-3 tabular-nums">
+                <span className="dotted-leader" />
+                <span className="mono text-mono-xs text-ink-3 tabular-nums shrink-0">
                   {count.toLocaleString()}
                 </span>
               </label>
@@ -297,8 +303,10 @@ export default function ColumnFilter({
         </div>
       )}
 
+      {(showRange || showContains || showValues) && showEquals && <div className="leader" />}
+
       {showEquals && (
-        <label className="flex flex-col gap-1.5 mb-4">
+        <label className="flex flex-col gap-1.5">
           <span className="caption text-ink-3">Equals</span>
           <input
             value={draft.equals ?? ""}
@@ -309,16 +317,17 @@ export default function ColumnFilter({
         </label>
       )}
 
+      <div className="leader" />
       <div className="flex items-center justify-between">
         <button
           onClick={clear}
           type="button"
-          className="text-label text-ink-2 hover:text-mark hover:underline decoration-mark"
+          className="text-label text-ink-2 hover:text-mark hover:underline decoration-mark underline-offset-[3px]"
         >
           clear
         </button>
         <Button variant="primary" onClick={apply} className="h-8 px-3 text-caption">
-          Apply
+          Apply filter.
         </Button>
       </div>
     </div>,

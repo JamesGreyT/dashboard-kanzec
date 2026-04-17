@@ -108,8 +108,127 @@ a:hover {
   border-radius: 4px;
 }
 
-/* Section break. */
+/* Section break (plain). */
 .rule {
   height: 1px;
   background: var(--rule);
+}
+
+/* ============================================================
+   Editorial rhythm — the dotted-end hairline "leader"
+   A 1px rule with two tiny dots at each end, used between
+   type blocks the way a printer would set a chapter ornament.
+   Used sparingly: once per card header, between page heading
+   and content, between popover sections.
+   ============================================================ */
+.leader {
+  position: relative;
+  height: 1px;
+  background: var(--rule);
+  margin: 14px 0;
+}
+.leader::before,
+.leader::after {
+  content: "";
+  position: absolute;
+  top: -2px;
+  width: 5px;
+  height: 5px;
+  background: var(--rule);
+  border-radius: 50%;
+}
+.leader::before { left: 0; }
+.leader::after  { right: 0; }
+
+/* A serif-set vermilion full-stop used as the terminator after
+   page headings. Reads as "printed" rather than "typed". */
+.mark-stop {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-style: normal;
+  color: var(--mark);
+}
+
+/* Dotted leader between a label and a right-aligned value —
+   table-of-contents style. Used in ColumnFilter values and
+   drawer field rows. */
+.dotted-leader {
+  flex: 1;
+  align-self: stretch;
+  border-bottom: 1px dotted var(--rule);
+  transform: translateY(-5px);
+  min-width: 8px;
+  margin: 0 6px;
+}
+
+/* Corner brackets — shown on `.card-interactive:hover`.
+   Four 14px × 1px vermilion L-brackets in the outer corners.
+   The editorial tell for "this is a pull-quote / clickable block." */
+.card-interactive {
+  transition: background-color 150ms ease-out;
+}
+.card-interactive:hover {
+  background-image:
+    linear-gradient(var(--mark), var(--mark)),
+    linear-gradient(var(--mark), var(--mark)),
+    linear-gradient(var(--mark), var(--mark)),
+    linear-gradient(var(--mark), var(--mark)),
+    linear-gradient(var(--mark), var(--mark)),
+    linear-gradient(var(--mark), var(--mark)),
+    linear-gradient(var(--mark), var(--mark)),
+    linear-gradient(var(--mark), var(--mark));
+  background-size:
+    14px 1px, 1px 14px,
+    14px 1px, 1px 14px,
+    14px 1px, 1px 14px,
+    14px 1px, 1px 14px;
+  background-position:
+    top left, top left,
+    top right, top right,
+    bottom left, bottom left,
+    bottom right, bottom right;
+  background-repeat: no-repeat;
+}
+
+/* Primary button: an underline sweep under the label on hover.
+   The label is wrapped in <span class="primary-underline-sweep">. */
+.primary-underline-sweep {
+  position: relative;
+  display: inline-block;
+}
+.primary-underline-sweep::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -3px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+button:hover > .primary-underline-sweep::after,
+button:focus-visible > .primary-underline-sweep::after {
+  transform: scaleX(1);
+}
+
+/* Active nav sweep — a 2px vermilion bar that animates in under
+   the label when a NavItem becomes active. Used only on the
+   currently-active sidebar route. */
+.nav-sweep {
+  position: relative;
+}
+.nav-sweep::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 4px;
+  height: 2px;
+  background: var(--mark);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.nav-sweep[data-active="true"]::after {
+  transform: scaleX(1);
 }

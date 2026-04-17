@@ -1,13 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 
-/**
- * Almanac sidebar — user card at top, grouped nav below, no icons (Almanac
- * rule: label type stands on its own). Active row gets --mark-bg wash +
- * --mark text. No right border — sidebar and main column are separated by a
- * paper-tone shift (paper vs paper-2), not by a rule.
- */
-
 interface Item {
   to: string;
   label: string;
@@ -18,11 +11,9 @@ const REGISTRY: Item[] = [
   { to: "/dashboard", label: "Dashboard", roles: ["admin", "operator", "viewer"] },
   { to: "/data", label: "Data", roles: ["admin", "operator", "viewer"] },
 ];
-
 const OPERATIONS: Item[] = [
   { to: "/ops", label: "Reports", roles: ["admin", "operator"] },
 ];
-
 const ADMIN: Item[] = [
   { to: "/admin/users", label: "Users", roles: ["admin"] },
   { to: "/admin/audit", label: "Audit", roles: ["admin"] },
@@ -34,7 +25,6 @@ export default function Sidebar() {
 
   return (
     <aside className="w-[264px] shrink-0 bg-paper min-h-screen px-7 py-6 flex flex-col">
-      {/* User card */}
       <div className="flex items-center gap-3">
         <div
           className="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
@@ -52,30 +42,36 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <div className="rule my-6" />
+      <div className="leader" />
 
       <NavGroup title="Registry" items={REGISTRY} role={user.role} />
       {OPERATIONS.some((i) => i.roles.includes(user.role)) && (
         <>
-          <div className="rule my-6" />
+          <div className="leader" />
           <NavGroup title="Operations" items={OPERATIONS} role={user.role} />
         </>
       )}
       {ADMIN.some((i) => i.roles.includes(user.role)) && (
         <>
-          <div className="rule my-6" />
+          <div className="leader" />
           <NavGroup title="Admin" items={ADMIN} role={user.role} />
         </>
       )}
 
       <div className="flex-1" />
 
-      <div className="rule my-6" />
+      <div className="leader" />
       <button
         onClick={() => void logout()}
-        className="text-label text-ink-2 hover:text-mark transition-colors text-left"
+        className="group inline-flex items-center gap-2 text-label text-ink-2 hover:text-mark transition-colors text-left"
       >
-        Sign out
+        <span>Leave the register</span>
+        <span
+          aria-hidden
+          className="serif text-[15px] text-ink-3 group-hover:text-mark transition-[color,transform] translate-x-0 group-hover:translate-x-0.5"
+        >
+          ›
+        </span>
       </button>
     </aside>
   );
@@ -102,14 +98,21 @@ function NavGroup({
               to={i.to}
               className={({ isActive }) =>
                 [
-                  "block h-9 px-3 rounded-md text-label leading-[36px] transition-colors",
+                  "nav-sweep relative block h-9 px-3 rounded-md text-label leading-[36px] transition-colors",
                   isActive
                     ? "bg-mark-bg text-mark"
                     : "text-ink-2 hover:bg-paper-2 hover:text-ink",
                 ].join(" ")
               }
             >
-              {i.label}
+              {({ isActive }) => (
+                <span
+                  data-active={isActive ? "true" : "false"}
+                  className="nav-sweep"
+                >
+                  {i.label}
+                </span>
+              )}
             </NavLink>
           </li>
         ))}

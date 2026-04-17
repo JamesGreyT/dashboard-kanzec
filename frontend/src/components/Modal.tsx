@@ -26,17 +26,20 @@ export default function Modal({
   if (!open) return null;
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[12vh]"
       style={{ background: "rgba(26,23,19,0.18)" }}
       onClick={onClose}
     >
       <div
         className="bg-card rounded-[16px] shadow-card p-10 animate-enter-up"
-        style={{ width, maxWidth: "90vw" }}
+        style={{ width, maxWidth: "92vw" }}
         onClick={(e) => e.stopPropagation()}
       >
         {title && (
-          <h2 className="serif-italic text-heading-sm text-ink mb-6">{title}</h2>
+          <>
+            <h2 className="serif-italic text-heading-sm text-ink">{title}</h2>
+            <div className="leader" />
+          </>
         )}
         {children}
       </div>

@@ -6,7 +6,9 @@ import Card from "../components/Card";
 import Drawer from "../components/Drawer";
 import JsonBlock from "../components/JsonBlock";
 import Input from "../components/Input";
+import Pagination from "../components/Pagination";
 import RelativeTime from "../components/RelativeTime";
+import { Phrase } from "../components/Loader";
 
 interface Row {
   id: number;
@@ -97,49 +99,27 @@ export default function AdminAudit() {
             ))}
             {(q.data?.rows.length ?? 0) === 0 && !q.isLoading && (
               <tr>
-                <td
-                  colSpan={5}
-                  className="py-14 text-center caption text-ink-3"
-                >
-                  nothing to report.
+                <td colSpan={5}>
+                  <div className="py-14 text-center caption italic text-ink-3">
+                    — no dispatches on record —
+                  </div>
                 </td>
               </tr>
             )}
             {q.isLoading && (
               <tr>
-                <td
-                  colSpan={5}
-                  className="py-10 text-center caption text-ink-3"
-                >
-                  reading…
-                </td>
+                <td colSpan={5}><Phrase /></td>
               </tr>
             )}
           </tbody>
         </table>
         {q.data && (
-          <div className="h-14 px-6 flex items-center justify-between border-t border-rule">
-            <div className="caption text-ink-3 tabular-nums">
-              showing {q.data.total === 0 ? 0 : offset + 1}–
-              {Math.min(offset + limit, q.data.total)} of {q.data.total.toLocaleString()}
-            </div>
-            <div className="flex items-center gap-6 text-label">
-              <button
-                onClick={() => setOffset(Math.max(0, offset - limit))}
-                disabled={offset === 0}
-                className="text-ink hover:text-mark hover:underline decoration-mark disabled:text-ink-3 disabled:no-underline"
-              >
-                ← prev
-              </button>
-              <button
-                onClick={() => setOffset(offset + limit)}
-                disabled={offset + limit >= q.data.total}
-                className="text-ink hover:text-mark hover:underline decoration-mark disabled:text-ink-3 disabled:no-underline"
-              >
-                next →
-              </button>
-            </div>
-          </div>
+          <Pagination
+            offset={offset}
+            limit={limit}
+            total={q.data.total}
+            onOffset={setOffset}
+          />
         )}
       </Card>
 

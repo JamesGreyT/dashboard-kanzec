@@ -53,7 +53,7 @@ export default function Login() {
       <div className="flex-1 flex items-center justify-center px-6 animate-enter-up">
         <div className="w-[420px]">
           <h1 className="serif text-heading-xl text-ink leading-none">
-            Log-in<span className="text-mark">.</span>
+            Log&#8209;in<span className="mark-stop">.</span>
           </h1>
           <p className="text-body text-ink-2 mt-3 max-w-[380px]">
             A record of the trade — deliveries, payments, and ledgers, kept
@@ -61,10 +61,7 @@ export default function Login() {
           </p>
 
           {err && (
-            <div
-              className="mt-8 caption text-risk px-3 py-2"
-              style={{ background: "var(--risk-bg)", borderRadius: 8 }}
-            >
+            <div className="mt-8 caption text-risk border-l-2 border-risk pl-3">
               {err}
             </div>
           )}
@@ -108,21 +105,25 @@ export default function Login() {
                          active:scale-[0.98]
                          disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {busy ? "Opening the register…" : "Enter the register"}
+              <span className="primary-underline-sweep">
+                {busy ? "Opening the register…" : "Enter the register."}
+              </span>
             </button>
           </form>
 
-          <p className="mt-8 caption text-ink-3">
-            This is an internal tool. The register closes when you close the
-            window; your session is kept only by your own browser.
-          </p>
+          <div className="mt-10 caption text-ink-3 text-right italic">
+            Kanzec · Internal · Volume I
+          </div>
         </div>
       </div>
 
-      <div className="rule mx-12" />
+      <div className="leader mx-12" />
       <div className="px-12 py-5 flex items-center justify-between">
-        <div className="caption text-ink-3">
-          Vol. I · Issue 01 · Set in Newsreader &amp; Fustat
+        <div
+          className="caption text-ink-3 uppercase"
+          style={{ letterSpacing: "0.12em" }}
+        >
+          Set in Newsreader &amp; Fustat
         </div>
         <div className="caption text-ink-3 mono">kanzec.ilhom.work</div>
       </div>
