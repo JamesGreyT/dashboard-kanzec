@@ -34,9 +34,15 @@ npm run build
 # Migrations — idempotent on every deploy
 # -----------------------------------------------------------------------------
 cd "$APP"
+# Load .env AND export everything in it so the python bootstrap subprocess
+# picks up DATABASE_URL, KANZEC_JWT_SECRET, etc. Plain `source .env` leaves
+# them shell-local, which is invisible to child processes.
+set -a
 set +u
+# shellcheck disable=SC1091
 source "$APP/.env"
 set -u
+set +a
 
 # Strip SQLAlchemy driver prefix to get a plain psql DSN.
 PSQL_DSN="${DATABASE_URL/postgresql+asyncpg:/postgresql:}"
