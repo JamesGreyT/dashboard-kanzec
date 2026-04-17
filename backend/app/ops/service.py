@@ -100,10 +100,8 @@ async def _progress_summary(session: AsyncSession) -> dict[str, dict]:
 async def _queue_lengths(session: AsyncSession) -> dict[str, int]:
     rows = (
         await session.execute(
-            text("""
-                SELECT key, value FROM smartup.etl_state
-                 WHERE key LIKE 'report:%%:backfill_queue'
-            """)
+            text("SELECT key, value FROM smartup.etl_state WHERE key LIKE :pat"),
+            {"pat": "report:%:backfill_queue"},
         )
     ).all()
     out = {}
