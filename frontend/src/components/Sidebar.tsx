@@ -105,21 +105,14 @@ function NavGroup({
               to={i.to}
               className={({ isActive }) =>
                 [
-                  "nav-sweep relative block h-9 px-3 rounded-md text-label leading-[36px] transition-colors",
+                  "block h-9 px-3 rounded-md text-label leading-[36px] transition-colors",
                   isActive
                     ? "bg-mark-bg text-mark"
                     : "text-ink-2 hover:bg-paper-2 hover:text-ink",
                 ].join(" ")
               }
             >
-              {({ isActive }) => (
-                <span
-                  data-active={isActive ? "true" : "false"}
-                  className="nav-sweep"
-                >
-                  {t(i.labelKey)}
-                </span>
-              )}
+              {t(i.labelKey)}
             </NavLink>
           </li>
         ))}

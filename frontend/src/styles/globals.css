@@ -211,24 +211,6 @@ button:focus-visible > .primary-underline-sweep::after {
   transform: scaleX(1);
 }
 
-/* Active nav sweep — a 2px vermilion bar that animates in under
-   the label when a NavItem becomes active. Used only on the
-   currently-active sidebar route. */
-.nav-sweep {
-  position: relative;
-}
-.nav-sweep::after {
-  content: "";
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 4px;
-  height: 2px;
-  background: var(--mark);
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-.nav-sweep[data-active="true"]::after {
-  transform: scaleX(1);
-}
+/* (removed .nav-sweep: on narrow labels the absolute 2px bar rendered
+   inside the text baseline and looked like a strikethrough. The active
+   nav state still reads clearly from the --mark-bg wash + --mark text.) */
