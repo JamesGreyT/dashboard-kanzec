@@ -1,0 +1,7 @@
+# Keep shell scripts, nginx/systemd configs, and SQL migrations in LF on
+# disk regardless of client platform — the VPS runs the shell scripts
+# directly, so a CR byte in the shebang breaks execution.
+*.sh    text eol=lf
+*.conf  text eol=lf
+*.service text eol=lf
+*.sql   text eol=lf
