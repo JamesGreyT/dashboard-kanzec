@@ -98,7 +98,7 @@
   "data": {
     "crumb_data": "Data",
     "title": "Data",
-    "subtitle_rows": "{{count}} rows · latest first",
+    "subtitle_rows": "{{n}} rows · latest first",
     "search_placeholder": "query the roll…",
     "filter": "Filter · {{label}}",
     "filter_contains": "Contains",
@@ -142,7 +142,7 @@
     "backfill_queueing": "Queueing…",
     "backfill_done": "Done.",
     "backfill_queued_singular": "Queued 1 chunk. The worker will drain it at its next cycle.",
-    "backfill_queued_plural": "Queued {{count}} chunks. The worker will drain them at its next cycle.",
+    "backfill_queued_plural": "Queued {{n}} chunks. The worker will drain them at its next cycle.",
     "subline_order": "Transactional deliveries — pulled hourly, deep daily.",
     "subline_payment": "Incoming payments — all channels.",
     "subline_legal_person": "Client register — refreshed every six hours.",

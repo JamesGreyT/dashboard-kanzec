@@ -98,7 +98,7 @@
   "data": {
     "crumb_data": "Ma'lumotlar",
     "title": "Ma'lumotlar",
-    "subtitle_rows": "{{count}} qator · yangilari birinchi",
+    "subtitle_rows": "{{n}} qator · yangilari birinchi",
     "search_placeholder": "ro'yxatni qidiring…",
     "filter": "Filtr · {{label}}",
     "filter_contains": "O'z ichiga oladi",
@@ -142,7 +142,7 @@
     "backfill_queueing": "Navbatga qo'yilmoqda…",
     "backfill_done": "Tayyor.",
     "backfill_queued_singular": "1 bo'lak navbatga qo'yildi. Xodim keyingi davrda uni bajaradi.",
-    "backfill_queued_plural": "{{count}} bo'lak navbatga qo'yildi. Xodim keyingi davrda ularni bajaradi.",
+    "backfill_queued_plural": "{{n}} bo'lak navbatga qo'yildi. Xodim keyingi davrda ularni bajaradi.",
     "subline_order": "Savdo yetkazib berishlari — har soatda yaqin, har kuni chuqur.",
     "subline_payment": "Kelayotgan to'lovlar — barcha kanallar.",
     "subline_legal_person": "Mijozlar ro'yxati — har olti soatda yangilanadi.",

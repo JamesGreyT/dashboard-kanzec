@@ -286,7 +286,7 @@ function BackfillModal({
           <div className="text-body text-ink">
             {count === 1
               ? t("ops.backfill_queued_singular")
-              : t("ops.backfill_queued_plural", { count: count.toLocaleString() })}
+              : t("ops.backfill_queued_plural", { n: count.toLocaleString() })}
           </div>
           <div className="mt-6 flex justify-end">
             <Button variant="primary" onClick={onClose}>

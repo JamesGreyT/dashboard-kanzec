@@ -249,7 +249,7 @@ export default function DataViewer() {
         subtitle={
           activeTable && rowsQ.data
             ? t("data.subtitle_rows", {
-                count: rowsQ.data.total.toLocaleString(),
+                n: rowsQ.data.total.toLocaleString(),
               })
             : undefined
         }

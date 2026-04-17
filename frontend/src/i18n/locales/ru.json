@@ -98,7 +98,7 @@
   "data": {
     "crumb_data": "Данные",
     "title": "Данные",
-    "subtitle_rows": "{{count}} строк · новые сверху",
+    "subtitle_rows": "{{n}} строк · новые сверху",
     "search_placeholder": "искать в журнале…",
     "filter": "Фильтр · {{label}}",
     "filter_contains": "Содержит",
@@ -142,7 +142,7 @@
     "backfill_queueing": "Ставим в очередь…",
     "backfill_done": "Готово.",
     "backfill_queued_singular": "1 блок в очереди. Служба выполнит его на следующем цикле.",
-    "backfill_queued_plural": "{{count}} блоков в очереди. Служба выполнит их на следующем цикле.",
+    "backfill_queued_plural": "{{n}} блоков в очереди. Служба выполнит их на следующем цикле.",
     "subline_order": "Торговые отгрузки — ежечасно ближе, ежедневно глубже.",
     "subline_payment": "Входящие платежи — все каналы.",
     "subline_legal_person": "Реестр клиентов — обновляется каждые шесть часов.",
