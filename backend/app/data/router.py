@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,12 +18,21 @@ async def list_tables(_: CurrentUser) -> dict:
     return {"tables": catalog.list_tables()}
 
 
-def _extract_filters(request: Request) -> dict[str, str]:
-    """Pull `filter[<col>]=<op>:<value>` query params into a plain dict."""
-    out: dict[str, str] = {}
-    for key in request.query_params.keys():
-        if key.startswith("filter[") and key.endswith("]"):
-            out[key[7:-1]] = request.query_params[key]
+def _extract_filters(request: Request) -> list[tuple[str, str, str]]:
+    """Pull repeatable `f=<col>:<op>:<value>` query params into triples.
+
+    Multiple `f=` values with the same column are ANDed — that's how we
+    express ranges (e.g. `f=delivery_date:>=:…` + `f=delivery_date:<=:…`).
+    """
+    out: list[tuple[str, str, str]] = []
+    for raw in request.query_params.getlist("f"):
+        parts = raw.split(":", 2)
+        if len(parts) != 3 or not parts[0] or not parts[1]:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                f"bad filter {raw!r}: expected col:op:value",
+            )
+        out.append((parts[0], parts[1], parts[2]))
     return out
 
 

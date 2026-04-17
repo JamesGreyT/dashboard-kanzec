@@ -7,23 +7,24 @@ import DataTable, { Column } from "../components/DataTable";
 import Drawer from "../components/Drawer";
 import Button from "../components/Button";
 import Input from "../components/Input";
-import JsonBlock from "../components/JsonBlock";
+import ColumnFilter, {
+  ColumnFilterValue,
+  ColumnMeta,
+  hasActive,
+  initialFilterFor,
+  valueToFilterTriples,
+} from "../components/ColumnFilter";
 
 interface TableMeta {
   key: string;
   label: string;
   pk: string[];
   default_sort: { field: string; dir: "asc" | "desc" }[];
-  columns: {
-    name: string;
-    label: string;
-    type: string;
-    ops: string[];
+  columns: (ColumnMeta & {
     visible: boolean;
-    numeric: boolean;
-    id_column: boolean;
     currency: string | null;
-  }[];
+    id_column: boolean;
+  })[];
 }
 
 interface RowsResp {
@@ -34,6 +35,7 @@ interface RowsResp {
 }
 
 type Row = Record<string, unknown>;
+type Filters = Record<string, ColumnFilterValue>;
 
 export default function DataViewer() {
   const tables = useQuery({
@@ -46,18 +48,53 @@ export default function DataViewer() {
   const [offset, setOffset] = useState(0);
   const limit = 50;
   const [openRow, setOpenRow] = useState<Row | null>(null);
+  const [openFilterCol, setOpenFilterCol] = useState<string | null>(null);
+  const [filtersByTable, setFiltersByTable] = useState<Record<string, Filters>>({});
 
   const activeTable = tables.data?.tables.find((t) => t.key === activeKey);
+  const filters = filtersByTable[activeKey] ?? {};
+
+  const filterTriples = useMemo<Array<[string, string, string]>>(() => {
+    if (!activeTable) return [];
+    const out: Array<[string, string, string]> = [];
+    for (const col of activeTable.columns) {
+      const v = filters[col.name];
+      if (v && hasActive(v)) out.push(...valueToFilterTriples(col, v));
+    }
+    return out;
+  }, [activeTable, filters]);
+
+  const qs = useMemo(() => {
+    const p = new URLSearchParams();
+    p.set("limit", String(limit));
+    p.set("offset", String(offset));
+    if (search) p.set("search", search);
+    for (const [col, op, val] of filterTriples) {
+      p.append("f", `${col}:${op}:${val}`);
+    }
+    return p.toString();
+  }, [limit, offset, search, filterTriples]);
 
   const rowsQ = useQuery({
-    queryKey: ["data.rows", activeKey, search, offset, limit],
-    queryFn: () =>
-      api<RowsResp>(
-        `/api/data/${activeKey}/rows?limit=${limit}&offset=${offset}` +
-          (search ? `&search=${encodeURIComponent(search)}` : ""),
-      ),
+    queryKey: ["data.rows", activeKey, qs],
+    queryFn: () => api<RowsResp>(`/api/data/${activeKey}/rows?${qs}`),
     enabled: !!activeTable,
   });
+
+  const updateFilter = (colName: string, v: ColumnFilterValue | undefined) => {
+    setOffset(0);
+    setFiltersByTable((prev) => {
+      const cur = { ...(prev[activeKey] ?? {}) };
+      if (v === undefined) delete cur[colName];
+      else cur[colName] = v;
+      return { ...prev, [activeKey]: cur };
+    });
+  };
+
+  const clearAllFilters = () => {
+    setOffset(0);
+    setFiltersByTable((prev) => ({ ...prev, [activeKey]: {} }));
+  };
 
   const columns = useMemo<Column<Row>[]>(() => {
     if (!activeTable) return [];
@@ -69,13 +106,40 @@ export default function DataViewer() {
         numeric: c.numeric,
         idColumn: c.id_column,
         currency: c.currency,
+        hasActiveFilter: hasActive(filters[c.name]),
+        filter: (
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpenFilterCol((cur) => (cur === c.name ? null : c.name));
+              }}
+              className={`h-5 w-5 grid place-items-center rounded-sm transition-colors ${
+                openFilterCol === c.name || hasActive(filters[c.name])
+                  ? "text-mark"
+                  : "text-ink-3 hover:text-ink"
+              }`}
+              aria-label={`Filter ${c.label}`}
+            >
+              <FilterIcon />
+            </button>
+            {openFilterCol === c.name && (
+              <ColumnFilter
+                col={c}
+                value={filters[c.name] ?? initialFilterFor(c)}
+                onChange={(v) => updateFilter(c.name, v)}
+                onClose={() => setOpenFilterCol(null)}
+              />
+            )}
+          </div>
+        ),
       }));
-  }, [activeTable]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTable, filters, openFilterCol]);
 
   function exportCsv() {
     const token = getAccessToken();
-    // Manual download since Blob/auth is a bit fiddly — use fetch+blob.
-    const url = `/api/data/${activeKey}/export` + (search ? `?search=${encodeURIComponent(search)}` : "");
+    const url = `/api/data/${activeKey}/export?${qs}`;
     fetch(url, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
@@ -90,6 +154,18 @@ export default function DataViewer() {
   }
 
   const tablesList = tables.data?.tables ?? [];
+  const activeFilterChips = activeTable
+    ? activeTable.columns.flatMap((c) => {
+        const v = filters[c.name];
+        if (!v || !hasActive(v)) return [];
+        return valueToFilterTriples(c, v).map(([col, op, val]) => ({
+          col,
+          label: c.label,
+          op,
+          val,
+        }));
+      })
+    : [];
 
   return (
     <div>
@@ -111,6 +187,7 @@ export default function DataViewer() {
             onClick={() => {
               setActiveKey(t.key);
               setOffset(0);
+              setOpenFilterCol(null);
             }}
             className={[
               "pb-3 text-label transition-colors",
@@ -128,7 +205,7 @@ export default function DataViewer() {
       <div className="mt-6 flex items-center gap-4">
         <div className="flex-1">
           <Input
-            placeholder="search…"
+            placeholder="search across all columns…"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -138,6 +215,35 @@ export default function DataViewer() {
         </div>
         <Button onClick={exportCsv}>CSV</Button>
       </div>
+
+      {/* Active filter chips */}
+      {activeFilterChips.length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {activeFilterChips.map((chip, i) => {
+            const colMeta = activeTable!.columns.find((c) => c.name === chip.col)!;
+            return (
+              <button
+                key={`${chip.col}-${chip.op}-${i}`}
+                onClick={() => updateFilter(chip.col, undefined)}
+                className="group inline-flex items-center gap-2 h-7 px-3 rounded-full bg-mark-bg/60 hover:bg-mark-bg transition-colors caption text-ink"
+                title="Click to remove"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-mark" />
+                <span className="text-ink-2">{colMeta.label}</span>
+                <span className="mono text-mono-xs text-ink-3">{chip.op}</span>
+                <span className="text-ink tabular-nums">{chip.val}</span>
+                <span className="text-ink-3 group-hover:text-mark">×</span>
+              </button>
+            );
+          })}
+          <button
+            onClick={clearAllFilters}
+            className="caption text-ink-2 hover:text-mark hover:underline decoration-mark ml-2"
+          >
+            clear all
+          </button>
+        </div>
+      )}
 
       <Card className="mt-4 p-0 overflow-hidden">
         <DataTable
@@ -178,37 +284,72 @@ export default function DataViewer() {
         onClose={() => setOpenRow(null)}
         title={activeTable?.label ?? ""}
       >
-        {openRow && (
-          <div>
-            <dl className="grid grid-cols-[160px_1fr] gap-y-3 gap-x-4">
-              {activeTable?.columns.map((c) => (
-                <div key={c.name} className="contents">
-                  <dt className="eyebrow pt-1">{c.label}</dt>
-                  <dd
-                    className={[
-                      "text-body",
-                      c.id_column ? "mono text-mono-sm text-ink-2" : "text-ink",
-                      c.numeric ? "serif nums tabular-nums" : "",
-                    ].join(" ")}
-                  >
-                    {formatDetail(openRow[c.name])}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-            <div className="mt-8">
-              <div className="eyebrow mb-3">Raw row</div>
-              <JsonBlock value={openRow} />
-            </div>
-          </div>
+        {openRow && activeTable && (
+          <dl className="grid grid-cols-[160px_1fr] gap-y-3 gap-x-4">
+            {activeTable.columns.map((c) => (
+              <div key={c.name} className="contents">
+                <dt className="eyebrow pt-1">{c.label}</dt>
+                <dd
+                  className={[
+                    "text-body",
+                    c.id_column ? "mono text-mono-sm text-ink-2" : "text-ink",
+                    c.numeric ? "serif nums tabular-nums" : "",
+                  ].join(" ")}
+                >
+                  {formatDetail(openRow[c.name], c.currency)}
+                </dd>
+              </div>
+            ))}
+          </dl>
         )}
       </Drawer>
     </div>
   );
 }
 
-function formatDetail(v: unknown) {
+function formatDetail(v: unknown, currency: string | null) {
   if (v == null || v === "") return <span className="text-ink-3">—</span>;
-  if (typeof v === "number") return v.toLocaleString("en-US");
+  if (typeof v === "number") {
+    const s = v.toLocaleString("en-US", { maximumFractionDigits: 4 });
+    return currency ? (
+      <span>
+        {s} <span className="caption text-ink-3 font-sans not-italic">{currency}</span>
+      </span>
+    ) : (
+      s
+    );
+  }
+  if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v)) {
+    const d = new Date(v);
+    if (!Number.isNaN(d.getTime())) {
+      if (v.includes("T")) {
+        return (
+          <span className="tabular-nums">
+            {d.toLocaleString("en-GB", { timeZone: "Asia/Tashkent" })}
+          </span>
+        );
+      }
+    }
+  }
   return String(v);
+}
+
+function FilterIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 12 12"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+    >
+      <path
+        d="M1 2h10l-4 5v3l-2 1V7L1 2z"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
 }

@@ -48,35 +48,34 @@ def _parse_filter_value(col: ColumnDef, raw: str) -> Any:
 
 def _build_where(
     table: TableDef,
-    filters: dict[str, str],
+    filters: list[tuple[str, str, str]],
     search: str | None,
 ) -> tuple[str, dict[str, Any]]:
     """Returns (where_clause_sql, params_dict). Always safe — no user strings
-    land in the SQL itself, only catalog-whitelisted column names."""
+    land in the SQL itself, only catalog-whitelisted column names and ops.
+
+    `filters` is a list of (column, op, value_str) triples. Multiple filters
+    on the same column are ANDed (e.g. `>= 2026-04-01` + `<= 2026-04-30`).
+    """
     clauses: list[str] = []
     params: dict[str, Any] = {}
 
-    for i, (raw_key, raw_val) in enumerate(filters.items()):
-        # raw_val is formatted as "<op>:<value>", e.g. ">=:2026-04-01" or "ilike:Maqsud"
-        if ":" not in raw_val:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, f"bad filter {raw_key}: expected op:value")
-        op, _, value_str = raw_val.partition(":")
-
-        col = table.columns.get(raw_key)
+    for i, (col_name, op, value_str) in enumerate(filters):
+        col = table.columns.get(col_name)
         if col is None:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, f"unknown column {raw_key!r}")
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, f"unknown column {col_name!r}")
         if op not in col.ops:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
-                f"operator {op!r} not allowed for column {raw_key}",
+                f"operator {op!r} not allowed for column {col_name}",
             )
         value = _parse_filter_value(col, value_str)
         pname = f"f{i}"
         if op == "ilike":
-            clauses.append(f'"{raw_key}"::text ILIKE :{pname}')
+            clauses.append(f'"{col_name}"::text ILIKE :{pname}')
             params[pname] = f"%{value}%"
         else:
-            clauses.append(f'"{raw_key}" {op} :{pname}')
+            clauses.append(f'"{col_name}" {op} :{pname}')
             params[pname] = value
 
     if search:
@@ -125,7 +124,7 @@ async def list_rows(
     session: AsyncSession,
     key: str,
     *,
-    filters: dict[str, str],
+    filters: list[tuple[str, str, str]],
     search: str | None,
     sort: str | None,
     limit: int,
@@ -189,7 +188,7 @@ async def stream_csv(
     session: AsyncSession,
     key: str,
     *,
-    filters: dict[str, str],
+    filters: list[tuple[str, str, str]],
     search: str | None,
     sort: str | None,
     max_rows: int = 100_000,

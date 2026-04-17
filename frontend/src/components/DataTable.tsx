@@ -8,6 +8,10 @@ export interface Column<R> {
   currency?: string | null;
   render?: (row: R) => ReactNode;
   width?: string;
+  /** Optional per-column filter UI rendered inside the header cell. */
+  filter?: ReactNode;
+  /** Whether this column has an active filter (used for the dot indicator). */
+  hasActiveFilter?: boolean;
 }
 
 export default function DataTable<R extends Record<string, unknown>>({
@@ -32,13 +36,27 @@ export default function DataTable<R extends Record<string, unknown>>({
               <th
                 key={c.name}
                 className={[
-                  "h-10 px-4 border-b border-rule sticky top-0 bg-card",
+                  "h-11 px-4 border-b border-rule sticky top-0 bg-card z-10",
                   "text-eyebrow font-semibold uppercase tracking-[0.16em] text-ink-3",
                   c.numeric ? "text-right" : "text-left",
                 ].join(" ")}
                 style={c.width ? { width: c.width } : undefined}
               >
-                {c.label}
+                <div
+                  className={[
+                    "inline-flex items-center gap-1.5 relative",
+                    c.numeric ? "flex-row-reverse" : "",
+                  ].join(" ")}
+                >
+                  <span>{c.label}</span>
+                  {c.filter}
+                  {c.hasActiveFilter && (
+                    <span
+                      className="w-1.5 h-1.5 rounded-full bg-mark"
+                      aria-label="filter active"
+                    />
+                  )}
+                </div>
               </th>
             ))}
           </tr>
@@ -116,7 +134,6 @@ function formatCell<R>(value: unknown, col: Column<R>): ReactNode {
   if (col.idColumn) {
     return <span>│ {String(value)}</span>;
   }
-  // Dates — if it parses, render as YYYY-MM-DD / short time.
   if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}/.test(value)) {
     const d = new Date(value);
     if (!Number.isNaN(d.getTime())) {
