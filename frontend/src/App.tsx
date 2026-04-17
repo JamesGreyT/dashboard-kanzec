@@ -4,12 +4,11 @@ import Layout from "./components/Layout";
 import RequireAuth from "./components/RequireAuth";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import DataViewer from "./pages/DataViewer";
+import Ops from "./pages/Ops";
+import AdminUsers from "./pages/AdminUsers";
+import AdminAudit from "./pages/AdminAudit";
 
-/**
- * Phase B: login + protected shell. Data / Ops / Admin placeholder into later
- * phases (currently show a simple "coming soon" inside the Layout chrome so
- * the routes exist for the sidebar).
- */
 export default function App() {
   return (
     <AuthProvider>
@@ -23,12 +22,12 @@ export default function App() {
           }
         >
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/data" element={<ComingSoon title="Data" />} />
+          <Route path="/data" element={<DataViewer />} />
           <Route
             path="/ops"
             element={
               <RequireAuth roles={["admin", "operator"]}>
-                <ComingSoon title="Operations" />
+                <Ops />
               </RequireAuth>
             }
           />
@@ -36,7 +35,7 @@ export default function App() {
             path="/admin/users"
             element={
               <RequireAuth roles={["admin"]}>
-                <ComingSoon title="Users" />
+                <AdminUsers />
               </RequireAuth>
             }
           />
@@ -44,7 +43,7 @@ export default function App() {
             path="/admin/audit"
             element={
               <RequireAuth roles={["admin"]}>
-                <ComingSoon title="Audit" />
+                <AdminAudit />
               </RequireAuth>
             }
           />
@@ -53,20 +52,5 @@ export default function App() {
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </AuthProvider>
-  );
-}
-
-function ComingSoon({ title }: { title: string }) {
-  return (
-    <div>
-      <div className="caption text-ink-3">Dashboard · {title}</div>
-      <h1 className="serif text-heading-lg text-ink mt-2">
-        {title}
-        <span className="text-mark">.</span>
-      </h1>
-      <p className="text-body text-ink-2 mt-6">
-        Set in type for a later issue. Come back in Phase C.
-      </p>
-    </div>
   );
 }

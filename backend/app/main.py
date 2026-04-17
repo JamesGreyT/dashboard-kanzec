@@ -11,9 +11,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from .admin_audit_router import router as audit_router
 from .auth.router import router as auth_router
 from .config import settings
+from .dashboard.router import router as dashboard_router
+from .data.router import router as data_router
 from .db import healthcheck
+from .ops.router import router as ops_router
+from .users.router import router as users_router
 
 log = logging.getLogger("kanzec")
 
@@ -48,6 +53,11 @@ app.add_middleware(
 
 
 app.include_router(auth_router)
+app.include_router(dashboard_router)
+app.include_router(data_router)
+app.include_router(ops_router)
+app.include_router(users_router)
+app.include_router(audit_router)
 
 
 @app.get("/api/healthz")
