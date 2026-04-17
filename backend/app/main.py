@@ -11,6 +11,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from .auth.router import router as auth_router
 from .config import settings
 from .db import healthcheck
 
@@ -44,6 +45,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
+
+
+app.include_router(auth_router)
 
 
 @app.get("/api/healthz")

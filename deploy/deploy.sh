@@ -43,4 +43,8 @@ PSQL_DSN="${DATABASE_URL/postgresql+asyncpg:/postgresql:}"
 echo "[$(date -Is)] applying schema_sql/app.sql"
 psql "$PSQL_DSN" -v ON_ERROR_STOP=1 -f "$APP/backend/schema_sql/app.sql" >/dev/null
 
+echo "[$(date -Is)] bootstrapping admin (no-op if one already exists)"
+cd "$APP/backend"
+PYTHONPATH="$APP/backend" "$APP/backend/.venv/bin/python" -m app.auth.bootstrap
+
 echo "[$(date -Is)] dashboard deploy @ $(git rev-parse --short HEAD); restart handled by workflow"

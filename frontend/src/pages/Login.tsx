@@ -1,11 +1,46 @@
-/**
- * Phase A placeholder. Real login wiring (JWT + auth context) lands in Phase B.
- * Visual language locked in here so the aesthetic is visible on first deploy.
- */
+import { FormEvent, useState } from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import { ApiError, useAuth } from "../lib/auth";
+
 export default function Login() {
+  const { user, loading, login } = useAuth();
+  const loc = useLocation() as { state?: { from?: { pathname?: string } } };
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-paper flex items-center justify-center text-ink-3 caption">
+        reading the register…
+      </div>
+    );
+  }
+  if (user) {
+    const to = loc.state?.from?.pathname ?? "/dashboard";
+    return <Navigate to={to} replace />;
+  }
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setErr(null);
+    setBusy(true);
+    try {
+      await login(username, password);
+    } catch (ex) {
+      if (ex instanceof ApiError && ex.status === 401) {
+        setErr("Those credentials aren't right.");
+      } else {
+        setErr("Couldn't reach the register. Try again.");
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-paper flex flex-col">
-      {/* Masthead — sits as a running head across the top of the page */}
       <div className="px-12 py-6 flex items-baseline justify-between">
         <div className="eyebrow">Kanzec · Operations</div>
         <div className="eyebrow text-ink-3">
@@ -15,7 +50,6 @@ export default function Login() {
 
       <div className="rule mx-12" />
 
-      {/* Centre column */}
       <div className="flex-1 flex items-center justify-center px-6 animate-enter-up">
         <div className="w-[420px]">
           <h1 className="serif text-heading-xl text-ink leading-none">
@@ -26,16 +60,28 @@ export default function Login() {
             daily. Sign in to read the register.
           </p>
 
-          <form className="mt-12 flex flex-col gap-6" noValidate>
+          {err && (
+            <div
+              className="mt-8 caption text-risk px-3 py-2"
+              style={{ background: "var(--risk-bg)", borderRadius: 8 }}
+            >
+              {err}
+            </div>
+          )}
+
+          <form onSubmit={submit} className="mt-8 flex flex-col gap-6" noValidate>
             <label className="flex flex-col gap-2">
               <span className="eyebrow">Name</span>
               <input
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 autoFocus
                 autoComplete="username"
+                required
                 className="h-11 bg-paper-2 text-body text-ink px-3 rounded-[10px]
                            border-0 placeholder:italic placeholder:text-ink-3
                            focus:outline-none focus:ring-2 focus:ring-mark/35"
-                placeholder="e.g. ilhom"
+                placeholder="e.g. admin"
               />
             </label>
 
@@ -43,7 +89,10 @@ export default function Login() {
               <span className="eyebrow">Key</span>
               <input
                 type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
+                required
                 className="h-11 bg-paper-2 text-body text-ink px-3 rounded-[10px]
                            border-0 placeholder:italic placeholder:text-ink-3
                            focus:outline-none focus:ring-2 focus:ring-mark/35"
@@ -52,14 +101,14 @@ export default function Login() {
 
             <button
               type="submit"
-              disabled
+              disabled={busy || !username || !password}
               className="mt-2 h-11 bg-mark text-[var(--paper)] text-label font-medium
                          rounded-[10px] transition-colors
                          hover:bg-[color-mix(in_srgb,var(--mark)_94%,#000_6%)]
                          active:scale-[0.98]
                          disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Enter the register
+              {busy ? "Opening the register…" : "Enter the register"}
             </button>
           </form>
 
@@ -70,15 +119,12 @@ export default function Login() {
         </div>
       </div>
 
-      {/* Colophon */}
       <div className="rule mx-12" />
       <div className="px-12 py-5 flex items-center justify-between">
         <div className="caption text-ink-3">
           Vol. I · Issue 01 · Set in Newsreader &amp; Fustat
         </div>
-        <div className="caption text-ink-3 mono">
-          kanzec.ilhom.work
-        </div>
+        <div className="caption text-ink-3 mono">kanzec.ilhom.work</div>
       </div>
     </div>
   );
