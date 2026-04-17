@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api, getAccessToken } from "../lib/api";
 import PageHeading from "../components/PageHeading";
@@ -50,6 +50,7 @@ export default function DataViewer() {
   const [openRow, setOpenRow] = useState<Row | null>(null);
   const [openFilterCol, setOpenFilterCol] = useState<string | null>(null);
   const [filtersByTable, setFiltersByTable] = useState<Record<string, Filters>>({});
+  const filterBtnRefs = useRef<Map<string, HTMLButtonElement | null>>(new Map());
 
   const activeTable = tables.data?.tables.find((t) => t.key === activeKey);
   const filters = filtersByTable[activeKey] ?? {};
@@ -109,8 +110,11 @@ export default function DataViewer() {
         width: widthFor(c),
         hasActiveFilter: hasActive(filters[c.name]),
         filter: (
-          <div className="relative">
+          <>
             <button
+              ref={(el) => {
+                filterBtnRefs.current.set(c.name, el);
+              }}
               onClick={(e) => {
                 e.stopPropagation();
                 setOpenFilterCol((cur) => (cur === c.name ? null : c.name));
@@ -129,11 +133,12 @@ export default function DataViewer() {
                 col={c}
                 tableKey={activeKey}
                 value={filters[c.name] ?? initialFilterFor(c)}
+                anchorEl={filterBtnRefs.current.get(c.name) ?? null}
                 onChange={(v) => updateFilter(c.name, v)}
                 onClose={() => setOpenFilterCol(null)}
               />
             )}
-          </div>
+          </>
         ),
       }));
     // eslint-disable-next-line react-hooks/exhaustive-deps

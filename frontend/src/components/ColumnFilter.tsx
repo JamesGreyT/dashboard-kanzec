@@ -1,15 +1,12 @@
 /**
  * Excel-style per-column filter popover.
  *
- * Text / id-text columns that support `in` get a "Values" section: fetch
- * distinct values from the API, show them with counts in a scrollable
- * checkbox list (searchable, capped at 500 server-side). Picking ≥1
- * value produces an `in` filter on the wire.
- *
- * Numeric / date / timestamp columns get From / To range inputs
- * (`>=` + `<=`). Text columns also keep a "Contains" input for partial match.
+ * Rendered through a React portal into document.body with position:fixed,
+ * so it escapes the table's overflow-x-auto clipping and can auto-flip
+ * horizontally / vertically when near a viewport edge.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import Button from "./Button";
@@ -25,16 +22,12 @@ export interface ColumnMeta {
   numeric: boolean;
 }
 
-/**
- * Filter value for one column. We store a superset of possible inputs —
- * whichever fields the column's mode uses become live.
- */
 export interface ColumnFilterValue {
-  contains?: string; // text
-  equals?: string;   // text / id / states
-  from?: string;     // range (numeric / date / timestamp)
-  to?: string;       // range
-  values?: string[]; // in  (checkbox-selected values)
+  contains?: string;
+  equals?: string;
+  from?: string;
+  to?: string;
+  values?: string[];
 }
 
 export function hasActive(v: ColumnFilterValue | undefined): boolean {
@@ -48,10 +41,7 @@ export function valueToFilterTriples(
 ): Array<[string, string, string]> {
   if (!v) return [];
   const out: Array<[string, string, string]> = [];
-  if (v.values && v.values.length) {
-    out.push([col.name, "in", v.values.join("|")]);
-    // When values are picked, treat other fields as complementary AND filters.
-  }
+  if (v.values && v.values.length) out.push([col.name, "in", v.values.join("|")]);
   if (v.contains) out.push([col.name, "ilike", v.contains]);
   if (v.equals) out.push([col.name, "=", v.equals]);
   if (v.from) out.push([col.name, ">=", v.from]);
@@ -68,35 +58,67 @@ interface DistinctResp {
   limited: boolean;
 }
 
+const POP_WIDTH = 320;
+
 export default function ColumnFilter({
   col,
   tableKey,
   value,
+  anchorEl,
   onChange,
   onClose,
 }: {
   col: ColumnMeta;
   tableKey: string;
   value: ColumnFilterValue | undefined;
+  anchorEl: HTMLElement | null;
   onChange: (v: ColumnFilterValue | undefined) => void;
   onClose: () => void;
 }) {
   const [draft, setDraft] = useState<ColumnFilterValue>(value ?? {});
   const [valSearch, setValSearch] = useState("");
   const ref = useRef<HTMLDivElement>(null);
-  const [alignRight, setAlignRight] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
 
-  // Flip the popover to right-aligned if it would overflow the viewport.
+  // Measure anchor + popover on mount, pin the popover in viewport coordinates.
   useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    if (rect.right > window.innerWidth - 12) setAlignRight(true);
-  }, []);
+    if (!anchorEl || !ref.current) return;
+    const place = () => {
+      if (!anchorEl || !ref.current) return;
+      const btn = anchorEl.getBoundingClientRect();
+      const pop = ref.current.getBoundingClientRect();
+      const margin = 12;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+
+      let left = btn.left;
+      if (left + pop.width > vw - margin) {
+        left = btn.right - pop.width; // flip to right-aligned
+      }
+      if (left < margin) left = margin;
+
+      let top = btn.bottom + 4;
+      if (top + pop.height > vh - margin) {
+        top = Math.max(margin, btn.top - pop.height - 4); // flip above
+      }
+      setPos({ top, left });
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [anchorEl]);
 
   useEffect(() => {
     function onDown(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        // Don't close if the user clicked the trigger — they'd expect a toggle.
+        if (anchorEl && anchorEl.contains(e.target as Node)) return;
+        onClose();
+      }
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -107,7 +129,7 @@ export default function ColumnFilter({
       window.removeEventListener("mousedown", onDown);
       window.removeEventListener("keydown", onKey);
     };
-  }, [onClose]);
+  }, [onClose, anchorEl]);
 
   const showValues = col.ops.includes("in");
   const showRange =
@@ -151,18 +173,21 @@ export default function ColumnFilter({
     onClose();
   };
 
-  return (
+  return createPortal(
     <div
       ref={ref}
-      className={[
-        "absolute top-full z-40 mt-1 w-[320px] bg-card rounded-[10px] shadow-card border border-rule p-4 animate-enter-up",
-        alignRight ? "right-0" : "left-0",
-      ].join(" ")}
+      style={{
+        position: "fixed",
+        top: pos?.top ?? -9999,
+        left: pos?.left ?? -9999,
+        width: POP_WIDTH,
+        visibility: pos ? "visible" : "hidden",
+      }}
+      className="z-50 bg-card rounded-[10px] shadow-card border border-rule p-4 animate-enter-up"
       onClick={(e) => e.stopPropagation()}
     >
       <div className="eyebrow mb-3">Filter · {col.label}</div>
 
-      {/* Range inputs (numeric / date / timestamp) */}
       {showRange && (
         <div className="grid grid-cols-2 gap-3 mb-4">
           <label className="flex flex-col gap-1.5">
@@ -188,7 +213,6 @@ export default function ColumnFilter({
         </div>
       )}
 
-      {/* Contains (partial text match) */}
       {showContains && (
         <label className="flex flex-col gap-1.5 mb-4">
           <span className="caption text-ink-3">Contains</span>
@@ -202,7 +226,6 @@ export default function ColumnFilter({
         </label>
       )}
 
-      {/* Values (checkbox list) */}
       {showValues && (
         <div className="mb-4">
           <div className="flex items-center justify-between mb-2">
@@ -274,7 +297,6 @@ export default function ColumnFilter({
         </div>
       )}
 
-      {/* Equals-only fallback */}
       {showEquals && (
         <label className="flex flex-col gap-1.5 mb-4">
           <span className="caption text-ink-3">Equals</span>
@@ -299,7 +321,8 @@ export default function ColumnFilter({
           Apply
         </Button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
