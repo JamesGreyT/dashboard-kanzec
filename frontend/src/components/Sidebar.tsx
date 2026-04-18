@@ -50,12 +50,13 @@ export default function Sidebar({
 
       <aside
         className={[
-          "w-[264px] shrink-0 bg-paper min-h-screen px-7 py-6 flex flex-col",
-          // Mobile: slide-in drawer.
-          "fixed inset-y-0 left-0 z-50 transition-transform duration-200",
+          "w-[264px] shrink-0 bg-paper px-7 py-6 flex flex-col",
+          // Mobile: full-viewport drawer that slides in from the left.
+          "fixed inset-y-0 left-0 z-50 h-screen transition-transform duration-200",
           open ? "translate-x-0" : "-translate-x-full",
-          // md+: static column, always in place.
-          "md:static md:translate-x-0 md:transition-none",
+          // md+: sticky column pinned to the viewport so the footer
+          // (logout + lang) stays visible regardless of page scroll.
+          "md:sticky md:top-0 md:h-screen md:translate-x-0 md:transition-none",
         ].join(" ")}
       >
         <div className="flex items-center gap-3">
