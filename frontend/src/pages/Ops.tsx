@@ -42,11 +42,13 @@ export default function Ops() {
 
   return (
     <div>
-      <PageHeading
-        crumb={[t("dashboard.crumb_dashboard"), t("ops.crumb")]}
-        title={t("ops.title")}
-        subtitle={t("ops.subtitle")}
-      />
+      <div className="stagger-0">
+        <PageHeading
+          crumb={[t("dashboard.crumb_dashboard"), t("ops.crumb")]}
+          title={t("ops.title")}
+          subtitle={t("ops.subtitle")}
+        />
+      </div>
 
       <div className="mt-8 flex flex-col gap-6">
         {q.isLoading && (
@@ -54,13 +56,14 @@ export default function Ops() {
             <Phrase />
           </Card>
         )}
-        {(q.data?.reports ?? []).map((r) => (
-          <ReportCard
-            key={r.key}
-            r={r}
-            onBackfill={() => setBackfillFor(r.key)}
-            onLogs={() => setLogFor(r.key)}
-          />
+        {(q.data?.reports ?? []).map((r, i) => (
+          <div key={r.key} className={`stagger-${Math.min(i + 1, 5)}`}>
+            <ReportCard
+              r={r}
+              onBackfill={() => setBackfillFor(r.key)}
+              onLogs={() => setLogFor(r.key)}
+            />
+          </div>
         ))}
       </div>
 

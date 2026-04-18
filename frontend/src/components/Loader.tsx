@@ -26,8 +26,9 @@ export function Phrase({
 }
 
 /**
- * Ruled-paper loader — 7 staggered 1px rules at the height of a data row
- * with the localized loading phrase below.
+ * Ruled-paper loader — 7 1px rules that redraw left-to-right in sequence.
+ * Each row carries a `--d` CSS var that offsets its wave animation by 80ms
+ * so the rules cascade like a line being struck.
  */
 export function RuledLoader({ rows = 7 }: { rows?: number }) {
   const { t } = useTranslation();
@@ -38,8 +39,12 @@ export function RuledLoader({ rows = 7 }: { rows?: number }) {
         {Array.from({ length: rows }).map((_, i) => (
           <div
             key={i}
-            className="h-[1px] bg-rule"
-            style={{ width: widths[i % widths.length] }}
+            className="h-[1px] bg-rule rule-wave"
+            style={{
+              width: widths[i % widths.length],
+              // @ts-expect-error — CSS custom property
+              "--d": `${i * 80}ms`,
+            }}
           />
         ))}
       </div>

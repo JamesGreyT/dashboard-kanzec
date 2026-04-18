@@ -224,12 +224,42 @@ export default function DataViewer() {
   }
 
   const tablesList = tables.data?.tables ?? [];
-  const activeFilterChips = activeTable
-    ? activeTable.columns.flatMap((c) => {
+  /**
+   * One chip per column — multi-value `in` ops collapse into a single
+   * chip with a value count instead of N individual chips. Cleaner
+   * visual rhythm at the expense of chip-level click-to-remove for one
+   * value; the whole filter clears in one click, which is fine.
+   */
+  interface Chip {
+    col: string;
+    label: string;
+    op: string;
+    val: string;
+  }
+  const activeFilterChips: Chip[] = activeTable
+    ? activeTable.columns.flatMap((c): Chip[] => {
         const v = filters[c.name];
         if (!v || !hasActive(v)) return [];
-        return valueToFilterTriples(c, v).map(([col, op, val]) => ({
-          col, label: c.label, op, val,
+        const triples = valueToFilterTriples(c, v);
+        if (triples.length === 0) return [];
+        // Collapse if every triple is an `in` op and there's more than one.
+        const allIn =
+          triples.length > 1 && triples.every(([, op]) => op === "in");
+        if (allIn) {
+          return [
+            {
+              col: c.name,
+              label: c.label,
+              op: "in",
+              val: `${triples.length} values`,
+            },
+          ];
+        }
+        return triples.map(([col, op, val]) => ({
+          col,
+          label: c.label,
+          op,
+          val,
         }));
       })
     : [];
@@ -239,24 +269,26 @@ export default function DataViewer() {
 
   return (
     <div>
-      <PageHeading
-        crumb={[
-          t("dashboard.crumb_dashboard"),
-          t("data.crumb_data"),
-          activeTable ? t(TABLE_LABEL_KEYS[activeTable.key] ?? activeTable.label) : "—",
-        ]}
-        title={t("data.title")}
-        subtitle={
-          activeTable && rowsQ.data
-            ? t("data.subtitle_rows", {
-                n: rowsQ.data.total.toLocaleString(),
-              })
-            : undefined
-        }
-      />
+      <div className="stagger-0">
+        <PageHeading
+          crumb={[
+            t("dashboard.crumb_dashboard"),
+            t("data.crumb_data"),
+            activeTable ? t(TABLE_LABEL_KEYS[activeTable.key] ?? activeTable.label) : "—",
+          ]}
+          title={t("data.title")}
+          subtitle={
+            activeTable && rowsQ.data
+              ? t("data.subtitle_rows", {
+                  n: rowsQ.data.total.toLocaleString(),
+                })
+              : undefined
+          }
+        />
+      </div>
 
       {/* Table tabs */}
-      <div className="mt-8 flex items-center gap-6 border-b border-rule">
+      <div className="stagger-1 mt-8 flex items-center gap-6 border-b border-rule">
         {tablesList.map((tab) => (
           <button
             key={tab.key}
@@ -279,7 +311,7 @@ export default function DataViewer() {
       </div>
 
       {/* Top strip — search + density toggle + CSV */}
-      <div className="mt-6 flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+      <div className="stagger-2 mt-6 flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
         <div className="flex-1">
           <Input
             placeholder={t("data.search_placeholder")}
@@ -339,14 +371,18 @@ export default function DataViewer() {
                 <button
                   key={`${chip.col}-${chip.op}-${i}`}
                   onClick={() => updateFilter(chip.col, undefined)}
-                  className="group inline-flex items-center gap-2 h-7 px-3 rounded-full bg-mark-bg/60 hover:bg-mark-bg transition-colors caption text-ink"
+                  className="group inline-flex items-center gap-2 h-7 pl-3 pr-2 rounded-full bg-mark-bg/60 hover:bg-mark-bg border border-mark-2/70 hover:border-mark transition-colors caption text-ink"
                   title="Click to remove"
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-mark" />
                   <span className="text-ink-2">{colMeta.label}</span>
                   <span className="mono text-mono-xs text-ink-3">{chip.op}</span>
                   <span className="text-ink tabular-nums">{chip.val}</span>
-                  <span className="text-ink-3 group-hover:text-mark">×</span>
+                  <span
+                    aria-hidden
+                    className="serif text-[16px] leading-none text-ink-3 group-hover:text-mark transition-colors ml-0.5"
+                  >
+                    ✕
+                  </span>
                 </button>
               );
             })}
@@ -360,7 +396,7 @@ export default function DataViewer() {
         )}
       </AnimatePresence>
 
-      <Card className="mt-4 p-0 overflow-hidden">
+      <Card className="stagger-3 mt-4 p-0 overflow-hidden">
         <DataTable
           columns={columns}
           rows={rows}

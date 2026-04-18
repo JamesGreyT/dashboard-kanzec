@@ -142,9 +142,9 @@ function NavGroup({
               onClick={onNavigate}
               className={({ isActive }) =>
                 [
-                  "block h-9 px-3 rounded-md text-label leading-[36px] transition-colors",
+                  "relative block h-9 px-3 rounded-md text-label leading-[36px] transition-colors",
                   isActive
-                    ? "bg-mark-bg text-mark"
+                    ? "bg-mark-bg text-mark before:content-[''] before:absolute before:inset-y-[6px] before:left-0 before:w-[2px] before:bg-mark before:rounded-r"
                     : "text-ink-2 hover:bg-paper-2 hover:text-ink",
                 ].join(" ")
               }

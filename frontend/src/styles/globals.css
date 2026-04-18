@@ -200,7 +200,7 @@ a:hover {
   content: "";
   position: absolute;
   left: 0; right: 0; bottom: -3px;
-  height: 1px;
+  height: 2px;
   background: currentColor;
   transform: scaleX(0);
   transform-origin: left;
@@ -210,7 +210,83 @@ button:hover > .primary-underline-sweep::after,
 button:focus-visible > .primary-underline-sweep::after {
   transform: scaleX(1);
 }
+/* A 200ms compositional settle on the button itself — reads as "the type
+   is set" when the underline lands. Not a bounce. */
+@keyframes btn-settle {
+  0%   { transform: scale(1); }
+  60%  { transform: scale(1.015); }
+  100% { transform: scale(1); }
+}
+button:hover > .primary-underline-sweep,
+button:focus-visible > .primary-underline-sweep {
+  animation: btn-settle 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
 
 /* (removed .nav-sweep: on narrow labels the absolute 2px bar rendered
    inside the text baseline and looked like a strikethrough. The active
    nav state still reads clearly from the --mark-bg wash + --mark text.) */
+
+/* ============================================================
+   Staggered page entrance — the editorial unfold.
+   `animate-enter-up` already exists as a 260ms opacity + 6px Y ease.
+   `.stagger-N` applies the same motion with an N × 40ms delay, so the
+   heading lands first and cards fall in sequence.
+   ============================================================ */
+.stagger-0,
+.stagger-1,
+.stagger-2,
+.stagger-3,
+.stagger-4,
+.stagger-5 {
+  opacity: 0;
+  animation: enter-up 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.stagger-0 { animation-delay:   0ms; }
+.stagger-1 { animation-delay:  40ms; }
+.stagger-2 { animation-delay:  80ms; }
+.stagger-3 { animation-delay: 120ms; }
+.stagger-4 { animation-delay: 160ms; }
+.stagger-5 { animation-delay: 200ms; }
+
+@keyframes enter-up {
+  0%   { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   RuledLoader — seven 1px hairlines that redraw left-to-right.
+   Set by the Loader component; each row carries .rule-wave with an
+   inline --d delay (ms).
+   ============================================================ */
+.rule-wave {
+  animation: rule-wave 1.2s ease-in-out infinite;
+  animation-delay: var(--d, 0ms);
+  transform-origin: left center;
+}
+@keyframes rule-wave {
+  0%, 100% { opacity: 0.3; transform: scaleX(0.85); }
+  50%      { opacity: 1;   transform: scaleX(1);    }
+}
+
+/* Respect the user's reduced-motion preference across every decorative
+   animation we emit. Functional fades (drawer, popover) stay. */
+@media (prefers-reduced-motion: reduce) {
+  .stagger-0,
+  .stagger-1,
+  .stagger-2,
+  .stagger-3,
+  .stagger-4,
+  .stagger-5 {
+    animation: none;
+    opacity: 1;
+  }
+  .rule-wave,
+  .primary-underline-sweep,
+  .animate-live-pulse {
+    animation: none !important;
+  }
+  button:hover > .primary-underline-sweep,
+  button:focus-visible > .primary-underline-sweep {
+    animation: none;
+  }
+}

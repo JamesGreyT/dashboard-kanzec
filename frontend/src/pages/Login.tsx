@@ -51,6 +51,9 @@ export default function Login() {
 
       <div className="flex-1 flex items-center justify-center px-6 animate-enter-up">
         <div className="w-full max-w-[380px]">
+          {/* One-line editorial anchor above the title — the wordmark in
+              eyebrow type, middle-dot separator to echo breadcrumbs. */}
+          <div className="eyebrow mb-3">Kanzec · Operations</div>
           <h1 className="serif text-heading-lg text-ink leading-none">
             {t("login.title")}
             <span className="mark-stop">.</span>
@@ -65,30 +68,46 @@ export default function Login() {
           <form onSubmit={submit} className="mt-8 flex flex-col gap-5" noValidate>
             <label className="flex flex-col gap-2">
               <span className="eyebrow">{t("login.username_label")}</span>
-              <input
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                autoFocus
-                autoComplete="username"
-                required
-                className="h-11 bg-paper-2 text-body text-ink px-3 rounded-[10px]
-                           border-0 placeholder:italic placeholder:text-ink-3
-                           focus:outline-none focus:ring-2 focus:ring-mark/35"
-              />
+              <div
+                className="relative h-11 bg-paper-2 rounded-[10px]
+                           focus-within:ring-2 focus-within:ring-mark/35
+                           focus-within:before:content-[''] focus-within:before:absolute
+                           focus-within:before:inset-y-[8px] focus-within:before:left-0
+                           focus-within:before:w-[2px] focus-within:before:bg-mark
+                           focus-within:before:rounded-r"
+              >
+                <input
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  autoFocus
+                  autoComplete="username"
+                  required
+                  className="w-full h-full bg-transparent text-body text-ink px-3 rounded-[10px]
+                             border-0 outline-none placeholder:italic placeholder:text-ink-3"
+                />
+              </div>
             </label>
 
             <label className="flex flex-col gap-2">
               <span className="eyebrow">{t("login.password_label")}</span>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                required
-                className="h-11 bg-paper-2 text-body text-ink px-3 rounded-[10px]
-                           border-0 placeholder:italic placeholder:text-ink-3
-                           focus:outline-none focus:ring-2 focus:ring-mark/35"
-              />
+              <div
+                className="relative h-11 bg-paper-2 rounded-[10px]
+                           focus-within:ring-2 focus-within:ring-mark/35
+                           focus-within:before:content-[''] focus-within:before:absolute
+                           focus-within:before:inset-y-[8px] focus-within:before:left-0
+                           focus-within:before:w-[2px] focus-within:before:bg-mark
+                           focus-within:before:rounded-r"
+              >
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                  required
+                  className="w-full h-full bg-transparent text-body text-ink px-3 rounded-[10px]
+                             border-0 outline-none placeholder:italic placeholder:text-ink-3"
+                />
+              </div>
             </label>
 
             <button

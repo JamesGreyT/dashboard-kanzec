@@ -3,27 +3,34 @@ export type StatusTone = "live" | "staged" | "failed" | "quiet";
 /**
  * Status glyph.
  *
- *   live   → 2px vermilion composing-stick bar + "live" in good
+ *   live   → 6px vermilion dot (pulses at 1.4Hz only when `pulse`) +
+ *            "live" text in good
  *   staged → soft mustard pill
  *   failed → soft brick pill
  *   quiet  → soft olive pill
  *
- * Only `live` gets the standout bar. Keeps the eye's attention on fresh
- * things and lets the other tones sit quietly as tinted labels.
+ * Only one pulsing dot should exist globally at a time — the Dashboard's
+ * worker panel sets `pulse`; Ops shows multiple `live` report cards so
+ * pulse is omitted there to keep the eye from fidgeting.
  */
 export default function StatusPill({
   tone,
   children,
+  pulse = false,
 }: {
   tone: StatusTone;
   children: React.ReactNode;
+  pulse?: boolean;
 }) {
   if (tone === "live") {
     return (
       <span className="inline-flex items-center gap-1.5 text-caption font-medium text-good whitespace-nowrap leading-none">
         <span
           aria-hidden
-          className="block w-[2px] h-[10px] bg-mark shrink-0 translate-y-[-0.5px]"
+          className={[
+            "block w-[6px] h-[6px] rounded-full bg-mark shrink-0",
+            pulse ? "animate-live-pulse" : "",
+          ].join(" ")}
         />
         {children}
       </span>

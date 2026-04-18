@@ -105,23 +105,25 @@ export default function AdminUsers() {
 
   return (
     <div>
-      <PageHeading
-        crumb={[
-          t("dashboard.crumb_dashboard"),
-          t("admin.crumb"),
-          t("admin.users_crumb"),
-        ]}
-        title={t("admin.users_title")}
-        subtitle={t("admin.users_subtitle")}
-      />
+      <div className="stagger-0">
+        <PageHeading
+          crumb={[
+            t("dashboard.crumb_dashboard"),
+            t("admin.crumb"),
+            t("admin.users_crumb"),
+          ]}
+          title={t("admin.users_title")}
+          subtitle={t("admin.users_subtitle")}
+        />
+      </div>
 
-      <div className="mt-6 flex items-center justify-end">
+      <div className="stagger-1 mt-6 flex items-center justify-end">
         <Button variant="primary" onClick={() => setCreate(true)}>
           {t("admin.new_user")}
         </Button>
       </div>
 
-      <Card className="mt-4 p-0 overflow-hidden">
+      <Card className="stagger-2 mt-4 p-0 overflow-hidden">
         {/* Desktop: real table. */}
         <div className="hidden md:block">
           <table className="w-full border-separate border-spacing-0">

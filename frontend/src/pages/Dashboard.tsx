@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
+  Area,
+  ComposedChart,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -57,33 +59,35 @@ export default function Dashboard() {
 
   return (
     <div>
-      <PageHeading
-        crumb={[t("dashboard.crumb_dashboard"), t("dashboard.crumb_overview")]}
-        title={t("dashboard.title")}
-        subtitle={
-          <>
-            <span className="serif-italic">{t("common.tashkent")}</span> ·{" "}
-            {new Date().toLocaleString(i18n.resolvedLanguage || "en-GB", {
-              timeZone: "Asia/Tashkent",
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </>
-        }
-      />
+      <div className="stagger-0">
+        <PageHeading
+          crumb={[t("dashboard.crumb_dashboard"), t("dashboard.crumb_overview")]}
+          title={t("dashboard.title")}
+          subtitle={
+            <>
+              <span className="serif-italic">{t("common.tashkent")}</span> ·{" "}
+              {new Date().toLocaleString(i18n.resolvedLanguage || "en-GB", {
+                timeZone: "Asia/Tashkent",
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </>
+          }
+        />
+      </div>
 
       {isError && (
-        <div className="mt-6 caption text-risk border-l-2 border-risk pl-3">
+        <div className="mt-6 caption text-risk border-l-2 border-risk pl-3 stagger-1">
           {t("common.error")}
         </div>
       )}
 
       {/* Row 1 — lede (2/3) + stacked stats (1/3) */}
-      <div className="mt-10 grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-6 items-stretch">
+      <div className="mt-10 grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-6 items-stretch stagger-1">
         <LedeOrdersCard
           value={data?.today.orders.count}
           prev={data?.yesterday.orders.count ?? 0}
@@ -110,11 +114,12 @@ export default function Dashboard() {
 
       {/* Row 2 — full-width chart card */}
       <Card
-        className="mt-8"
+        className="mt-8 stagger-2"
         eyebrow={t("dashboard.last_30_days")}
         title={t("dashboard.orders_and_payments")}
       >
-        <div className="h-[280px]">
+        <ChartLegend />
+        <div className="h-[280px] mt-3">
           {isLoading ? (
             <Phrase />
           ) : data ? (
@@ -124,8 +129,8 @@ export default function Dashboard() {
                   dataKey="day"
                   tickFormatter={(v) => v.slice(5)}
                   tick={{ fill: "var(--ink-3)", fontSize: 11, fontFamily: "var(--font-mono)" }}
-                  axisLine={{ stroke: "var(--rule)" }}
-                  tickLine={false}
+                  axisLine={{ stroke: "var(--rule-2)" }}
+                  tickLine={{ stroke: "var(--rule-2)" }}
                 />
                 <YAxis
                   tick={{ fill: "var(--ink-3)", fontSize: 11, fontFamily: "var(--font-mono)" }}
@@ -135,15 +140,8 @@ export default function Dashboard() {
                   tickFormatter={(v) => v.toLocaleString("en-US", { notation: "compact" })}
                 />
                 <Tooltip
-                  contentStyle={{
-                    background: "var(--card)",
-                    border: "1px solid var(--rule)",
-                    borderRadius: 8,
-                    fontSize: 12,
-                    fontFamily: "var(--font-mono)",
-                  }}
-                  labelStyle={{ color: "var(--ink-2)" }}
-                  formatter={(v: number) => v.toLocaleString("en-US")}
+                  cursor={{ stroke: "var(--rule-2)", strokeWidth: 1 }}
+                  content={<ChartTooltip />}
                 />
                 <Line
                   type="monotone"
@@ -168,33 +166,45 @@ export default function Dashboard() {
       </Card>
 
       {/* Row 3 — workers (1/3) + activity (2/3) */}
-      <div className="mt-8 grid grid-cols-1 xl:grid-cols-[1fr_2fr] gap-6 items-stretch">
+      <div className="mt-8 grid grid-cols-1 xl:grid-cols-[1fr_2fr] gap-6 items-stretch stagger-3">
         <Card eyebrow={t("dashboard.report_workers")} title={t("dashboard.register")}>
           {(data?.worker_health ?? []).length === 0 && !isLoading && (
             <Phrase kind="empty" />
           )}
           <div className="flex flex-col">
-            {(data?.worker_health ?? []).map((w, i, arr) => (
-              <div
-                key={w.key}
-                className={[
-                  "flex items-center justify-between py-3",
-                  i < arr.length - 1 ? "border-b border-rule" : "",
-                ].join(" ")}
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <StatusPill tone={workerTone(w.last_recent_at, w.last_error_at)}>
-                    {w.last_error_at && recentErr(w)
-                      ? t("dashboard.failed")
-                      : t("dashboard.live")}
-                  </StatusPill>
-                  <span className="text-body text-ink truncate">{w.key}</span>
+            {(data?.worker_health ?? []).map((w, i, arr) => {
+              const wTone = workerTone(w.last_recent_at, w.last_error_at);
+              const railClass = {
+                live: "bg-good",
+                failed: "bg-risk",
+                quiet: "bg-ink-3",
+                staged: "bg-warn",
+              }[wTone];
+              const failed = wTone === "failed";
+              return (
+                <div
+                  key={w.key}
+                  className={[
+                    "relative pl-4 py-3",
+                    i < arr.length - 1 ? "border-b border-rule" : "",
+                  ].join(" ")}
+                >
+                  <span
+                    aria-hidden
+                    className={`absolute left-0 top-3 bottom-3 w-[2px] ${railClass}`}
+                  />
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="mono text-mono-sm text-ink">{w.key}</span>
+                    <StatusPill tone={wTone} pulse={wTone === "live"}>
+                      {failed ? t("dashboard.failed") : t("dashboard.live")}
+                    </StatusPill>
+                  </div>
+                  <div className="mt-1 caption text-ink-2">
+                    <RelativeTime iso={w.last_recent_at ?? w.last_all_at} />
+                  </div>
                 </div>
-                <div className="caption text-ink-3 shrink-0">
-                  <RelativeTime iso={w.last_recent_at ?? w.last_all_at} />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </Card>
 
@@ -207,10 +217,17 @@ export default function Dashboard() {
               <div
                 key={i}
                 className={[
-                  "flex items-baseline justify-between py-3 gap-4",
+                  "relative pl-4 py-3 flex items-baseline justify-between gap-4",
                   i < arr.length - 1 ? "border-b border-rule" : "",
                 ].join(" ")}
               >
+                <span
+                  aria-hidden
+                  className={[
+                    "absolute left-0 top-3 bottom-3 w-[2px]",
+                    a.kind === "payment" ? "bg-mark" : "bg-ink",
+                  ].join(" ")}
+                />
                 <div className="flex items-baseline gap-4 min-w-0">
                   <span className="mono text-mono-sm text-ink-3 tabular-nums shrink-0">
                     {new Date(a.ts).toLocaleTimeString(
@@ -223,7 +240,12 @@ export default function Dashboard() {
                       },
                     )}
                   </span>
-                  <span className="eyebrow">
+                  <span
+                    className={[
+                      "eyebrow shrink-0",
+                      a.kind === "payment" ? "text-mark" : "",
+                    ].join(" ")}
+                  >
                     {t(`dashboard.kind_${a.kind}`)}
                   </span>
                   <span className="text-body text-ink truncate">
@@ -248,9 +270,12 @@ export default function Dashboard() {
 }
 
 /**
- * Lede card — the front-page story. Big number + editorial sparkline across
- * the bottom quarter of the card. The sparkline is the lede's *picture*,
- * not a separate panel.
+ * Lede card — the front-page story. Composes as 2 columns at xl:
+ *   LEFT  → eyebrow + italic trend + week-total marginalia
+ *   RIGHT → 96px tabular number + 120px sparkline directly beneath it
+ *           with a baseline hairline, 8% mark area fill, and a mark dot
+ *           + halo at the rightmost point.
+ * On narrower widths we fall back to the stacked layout.
  */
 function LedeOrdersCard({
   value,
@@ -271,54 +296,160 @@ function LedeOrdersCard({
   return (
     <Card className="relative flex flex-col min-h-[260px]" accent>
       <div className="eyebrow">{t("dashboard.orders_today")}</div>
-      <div className="flex-1 flex items-end justify-end">
-        <div className="serif nums text-[96px] leading-none text-ink tabular-nums">
-          {value != null ? value.toLocaleString() : "—"}
-        </div>
-      </div>
-      {trend && (
-        <>
-          <div className="leader" />
-          <div className="flex items-center justify-between">
-            <div className="caption italic text-ink-2">
+
+      {/* Mobile / tablet: stacked. xl: 2-column composition. */}
+      <div className="flex-1 mt-6 xl:mt-0 xl:grid xl:grid-cols-[1fr_1.4fr] xl:gap-10 xl:items-end">
+        {/* LEFT — marginalia */}
+        <div className="xl:pb-2 order-2 xl:order-none">
+          {trend && (
+            <div className="caption italic text-ink-2 leading-relaxed">
               {trend.arrow && (
-                <span className={`not-italic mr-1.5 ${trend.toneClass}`}>
+                <span
+                  className={`not-italic mr-1.5 text-[15px] font-semibold ${trend.toneClass}`}
+                >
                   {trend.arrow}
                 </span>
               )}
               {trend.text}
             </div>
-            {weekTotal != null && (
-              <div className="caption text-ink-3">
-                <span className="eyebrow mr-2">{t("dashboard.last_7_days")}</span>
-                <span className="serif nums text-ink tabular-nums">
-                  {weekTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                </span>
-                <span className="ml-1.5">USD</span>
+          )}
+          {weekTotal != null && (
+            <div className="mt-5">
+              <div className="eyebrow">{t("dashboard.last_7_days")}</div>
+              <div className="mt-1.5 serif nums text-stat-md text-ink tabular-nums leading-none">
+                {weekTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </div>
-            )}
+              <div className="caption text-ink-3 mt-1">USD</div>
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT — number + sparkline */}
+        <div className="order-1 xl:order-none flex flex-col items-end xl:items-stretch">
+          <div className="serif nums text-[96px] leading-none text-ink tabular-nums self-end">
+            {value != null ? value.toLocaleString() : "—"}
           </div>
-        </>
-      )}
-      <div className="h-[72px] -mx-2 mt-4">
-        <ResponsiveContainer>
-          <LineChart
-            data={sparkline}
-            margin={{ top: 4, right: 0, left: 0, bottom: 0 }}
-          >
-            <YAxis hide domain={["dataMin", "dataMax"]} />
-            <Line
-              type="monotone"
-              dataKey="orders"
-              stroke="var(--mark)"
-              strokeWidth={1.25}
-              dot={false}
-              isAnimationActive={false}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+          <LedeSparkline data={sparkline} />
+        </div>
       </div>
     </Card>
+  );
+}
+
+function LedeSparkline({ data }: { data: { day: string; orders: number }[] }) {
+  if (!data.length) return <div className="h-[120px] mt-4" />;
+  const last = data[data.length - 1];
+  return (
+    <div className="h-[120px] mt-4 relative">
+      {/* Baseline hairline — the sparkline sits on "ruled paper." */}
+      <div
+        aria-hidden
+        className="absolute left-0 right-0 bottom-0 h-px bg-rule"
+      />
+      <ResponsiveContainer>
+        <ComposedChart
+          data={data}
+          margin={{ top: 6, right: 12, left: 0, bottom: 0 }}
+        >
+          <YAxis hide domain={["dataMin - 1", "dataMax + 1"]} />
+          <Area
+            type="monotone"
+            dataKey="orders"
+            stroke="none"
+            fill="var(--mark)"
+            fillOpacity={0.08}
+            isAnimationActive={false}
+          />
+          <Line
+            type="monotone"
+            dataKey="orders"
+            stroke="var(--mark)"
+            strokeWidth={1.25}
+            dot={(props) => {
+              // Only render a dot at the last data point — the editorial "we are here."
+              const { index, cx, cy } = props as {
+                index?: number; cx?: number; cy?: number;
+              };
+              if (
+                index !== data.length - 1 ||
+                cx == null ||
+                cy == null
+              ) {
+                return <g key={`d-${index ?? 0}`} />;
+              }
+              return (
+                <g key="d-last">
+                  <circle cx={cx} cy={cy} r={7} fill="var(--mark-bg)" />
+                  <circle cx={cx} cy={cy} r={3} fill="var(--mark)" />
+                </g>
+              );
+            }}
+            isAnimationActive={false}
+          />
+        </ComposedChart>
+      </ResponsiveContainer>
+      {/* End-point label ("today's count") in small serif. */}
+      <div className="absolute right-0 -bottom-5 caption text-ink-3 mono tabular-nums">
+        {last.orders.toLocaleString()}
+      </div>
+    </div>
+  );
+}
+
+/** Editorial chart tooltip — paper card with a vermilion edge rail, eyebrow
+ *  label, and dotted-leader rows per series. Matches the Drawer voice. */
+function ChartTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ name: string; value: number; color: string }>;
+  label?: string;
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  return (
+    <div
+      className="relative bg-card border border-rule rounded-[8px] py-2.5 pl-4 pr-4"
+      style={{ minWidth: 200, boxShadow: "0 2px 8px rgba(26,23,19,0.06)" }}
+    >
+      <span
+        aria-hidden
+        className="absolute left-0 top-1.5 bottom-1.5 w-[2px] bg-mark rounded-r"
+      />
+      <div className="eyebrow mb-1.5 tabular-nums">{label}</div>
+      {payload.map((p) => (
+        <div key={p.name} className="flex items-baseline gap-2 py-0.5">
+          <span className="caption text-ink-2 capitalize">{p.name}</span>
+          <span className="flex-1 border-b border-dotted border-rule translate-y-[-3px] min-w-[8px]" />
+          <span className="serif nums text-body text-ink tabular-nums">
+            {p.value.toLocaleString("en-US")}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ChartLegend() {
+  const { t } = useTranslation();
+  return (
+    <div className="flex items-center gap-6 caption">
+      <span className="inline-flex items-center gap-2 text-ink-2">
+        <span
+          aria-hidden
+          className="block w-[10px] h-[2px] bg-ink"
+        />
+        <span className="eyebrow">{t("dashboard.kind_order")}</span>
+      </span>
+      <span className="inline-flex items-center gap-2 text-ink-2">
+        <span
+          aria-hidden
+          className="block w-[10px] h-[2px] bg-mark"
+        />
+        <span className="eyebrow">{t("dashboard.kind_payment")}</span>
+      </span>
+    </div>
   );
 }
 
@@ -382,12 +513,17 @@ function pctTrend(
 
 function workerTone(lastOk: string | null, lastErr: string | null): StatusTone {
   if (!lastOk) return "quiet";
-  if (lastErr && recentErr({ last_error_at: lastErr, last_recent_at: lastOk } as any))
+  if (lastErr && recentErr({ last_error_at: lastErr, last_recent_at: lastOk } as WorkerHealthLike))
     return "failed";
   return "live";
 }
 
-function recentErr(w: { last_error_at: string | null; last_recent_at: string | null }) {
+interface WorkerHealthLike {
+  last_error_at: string | null;
+  last_recent_at: string | null;
+}
+
+function recentErr(w: WorkerHealthLike) {
   if (!w.last_error_at) return false;
   if (!w.last_recent_at) return true;
   return new Date(w.last_error_at) > new Date(w.last_recent_at);

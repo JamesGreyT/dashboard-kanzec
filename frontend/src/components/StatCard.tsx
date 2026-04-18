@@ -54,14 +54,21 @@ export default function StatCard({
         {unit && <div className="caption text-ink-3 mt-1">{unit}</div>}
         {trend && (
           <>
-            <div className="leader w-full" />
-            <div className="caption italic text-ink-2 self-end">
+            {/* Short right-aligned marker rather than a full leader — the
+                trend is the number's footnote, not a new section. */}
+            <div
+              className="h-px bg-rule self-end mt-4"
+              style={{ width: 40 }}
+            />
+            <div className="caption italic text-ink-2 self-end mt-2 inline-flex items-baseline gap-1.5">
               {trend.arrow && (
-                <span className={`not-italic mr-1.5 ${toneClass}`}>
+                <span
+                  className={`not-italic text-[15px] leading-none font-semibold ${toneClass}`}
+                >
                   {trend.arrow}
                 </span>
               )}
-              {trend.text}
+              <span>{trend.text}</span>
             </div>
           </>
         )}

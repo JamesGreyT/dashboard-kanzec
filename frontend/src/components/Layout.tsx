@@ -35,7 +35,9 @@ export default function Layout() {
       <div className="flex-1 flex flex-col min-w-0">
         <MobileTopBar onMenu={() => setMenuOpen(true)} />
         <main className="flex-1 bg-paper-2 px-4 sm:px-6 md:px-10 lg:px-16 py-6 md:py-10">
-          <div className="max-w-[1320px] mx-auto animate-enter-up">
+          {/* Per-page components own their entrance via .stagger-N classes;
+              the outer wrapper is no longer an animation layer. */}
+          <div className="max-w-[1320px] mx-auto">
             <Outlet />
           </div>
         </main>

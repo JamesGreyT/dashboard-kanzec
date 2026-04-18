@@ -42,17 +42,19 @@ export default function AdminAudit() {
 
   return (
     <div>
-      <PageHeading
-        crumb={[
-          t("dashboard.crumb_dashboard"),
-          t("admin.crumb"),
-          t("admin.audit_crumb"),
-        ]}
-        title={t("admin.audit_title")}
-        subtitle={t("admin.audit_subtitle")}
-      />
+      <div className="stagger-0">
+        <PageHeading
+          crumb={[
+            t("dashboard.crumb_dashboard"),
+            t("admin.crumb"),
+            t("admin.audit_crumb"),
+          ]}
+          title={t("admin.audit_title")}
+          subtitle={t("admin.audit_subtitle")}
+        />
+      </div>
 
-      <div className="mt-6 flex items-center gap-4 max-w-md">
+      <div className="stagger-1 mt-6 flex items-center gap-4 max-w-md">
         <div className="flex-1">
           <Input
             placeholder={t("admin.audit_filter_placeholder")}
@@ -65,7 +67,7 @@ export default function AdminAudit() {
         </div>
       </div>
 
-      <Card className="mt-4 p-0 overflow-hidden">
+      <Card className="stagger-2 mt-4 p-0 overflow-hidden">
         {/* Desktop: real table. */}
         <div className="hidden md:block">
           <table className="w-full border-separate border-spacing-0">
