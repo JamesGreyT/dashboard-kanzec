@@ -18,6 +18,11 @@ from . import systemd
 # ETL registers new ones, the only change here is to append to this list.
 KNOWN_KEYS = ("order", "payment", "legal_person")
 
+# Reference reports do a full-list pull on an `all:*` label — they don't
+# have a recent-window / deep-window split. The UI renders them with a
+# single "Full list" block instead of the two-column RECENT | DEEP layout.
+REFERENCE_KEYS = {"legal_person"}
+
 
 async def list_reports(session: AsyncSession) -> list[dict[str, Any]]:
     active_map = await asyncio.gather(*(systemd.is_active(k) for k in KNOWN_KEYS))
@@ -27,6 +32,7 @@ async def list_reports(session: AsyncSession) -> list[dict[str, Any]]:
     for key, active in zip(KNOWN_KEYS, active_map):
         out.append({
             "key": key,
+            "is_reference": key in REFERENCE_KEYS,
             "systemd_active": active,
             **progress.get(key, {}),
             "backfill_queue_len": queue.get(key, 0),

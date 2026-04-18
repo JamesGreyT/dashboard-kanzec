@@ -120,6 +120,7 @@
     "subtitle": "Службы отчётов, их последние выгрузки и очередь backfill.",
     "recent_window": "Ближнее окно",
     "deep_window": "Глубокое окно",
+    "full_pull_window": "Полный список · последняя выгрузка",
     "queue": "Очередь",
     "errors": "Ошибки",
     "enqueue_backfill": "Поставить backfill в очередь",

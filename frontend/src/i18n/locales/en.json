@@ -120,6 +120,7 @@
     "subtitle": "Report workers, their last pulls, and the backfill queue.",
     "recent_window": "Recent window",
     "deep_window": "Deep window",
+    "full_pull_window": "Full list · latest pull",
     "queue": "Queue",
     "errors": "Errors",
     "enqueue_backfill": "Enqueue backfill",

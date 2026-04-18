@@ -120,6 +120,7 @@
     "subtitle": "Hisobot xizmatlari, so'nggi yuklamalar va backfill navbati.",
     "recent_window": "Yaqin oraliq",
     "deep_window": "Chuqur oraliq",
+    "full_pull_window": "To'liq ro'yxat · so'nggi yuklama",
     "queue": "Navbat",
     "errors": "Xatolar",
     "enqueue_backfill": "Backfillni navbatga qo'shish",

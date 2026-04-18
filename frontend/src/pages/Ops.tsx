@@ -15,6 +15,7 @@ import { Phrase } from "../components/Loader";
 
 interface Report {
   key: string;
+  is_reference: boolean;
   systemd_active: string;
   last_recent_at: string | null;
   last_recent_label: string | null;
@@ -88,12 +89,17 @@ function ReportCard({
   onLogs: () => void;
 }) {
   const { t } = useTranslation();
+  // Reference reports (legal_person) do `all:*` pulls, not recent/deep.
+  // Their cadence is 6 h; give a 7 h tolerance. Transactional reports
+  // run hourly so 2 h of slack is still healthy.
+  const liveSrc = r.is_reference ? r.last_all_at : r.last_recent_at;
+  const staleSec = r.is_reference ? 7 * 60 * 60 : 2 * 60 * 60;
   const tone: StatusTone =
-    r.systemd_active === "active" && !isStale(r.last_recent_at, 2 * 60 * 60)
+    r.systemd_active === "active" && !isStale(liveSrc, staleSec)
       ? "live"
       : r.systemd_active === "failed"
       ? "failed"
-      : r.last_recent_at
+      : liveSrc
       ? "staged"
       : "quiet";
   const toneLabel =
@@ -131,53 +137,71 @@ function ReportCard({
 
       <div className="leader" />
 
-      {/* Two-column stat block — RECENT | DEEP */}
-      <div className="grid grid-cols-1 md:grid-cols-2 relative">
-        <div className="md:pr-8">
-          <div className="eyebrow text-ink-3">{t("ops.recent_window")}</div>
-          <div className="mt-2 mono text-mono-sm text-ink-2 tabular-nums">
-            {r.last_recent_label ?? "—"}
-          </div>
+      {r.is_reference ? (
+        /* Reference report — single-column "Full list" block. No deep. */
+        <div>
+          <div className="eyebrow text-ink-3">{t("ops.full_pull_window")}</div>
           <div className="mt-5 flex items-baseline gap-2">
             <span className="serif nums text-[44px] text-ink leading-none tabular-nums">
-              {r.last_recent_rows != null
-                ? r.last_recent_rows.toLocaleString()
+              {r.last_all_rows != null
+                ? r.last_all_rows.toLocaleString()
                 : "—"}
             </span>
             <span className="caption text-ink-3">{t("common.rows")}</span>
           </div>
           <div className="mt-3 caption text-ink-3 tabular-nums">
-            {r.last_recent_ms != null
-              ? `${(r.last_recent_ms / 1000).toFixed(1)} s`
-              : "—"}
-            {" · "}
-            <RelativeTime iso={r.last_recent_at ?? r.last_all_at} />
+            <RelativeTime iso={r.last_all_at} />
           </div>
         </div>
-
-        <div
-          aria-hidden
-          className="hidden md:block absolute left-1/2 top-0 bottom-0 w-px bg-rule"
-        />
-
-        <div className="md:pl-8 mt-6 md:mt-0">
-          <div className="eyebrow text-ink-3">{t("ops.deep_window")}</div>
-          <div className="mt-2 mono text-mono-sm text-ink-2 tabular-nums">
-            {r.last_deep_label ?? "—"}
-          </div>
-          <div className="mt-5 flex items-baseline gap-2">
-            <span className="serif nums text-[44px] text-ink leading-none tabular-nums">
-              {r.last_deep_rows != null
-                ? r.last_deep_rows.toLocaleString()
+      ) : (
+        /* Transactional report — two-column RECENT | DEEP. */
+        <div className="grid grid-cols-1 md:grid-cols-2 relative">
+          <div className="md:pr-8">
+            <div className="eyebrow text-ink-3">{t("ops.recent_window")}</div>
+            <div className="mt-2 mono text-mono-sm text-ink-2 tabular-nums">
+              {r.last_recent_label ?? "—"}
+            </div>
+            <div className="mt-5 flex items-baseline gap-2">
+              <span className="serif nums text-[44px] text-ink leading-none tabular-nums">
+                {r.last_recent_rows != null
+                  ? r.last_recent_rows.toLocaleString()
+                  : "—"}
+              </span>
+              <span className="caption text-ink-3">{t("common.rows")}</span>
+            </div>
+            <div className="mt-3 caption text-ink-3 tabular-nums">
+              {r.last_recent_ms != null
+                ? `${(r.last_recent_ms / 1000).toFixed(1)} s`
                 : "—"}
-            </span>
-            <span className="caption text-ink-3">{t("common.rows")}</span>
+              {" · "}
+              <RelativeTime iso={r.last_recent_at} />
+            </div>
           </div>
-          <div className="mt-3 caption text-ink-3 tabular-nums">
-            <RelativeTime iso={r.last_deep_at} />
+
+          <div
+            aria-hidden
+            className="hidden md:block absolute left-1/2 top-0 bottom-0 w-px bg-rule"
+          />
+
+          <div className="md:pl-8 mt-6 md:mt-0">
+            <div className="eyebrow text-ink-3">{t("ops.deep_window")}</div>
+            <div className="mt-2 mono text-mono-sm text-ink-2 tabular-nums">
+              {r.last_deep_label ?? "—"}
+            </div>
+            <div className="mt-5 flex items-baseline gap-2">
+              <span className="serif nums text-[44px] text-ink leading-none tabular-nums">
+                {r.last_deep_rows != null
+                  ? r.last_deep_rows.toLocaleString()
+                  : "—"}
+              </span>
+              <span className="caption text-ink-3">{t("common.rows")}</span>
+            </div>
+            <div className="mt-3 caption text-ink-3 tabular-nums">
+              <RelativeTime iso={r.last_deep_at} />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="leader" />
 
@@ -215,21 +239,24 @@ function ReportCard({
 
       <div className="leader" />
 
-      {/* Action line */}
+      {/* Action line. Reference reports have no date range to backfill — the
+          worker always pulls the full list — so we drop that button for them. */}
       <div className="flex items-center flex-wrap gap-x-7 gap-y-3">
-        <button
-          onClick={onBackfill}
-          className="group inline-flex items-center gap-2 text-label text-ink hover:text-mark transition-colors"
-        >
-          <Calendar
-            size={14}
-            strokeWidth={1.25}
-            className="text-ink-3 group-hover:text-mark transition-colors"
-          />
-          <span className="group-hover:underline decoration-mark underline-offset-[3px]">
-            {t("ops.enqueue_backfill")}
-          </span>
-        </button>
+        {!r.is_reference && (
+          <button
+            onClick={onBackfill}
+            className="group inline-flex items-center gap-2 text-label text-ink hover:text-mark transition-colors"
+          >
+            <Calendar
+              size={14}
+              strokeWidth={1.25}
+              className="text-ink-3 group-hover:text-mark transition-colors"
+            />
+            <span className="group-hover:underline decoration-mark underline-offset-[3px]">
+              {t("ops.enqueue_backfill")}
+            </span>
+          </button>
+        )}
         <button
           onClick={onLogs}
           className="text-label text-ink-2 hover:text-mark hover:underline decoration-mark underline-offset-[3px] transition-colors"
