@@ -21,65 +21,99 @@ const ADMIN: Item[] = [
   { to: "/admin/audit", labelKey: "nav.audit", roles: ["admin"] },
 ];
 
-export default function Sidebar() {
+/**
+ * Static column on md+; slide-out drawer on mobile.
+ * On mobile the parent <Layout> tracks `open` and renders a backdrop below us.
+ */
+export default function Sidebar({
+  open = false,
+  onClose,
+}: {
+  open?: boolean;
+  onClose?: () => void;
+}) {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
   if (!user) return null;
 
   return (
-    <aside className="w-[264px] shrink-0 bg-paper min-h-screen px-7 py-6 flex flex-col">
-      <div className="flex items-center gap-3">
-        <div
-          className="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
-          style={{ background: "var(--mark-bg)", color: "var(--mark)" }}
-        >
-          <span className="serif-italic text-[17px]">
-            {user.username.slice(0, 2).toUpperCase()}
-          </span>
-        </div>
-        <div className="min-w-0">
-          <div className="serif-italic text-[17px] leading-tight text-ink truncate">
-            {user.username}
-          </div>
-          <div className="eyebrow mt-1">{t(`roles.${user.role}`)}</div>
-        </div>
-      </div>
+    <>
+      {/* Backdrop (mobile only, only when open). */}
+      <div
+        aria-hidden
+        onClick={onClose}
+        className={[
+          "md:hidden fixed inset-0 z-40 bg-ink/20 transition-opacity",
+          open ? "opacity-100" : "opacity-0 pointer-events-none",
+        ].join(" ")}
+      />
 
-      <div className="leader" />
-
-      <NavGroup titleKey="nav.registry" items={REGISTRY} role={user.role} />
-      {OPERATIONS.some((i) => i.roles.includes(user.role)) && (
-        <>
-          <div className="leader" />
-          <NavGroup titleKey="nav.operations" items={OPERATIONS} role={user.role} />
-        </>
-      )}
-      {ADMIN.some((i) => i.roles.includes(user.role)) && (
-        <>
-          <div className="leader" />
-          <NavGroup titleKey="nav.admin" items={ADMIN} role={user.role} />
-        </>
-      )}
-
-      <div className="flex-1" />
-
-      <div className="leader" />
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => void logout()}
-          className="group inline-flex items-center gap-2 text-label text-ink-2 hover:text-mark transition-colors text-left"
-        >
-          <span>{t("nav.signout")}</span>
-          <span
-            aria-hidden
-            className="serif text-[15px] text-ink-3 group-hover:text-mark transition-[color,transform] translate-x-0 group-hover:translate-x-0.5"
+      <aside
+        className={[
+          "w-[264px] shrink-0 bg-paper min-h-screen px-7 py-6 flex flex-col",
+          // Mobile: slide-in drawer.
+          "fixed inset-y-0 left-0 z-50 transition-transform duration-200",
+          open ? "translate-x-0" : "-translate-x-full",
+          // md+: static column, always in place.
+          "md:static md:translate-x-0 md:transition-none",
+        ].join(" ")}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
+            style={{ background: "var(--mark-bg)", color: "var(--mark)" }}
           >
-            ›
-          </span>
-        </button>
-        <LangToggle />
-      </div>
-    </aside>
+            <span className="serif-italic text-[17px]">
+              {user.username.slice(0, 2).toUpperCase()}
+            </span>
+          </div>
+          <div className="min-w-0">
+            <div className="serif-italic text-[17px] leading-tight text-ink truncate">
+              {user.username}
+            </div>
+            <div className="eyebrow mt-1">{t(`roles.${user.role}`)}</div>
+          </div>
+        </div>
+
+        <div className="leader" />
+
+        <NavGroup titleKey="nav.registry" items={REGISTRY} role={user.role} onNavigate={onClose} />
+        {OPERATIONS.some((i) => i.roles.includes(user.role)) && (
+          <>
+            <div className="leader" />
+            <NavGroup titleKey="nav.operations" items={OPERATIONS} role={user.role} onNavigate={onClose} />
+          </>
+        )}
+        {ADMIN.some((i) => i.roles.includes(user.role)) && (
+          <>
+            <div className="leader" />
+            <NavGroup titleKey="nav.admin" items={ADMIN} role={user.role} onNavigate={onClose} />
+          </>
+        )}
+
+        <div className="flex-1" />
+
+        <div className="leader" />
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => void logout()}
+            className="group inline-flex items-center gap-2 text-label text-ink-2 hover:text-mark transition-colors text-left"
+          >
+            <span>{t("nav.signout")}</span>
+            <span
+              aria-hidden
+              className="serif text-[15px] text-ink-3 group-hover:text-mark transition-[color,transform] translate-x-0 group-hover:translate-x-0.5"
+            >
+              ›
+            </span>
+          </button>
+          {/* LangToggle hidden on mobile since it's already in the top bar. */}
+          <div className="hidden md:block">
+            <LangToggle />
+          </div>
+        </div>
+      </aside>
+    </>
   );
 }
 
@@ -87,10 +121,12 @@ function NavGroup({
   titleKey,
   items,
   role,
+  onNavigate,
 }: {
   titleKey: string;
   items: Item[];
   role: "admin" | "operator" | "viewer";
+  onNavigate?: () => void;
 }) {
   const { t } = useTranslation();
   const visible = items.filter((i) => i.roles.includes(role));
@@ -103,6 +139,7 @@ function NavGroup({
           <li key={i.to}>
             <NavLink
               to={i.to}
+              onClick={onNavigate}
               className={({ isActive }) =>
                 [
                   "block h-9 px-3 rounded-md text-label leading-[36px] transition-colors",

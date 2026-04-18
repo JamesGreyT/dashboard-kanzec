@@ -106,7 +106,7 @@ function ReportCard({
   const subline = t(sublineKey, { defaultValue: "" });
 
   return (
-    <Card accent={tone === "live"} className="p-8">
+    <Card accent={tone === "live"} className="p-5 md:p-8">
       {/* Dateline — systemd unit + status pill */}
       <div className="flex items-center justify-between">
         <div className="eyebrow">
@@ -213,7 +213,7 @@ function ReportCard({
       <div className="leader" />
 
       {/* Action line */}
-      <div className="flex items-center gap-7">
+      <div className="flex items-center flex-wrap gap-x-7 gap-y-3">
         <button
           onClick={onBackfill}
           className="group inline-flex items-center gap-2 text-label text-ink hover:text-mark transition-colors"

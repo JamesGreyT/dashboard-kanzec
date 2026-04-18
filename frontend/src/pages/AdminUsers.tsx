@@ -122,106 +122,181 @@ export default function AdminUsers() {
       </div>
 
       <Card className="mt-4 p-0 overflow-hidden">
-        <table className="w-full border-separate border-spacing-0">
-          <thead>
-            <tr>
-              {[
-                { key: "admin.col_username", last: false },
-                { key: "admin.col_role", last: false },
-                { key: "admin.col_active", last: false },
-                { key: "admin.col_last_login", last: false },
-                { key: "admin.col_created", last: false },
-                { key: "admin.col_actions", last: true },
-              ].map((h) => (
-                <th
-                  key={h.key}
-                  className={`h-10 px-4 border-b border-rule sticky top-0 bg-card eyebrow font-semibold text-ink-3 ${
-                    h.last ? "text-right" : "text-left"
-                  }`}
-                >
-                  {t(h.key)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {(q.data?.users ?? []).map((u) => (
-              <tr key={u.id} className="transition-colors hover:bg-paper-2">
-                <td className="h-[52px] px-4 border-b border-rule text-body text-ink">
-                  {u.username}{" "}
-                  {u.id === user?.id && (
-                    <span className="caption text-ink-3">
-                      ({t("common.you")})
-                    </span>
-                  )}
-                </td>
-                <td className="h-[52px] px-4 border-b border-rule">
-                  <RolePicker
-                    value={u.role}
-                    onChange={(role) => changeRole.mutate({ id: u.id, role })}
-                    disabled={u.id === user?.id}
-                  />
-                </td>
-                <td className="h-[52px] px-4 border-b border-rule">
-                  <button
-                    onClick={() =>
-                      toggleActive.mutate({ id: u.id, is_active: !u.is_active })
-                    }
-                    disabled={u.id === user?.id}
-                    className="text-left"
+        {/* Desktop: real table. */}
+        <div className="hidden md:block">
+          <table className="w-full border-separate border-spacing-0">
+            <thead>
+              <tr>
+                {[
+                  { key: "admin.col_username", last: false },
+                  { key: "admin.col_role", last: false },
+                  { key: "admin.col_active", last: false },
+                  { key: "admin.col_last_login", last: false },
+                  { key: "admin.col_created", last: false },
+                  { key: "admin.col_actions", last: true },
+                ].map((h) => (
+                  <th
+                    key={h.key}
+                    className={`h-10 px-4 border-b border-rule sticky top-0 bg-card eyebrow font-semibold text-ink-3 ${
+                      h.last ? "text-right" : "text-left"
+                    }`}
                   >
-                    <StatusPill tone={u.is_active ? "live" : "quiet"}>
-                      {u.is_active ? t("admin.active") : t("admin.inactive")}
-                    </StatusPill>
-                  </button>
-                </td>
-                <td className="h-[52px] px-4 border-b border-rule caption text-ink-2">
-                  <RelativeTime iso={u.last_login_at} />
-                </td>
-                <td className="h-[52px] px-4 border-b border-rule caption text-ink-3 tabular-nums">
-                  {new Date(u.created_at).toLocaleDateString(
-                    i18n.resolvedLanguage || "en-GB",
-                    { timeZone: "Asia/Tashkent" },
-                  )}
-                </td>
-                <td className="h-[52px] px-4 border-b border-rule text-right">
-                  <div className="inline-flex items-center whitespace-nowrap leading-none">
-                    <ActionLink onClick={() => setResetFor(u)}>
-                      {t("admin.reset_password")}
-                    </ActionLink>
-                    <ActionDot />
-                    <ActionLink onClick={() => revoke.mutate(u.id)}>
-                      {t("admin.revoke_sessions")}
-                    </ActionLink>
-                    {u.id !== user?.id && (
-                      <>
-                        <ActionDot />
-                        <ActionLink
-                          danger
-                          onClick={() => {
-                            if (
-                              confirm(
-                                t("admin.delete_confirm", { username: u.username }),
+                    {t(h.key)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {(q.data?.users ?? []).map((u) => (
+                <tr key={u.id} className="transition-colors hover:bg-paper-2">
+                  <td className="h-[52px] px-4 border-b border-rule text-body text-ink">
+                    {u.username}{" "}
+                    {u.id === user?.id && (
+                      <span className="caption text-ink-3">
+                        ({t("common.you")})
+                      </span>
+                    )}
+                  </td>
+                  <td className="h-[52px] px-4 border-b border-rule">
+                    <RolePicker
+                      value={u.role}
+                      onChange={(role) => changeRole.mutate({ id: u.id, role })}
+                      disabled={u.id === user?.id}
+                    />
+                  </td>
+                  <td className="h-[52px] px-4 border-b border-rule">
+                    <button
+                      onClick={() =>
+                        toggleActive.mutate({ id: u.id, is_active: !u.is_active })
+                      }
+                      disabled={u.id === user?.id}
+                      className="text-left"
+                    >
+                      <StatusPill tone={u.is_active ? "live" : "quiet"}>
+                        {u.is_active ? t("admin.active") : t("admin.inactive")}
+                      </StatusPill>
+                    </button>
+                  </td>
+                  <td className="h-[52px] px-4 border-b border-rule caption text-ink-2">
+                    <RelativeTime iso={u.last_login_at} />
+                  </td>
+                  <td className="h-[52px] px-4 border-b border-rule caption text-ink-3 tabular-nums">
+                    {new Date(u.created_at).toLocaleDateString(
+                      i18n.resolvedLanguage || "en-GB",
+                      { timeZone: "Asia/Tashkent" },
+                    )}
+                  </td>
+                  <td className="h-[52px] px-4 border-b border-rule text-right">
+                    <div className="inline-flex items-center whitespace-nowrap leading-none">
+                      <ActionLink onClick={() => setResetFor(u)}>
+                        {t("admin.reset_password")}
+                      </ActionLink>
+                      <ActionDot />
+                      <ActionLink onClick={() => revoke.mutate(u.id)}>
+                        {t("admin.revoke_sessions")}
+                      </ActionLink>
+                      {u.id !== user?.id && (
+                        <>
+                          <ActionDot />
+                          <ActionLink
+                            danger
+                            onClick={() => {
+                              if (
+                                confirm(
+                                  t("admin.delete_confirm", { username: u.username }),
+                                )
                               )
-                            )
-                              del.mutate(u.id);
-                          }}
-                        >
-                          {t("admin.delete")}
-                        </ActionLink>
-                      </>
+                                del.mutate(u.id);
+                            }}
+                          >
+                            {t("admin.delete")}
+                          </ActionLink>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {q.isLoading && (
+                <tr>
+                  <td colSpan={6}><Phrase /></td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile: card list. */}
+        <ul className="md:hidden flex flex-col">
+          {(q.data?.users ?? []).map((u) => (
+            <li key={u.id} className="border-b border-rule last:border-b-0 px-4 py-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-body text-ink truncate">
+                    {u.username}
+                    {u.id === user?.id && (
+                      <span className="caption text-ink-3"> ({t("common.you")})</span>
                     )}
                   </div>
-                </td>
-              </tr>
-            ))}
-            {q.isLoading && (
-              <tr>
-                <td colSpan={6}><Phrase /></td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                  <div className="mt-1 caption text-ink-3 tabular-nums">
+                    {new Date(u.created_at).toLocaleDateString(
+                      i18n.resolvedLanguage || "en-GB",
+                      { timeZone: "Asia/Tashkent" },
+                    )}
+                    {" · "}
+                    <RelativeTime iso={u.last_login_at} />
+                  </div>
+                </div>
+                <button
+                  onClick={() =>
+                    toggleActive.mutate({ id: u.id, is_active: !u.is_active })
+                  }
+                  disabled={u.id === user?.id}
+                  className="shrink-0"
+                >
+                  <StatusPill tone={u.is_active ? "live" : "quiet"}>
+                    {u.is_active ? t("admin.active") : t("admin.inactive")}
+                  </StatusPill>
+                </button>
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <RolePicker
+                  value={u.role}
+                  onChange={(role) => changeRole.mutate({ id: u.id, role })}
+                  disabled={u.id === user?.id}
+                />
+              </div>
+              <div className="mt-3 flex items-center flex-wrap gap-x-1 gap-y-1 -mx-1">
+                <ActionLink onClick={() => setResetFor(u)}>
+                  {t("admin.reset_password")}
+                </ActionLink>
+                <ActionDot />
+                <ActionLink onClick={() => revoke.mutate(u.id)}>
+                  {t("admin.revoke_sessions")}
+                </ActionLink>
+                {u.id !== user?.id && (
+                  <>
+                    <ActionDot />
+                    <ActionLink
+                      danger
+                      onClick={() => {
+                        if (
+                          confirm(
+                            t("admin.delete_confirm", { username: u.username }),
+                          )
+                        )
+                          del.mutate(u.id);
+                      }}
+                    >
+                      {t("admin.delete")}
+                    </ActionLink>
+                  </>
+                )}
+              </div>
+            </li>
+          ))}
+          {q.isLoading && <Phrase />}
+        </ul>
       </Card>
 
       {create && <EnrollUserModal onClose={() => setCreate(false)} />}

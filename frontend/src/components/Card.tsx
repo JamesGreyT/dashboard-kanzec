@@ -19,7 +19,7 @@ export default function Card({
   return (
     <div
       className={[
-        "bg-card rounded-card shadow-card p-7 relative",
+        "bg-card rounded-card shadow-card p-5 md:p-7 relative",
         accent ? "pl-8" : "",
         interactive ? "card-interactive" : "",
         className,

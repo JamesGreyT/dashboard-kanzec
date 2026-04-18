@@ -31,7 +31,7 @@ export default function Modal({
       onClick={onClose}
     >
       <div
-        className="bg-card rounded-[16px] shadow-card p-10 animate-enter-up"
+        className="bg-card rounded-[16px] shadow-card p-6 md:p-10 animate-enter-up"
         style={{ width, maxWidth: "92vw" }}
         onClick={(e) => e.stopPropagation()}
       >

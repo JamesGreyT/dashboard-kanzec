@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { RuledLoader, Phrase } from "./Loader";
+import { useIsMobile } from "../lib/media";
 
 export type Density = "compact" | "comfortable";
 
@@ -15,6 +16,10 @@ export interface Column<R> {
   hasActiveFilter?: boolean;
   /** If set, header label is a clickable sort toggle. */
   sort?: "asc" | "desc" | null;
+  /** Marks the column that should be the "headline" of the card on mobile. */
+  mobilePrimary?: boolean;
+  /** Hide this column in the mobile card view (too noisy / redundant). */
+  mobileHidden?: boolean;
 }
 
 export default function DataTable<R extends Record<string, unknown>>({
@@ -40,6 +45,22 @@ export default function DataTable<R extends Record<string, unknown>>({
   emptyPhrase?: "empty" | "filtered";
   loading?: boolean;
 }) {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return (
+      <CardList
+        columns={columns}
+        rows={rows}
+        onRowClick={onRowClick}
+        activeKey={activeKey}
+        rowKey={rowKey}
+        emptyPhrase={emptyPhrase}
+        loading={loading}
+      />
+    );
+  }
+
   const rowH = density === "compact" ? 36 : 44;
   const showChevron = !!onRowClick;
 
@@ -173,6 +194,107 @@ export default function DataTable<R extends Record<string, unknown>>({
         </tbody>
       </table>
     </div>
+  );
+}
+
+/**
+ * Stacked card layout for mobile. Each row becomes a card; each column becomes
+ * an eyebrow label with its value right-aligned. The first non-hidden column
+ * (or the one flagged `mobilePrimary`) doubles as the card's headline strip.
+ */
+function CardList<R extends Record<string, unknown>>({
+  columns,
+  rows,
+  onRowClick,
+  activeKey,
+  rowKey,
+  emptyPhrase,
+  loading,
+}: {
+  columns: Column<R>[];
+  rows: R[];
+  onRowClick?: (row: R) => void;
+  activeKey?: string | number | null;
+  rowKey?: (row: R, index: number) => string | number;
+  emptyPhrase?: "empty" | "filtered";
+  loading?: boolean;
+}) {
+  const visible = columns.filter((c) => !c.mobileHidden);
+  const headlineCol =
+    visible.find((c) => c.mobilePrimary) ?? visible[0] ?? null;
+  const restCols = visible.filter((c) => c.name !== headlineCol?.name);
+
+  if (loading) return <RuledLoader />;
+  if (rows.length === 0) {
+    return (
+      <Phrase
+        kind={emptyPhrase === "filtered" ? "filtered" : "empty"}
+        className="py-14"
+      />
+    );
+  }
+
+  return (
+    <ul className="flex flex-col">
+      {rows.map((r, i) => {
+        const key = rowKey ? rowKey(r, i) : i;
+        const isActive = activeKey !== undefined && activeKey !== null && key === activeKey;
+        const Element = onRowClick ? "button" : "div";
+        return (
+          <li key={key} className="border-b border-rule last:border-b-0">
+            <Element
+              {...(onRowClick
+                ? { type: "button" as const, onClick: () => onRowClick(r) }
+                : {})}
+              className={[
+                "group w-full text-left py-3 px-1 relative transition-colors",
+                onRowClick ? "cursor-pointer active:bg-paper-2" : "",
+                isActive ? "bg-paper-2" : "",
+              ].join(" ")}
+            >
+              {isActive && (
+                <span
+                  aria-hidden
+                  className="absolute left-0 top-2 bottom-2 w-[2px] bg-mark"
+                />
+              )}
+              {headlineCol && (
+                <div
+                  className={[
+                    "text-body text-ink pl-3 pr-2",
+                    headlineCol.idColumn ? "mono text-mono-sm text-ink-2" : "",
+                  ].join(" ")}
+                >
+                  {headlineCol.render
+                    ? headlineCol.render(r)
+                    : formatCell(r[headlineCol.name], headlineCol)}
+                </div>
+              )}
+              {restCols.length > 0 && (
+                <dl className="mt-2 pl-3 pr-2 flex flex-col gap-1">
+                  {restCols.map((c) => (
+                    <div key={c.name} className="flex items-baseline gap-2">
+                      <dt className="eyebrow shrink-0">{c.label}</dt>
+                      <span className="dotted-leader" />
+                      <dd
+                        className={[
+                          "shrink-0 text-right",
+                          c.idColumn ? "mono text-mono-sm text-ink-2" : "text-ink",
+                          c.numeric ? "serif nums tabular-nums" : "text-body",
+                        ].join(" ")}
+                        style={{ maxWidth: "60%" }}
+                      >
+                        {c.render ? c.render(r) : formatCell(r[c.name], c)}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+            </Element>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 

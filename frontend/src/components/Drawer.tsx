@@ -56,7 +56,7 @@ export default function Drawer({
         className="absolute right-0 top-0 bottom-0 bg-card flex flex-col animate-enter-up"
         style={{ width, maxWidth: "92vw" }}
       >
-        <div className="h-14 px-7 border-b border-rule flex items-center justify-between gap-4">
+        <div className="h-14 px-4 md:px-7 border-b border-rule flex items-center justify-between gap-4">
           <div className="eyebrow shrink-0">{title}</div>
           {pk && (
             <div className="mono text-mono-sm text-ink-3 truncate tabular-nums">
@@ -72,9 +72,9 @@ export default function Drawer({
             ×
           </button>
         </div>
-        <div className="flex-1 overflow-auto p-7">{children}</div>
+        <div className="flex-1 overflow-auto p-4 md:p-7">{children}</div>
         {footer && (
-          <div className="px-7 py-4 border-t border-rule">{footer}</div>
+          <div className="px-4 md:px-7 py-4 border-t border-rule">{footer}</div>
         )}
       </aside>
     </div>,

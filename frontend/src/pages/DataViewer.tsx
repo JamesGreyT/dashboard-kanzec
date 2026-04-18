@@ -279,7 +279,7 @@ export default function DataViewer() {
       </div>
 
       {/* Top strip — search + density toggle + CSV */}
-      <div className="mt-6 flex items-center gap-4">
+      <div className="mt-6 flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
         <div className="flex-1">
           <Input
             placeholder={t("data.search_placeholder")}
@@ -290,33 +290,36 @@ export default function DataViewer() {
             }}
           />
         </div>
-        <div className="flex items-center gap-3 caption text-ink-3">
-          <span>{t("common.density")}</span>
-          <button
-            type="button"
-            onClick={() => setDensity("compact")}
-            className={`caption transition-colors ${
-              density === "compact"
-                ? "text-mark underline decoration-mark underline-offset-[3px]"
-                : "text-ink-2 hover:text-ink"
-            }`}
-          >
-            {t("common.compact")}
-          </button>
-          <span>·</span>
-          <button
-            type="button"
-            onClick={() => setDensity("comfortable")}
-            className={`caption transition-colors ${
-              density === "comfortable"
-                ? "text-mark underline decoration-mark underline-offset-[3px]"
-                : "text-ink-2 hover:text-ink"
-            }`}
-          >
-            {t("common.comfortable")}
-          </button>
+        <div className="flex items-center justify-between md:justify-end gap-4">
+          {/* Density toggle is meaningless in card view — hide on mobile. */}
+          <div className="hidden md:flex items-center gap-3 caption text-ink-3">
+            <span>{t("common.density")}</span>
+            <button
+              type="button"
+              onClick={() => setDensity("compact")}
+              className={`caption transition-colors ${
+                density === "compact"
+                  ? "text-mark underline decoration-mark underline-offset-[3px]"
+                  : "text-ink-2 hover:text-ink"
+              }`}
+            >
+              {t("common.compact")}
+            </button>
+            <span>·</span>
+            <button
+              type="button"
+              onClick={() => setDensity("comfortable")}
+              className={`caption transition-colors ${
+                density === "comfortable"
+                  ? "text-mark underline decoration-mark underline-offset-[3px]"
+                  : "text-ink-2 hover:text-ink"
+              }`}
+            >
+              {t("common.comfortable")}
+            </button>
+          </div>
+          <Button onClick={exportCsv}>{t("common.csv")}</Button>
         </div>
-        <Button onClick={exportCsv}>{t("common.csv")}</Button>
       </div>
 
       {/* Active filter chips — slides in when count goes 0 → ≥1 */}

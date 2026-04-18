@@ -45,12 +45,12 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-paper flex flex-col">
       {/* Top-right language toggle only — no masthead. */}
-      <div className="px-10 pt-6 flex justify-end">
+      <div className="px-6 md:px-10 pt-6 flex justify-end">
         <LangToggle />
       </div>
 
       <div className="flex-1 flex items-center justify-center px-6 animate-enter-up">
-        <div className="w-[380px]">
+        <div className="w-full max-w-[380px]">
           <h1 className="serif text-heading-lg text-ink leading-none">
             {t("login.title")}
             <span className="mark-stop">.</span>
@@ -109,7 +109,7 @@ export default function Login() {
       </div>
 
       {/* Single-line footer with just the domain — everything else removed. */}
-      <div className="px-10 py-5 flex items-center justify-center">
+      <div className="px-6 md:px-10 py-5 flex items-center justify-center">
         <div className="caption text-ink-3 mono">kanzec.ilhom.work</div>
       </div>
     </div>

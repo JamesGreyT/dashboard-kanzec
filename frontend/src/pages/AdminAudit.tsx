@@ -66,65 +66,103 @@ export default function AdminAudit() {
       </div>
 
       <Card className="mt-4 p-0 overflow-hidden">
-        <table className="w-full border-separate border-spacing-0">
-          <thead>
-            <tr>
-              {[
-                "admin.audit_col_when",
-                "admin.audit_col_who",
-                "admin.audit_col_action",
-                "admin.audit_col_target",
-                "admin.audit_col_ip",
-              ].map((key) => (
-                <th
-                  key={key}
-                  className="h-10 px-4 border-b border-rule sticky top-0 bg-card eyebrow font-semibold text-ink-3 text-left"
+        {/* Desktop: real table. */}
+        <div className="hidden md:block">
+          <table className="w-full border-separate border-spacing-0">
+            <thead>
+              <tr>
+                {[
+                  "admin.audit_col_when",
+                  "admin.audit_col_who",
+                  "admin.audit_col_action",
+                  "admin.audit_col_target",
+                  "admin.audit_col_ip",
+                ].map((key) => (
+                  <th
+                    key={key}
+                    className="h-10 px-4 border-b border-rule sticky top-0 bg-card eyebrow font-semibold text-ink-3 text-left"
+                  >
+                    {t(key)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {(q.data?.rows ?? []).map((r) => (
+                <tr
+                  key={r.id}
+                  onClick={() => setOpenRow(r)}
+                  className="cursor-pointer transition-colors hover:bg-paper-2"
                 >
-                  {t(key)}
-                </th>
+                  <td className="h-[52px] px-4 border-b border-rule caption text-ink-2">
+                    <RelativeTime iso={r.created_at} />
+                  </td>
+                  <td className="h-[52px] px-4 border-b border-rule text-body text-ink">
+                    {r.username ?? <span className="text-ink-3">—</span>}
+                  </td>
+                  <td className="h-[52px] px-4 border-b border-rule">
+                    <span className="mono text-mono-sm text-mark">{r.action}</span>
+                  </td>
+                  <td className="h-[52px] px-4 border-b border-rule mono text-mono-sm text-ink-2">
+                    {r.target ?? <span className="text-ink-3">—</span>}
+                  </td>
+                  <td className="h-[52px] px-4 border-b border-rule mono text-mono-sm text-ink-3">
+                    {r.ip_address ?? "—"}
+                  </td>
+                </tr>
               ))}
-            </tr>
-          </thead>
-          <tbody>
-            {(q.data?.rows ?? []).map((r) => (
-              <tr
-                key={r.id}
+              {(q.data?.rows.length ?? 0) === 0 && !q.isLoading && (
+                <tr>
+                  <td colSpan={5}>
+                    <div className="py-14 text-center caption italic text-ink-3">
+                      {t("common.no_dispatches")}
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {q.isLoading && (
+                <tr>
+                  <td colSpan={5}><Phrase /></td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile: card list. */}
+        <ul className="md:hidden flex flex-col">
+          {(q.data?.rows ?? []).map((r) => (
+            <li key={r.id} className="border-b border-rule last:border-b-0">
+              <button
+                type="button"
                 onClick={() => setOpenRow(r)}
-                className="cursor-pointer transition-colors hover:bg-paper-2"
+                className="w-full text-left px-4 py-3 active:bg-paper-2 transition-colors"
               >
-                <td className="h-[52px] px-4 border-b border-rule caption text-ink-2">
-                  <RelativeTime iso={r.created_at} />
-                </td>
-                <td className="h-[52px] px-4 border-b border-rule text-body text-ink">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="mono text-mono-sm text-mark truncate">{r.action}</span>
+                  <span className="caption text-ink-3 shrink-0">
+                    <RelativeTime iso={r.created_at} />
+                  </span>
+                </div>
+                <div className="mt-1 text-body text-ink truncate">
                   {r.username ?? <span className="text-ink-3">—</span>}
-                </td>
-                <td className="h-[52px] px-4 border-b border-rule">
-                  <span className="mono text-mono-sm text-mark">{r.action}</span>
-                </td>
-                <td className="h-[52px] px-4 border-b border-rule mono text-mono-sm text-ink-2">
-                  {r.target ?? <span className="text-ink-3">—</span>}
-                </td>
-                <td className="h-[52px] px-4 border-b border-rule mono text-mono-sm text-ink-3">
-                  {r.ip_address ?? "—"}
-                </td>
-              </tr>
-            ))}
-            {(q.data?.rows.length ?? 0) === 0 && !q.isLoading && (
-              <tr>
-                <td colSpan={5}>
-                  <div className="py-14 text-center caption italic text-ink-3">
-                    {t("common.no_dispatches")}
+                </div>
+                {r.target && (
+                  <div className="mt-0.5 mono text-mono-xs text-ink-2 truncate">
+                    {r.target}
                   </div>
-                </td>
-              </tr>
-            )}
-            {q.isLoading && (
-              <tr>
-                <td colSpan={5}><Phrase /></td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                )}
+              </button>
+            </li>
+          ))}
+          {(q.data?.rows.length ?? 0) === 0 && !q.isLoading && (
+            <li className="py-14 text-center caption italic text-ink-3">
+              {t("common.no_dispatches")}
+            </li>
+          )}
+          {q.isLoading && <Phrase />}
+        </ul>
+
         {q.data && (
           <Pagination
             offset={offset}
