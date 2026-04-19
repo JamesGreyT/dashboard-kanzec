@@ -68,10 +68,17 @@ export default function DataViewer() {
   const limit = 50;
   const [openRowIdx, setOpenRowIdx] = useState<number | null>(null);
   const [openFilterCol, setOpenFilterCol] = useState<string | null>(null);
+  // When ColumnFilter is opened, we remember where from so the popover
+  // anchors to the correct element. Headers anchor to the per-column icon;
+  // the "Add filter" menu anchors to its own button (for hidden columns).
+  const [filterSource, setFilterSource] = useState<"header" | "add-button">("header");
   const [filtersByTable, setFiltersByTable] = useState<Record<string, Filters>>({});
   const [sortByTable, setSortByTable] = useState<Record<string, SortState>>({});
   const [density, setDensity] = useState<Density>(readDensity);
   const filterBtnRefs = useRef<Map<string, HTMLButtonElement | null>>(new Map());
+  const addFilterBtnRef = useRef<HTMLButtonElement | null>(null);
+  const [addFilterMenuOpen, setAddFilterMenuOpen] = useState(false);
+  const [addFilterSearch, setAddFilterSearch] = useState("");
 
   useEffect(() => {
     try {
@@ -180,6 +187,7 @@ export default function DataViewer() {
               }}
               onClick={(e) => {
                 e.stopPropagation();
+                setFilterSource("header");
                 setOpenFilterCol((cur) => (cur === c.name ? null : c.name));
               }}
               className={`h-5 w-5 grid place-items-center rounded-sm transition-colors ${
@@ -191,7 +199,7 @@ export default function DataViewer() {
             >
               <FilterIcon />
             </button>
-            {openFilterCol === c.name && (
+            {openFilterCol === c.name && filterSource === "header" && (
               <ColumnFilter
                 col={c}
                 tableKey={activeKey}
@@ -316,6 +324,7 @@ export default function DataViewer() {
           <Input
             placeholder={t("data.search_placeholder")}
             value={search}
+            leading={<SearchIcon />}
             onChange={(e) => {
               setSearch(e.target.value);
               setOffset(0);
@@ -350,9 +359,59 @@ export default function DataViewer() {
               {t("common.comfortable")}
             </button>
           </div>
+          <div className="relative">
+            <button
+              ref={addFilterBtnRef}
+              type="button"
+              onClick={() => setAddFilterMenuOpen((o) => !o)}
+              disabled={!activeTable}
+              className="inline-flex items-center justify-center gap-2 h-10 px-4 text-label font-medium rounded-[10px] transition-colors active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 bg-transparent text-ink-2 border border-rule hover:bg-paper-2 hover:text-ink"
+            >
+              <span aria-hidden className="text-ink-3">+</span>
+              {t("data.add_filter")}
+            </button>
+            {addFilterMenuOpen && activeTable && (
+              <AddFilterMenu
+                columns={activeTable.columns}
+                filters={filters}
+                search={addFilterSearch}
+                onSearch={setAddFilterSearch}
+                onClose={() => {
+                  setAddFilterMenuOpen(false);
+                  setAddFilterSearch("");
+                }}
+                onPick={(colName) => {
+                  setAddFilterMenuOpen(false);
+                  setAddFilterSearch("");
+                  setFilterSource("add-button");
+                  setOpenFilterCol(colName);
+                }}
+              />
+            )}
+          </div>
           <Button onClick={exportCsv}>{t("common.csv")}</Button>
         </div>
       </div>
+
+      {/* ColumnFilter popover opened via the "Add filter" menu — anchored to
+          the Add filter button so hidden-column filters have a place to land. */}
+      {filterSource === "add-button" && openFilterCol && activeTable && (() => {
+        const col = activeTable.columns.find((c) => c.name === openFilterCol);
+        if (!col) return null;
+        return (
+          <ColumnFilter
+            col={col}
+            tableKey={activeKey}
+            value={filters[openFilterCol] ?? initialFilterFor(col)}
+            anchorEl={addFilterBtnRef.current}
+            onChange={(v) => updateFilter(openFilterCol, v)}
+            onClose={() => {
+              setOpenFilterCol(null);
+              setFilterSource("header");
+            }}
+          />
+        );
+      })()}
 
       {/* Active filter chips — slides in when count goes 0 → ≥1 */}
       <AnimatePresence initial={false}>
@@ -537,5 +596,126 @@ function FilterIcon() {
         strokeLinejoin="round"
       />
     </svg>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 14 14"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+    >
+      <circle cx="6" cy="6" r="4.25" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M9.3 9.3 12 12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/**
+ * Column-picker dropdown anchored to the "Add filter" button.
+ * Lists every column in the active table's catalog (visible + hidden),
+ * with a search box and a dot for columns that already have an active filter.
+ * Picking a column hands control off to ColumnFilter.
+ */
+function AddFilterMenu({
+  columns,
+  filters,
+  search,
+  onSearch,
+  onPick,
+  onClose,
+}: {
+  columns: (ColumnMeta & { visible: boolean })[];
+  filters: Filters;
+  search: string;
+  onSearch: (s: string) => void;
+  onPick: (colName: string) => void;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      if (!menuRef.current) return;
+      if (menuRef.current.contains(e.target as Node)) return;
+      onClose();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  const q = search.trim().toLowerCase();
+  const items = columns.filter((c) => {
+    if (!q) return true;
+    return (
+      c.label.toLowerCase().includes(q) || c.name.toLowerCase().includes(q)
+    );
+  });
+
+  return (
+    <div
+      ref={menuRef}
+      className="absolute right-0 top-[calc(100%+6px)] z-30 w-[300px] rounded-[10px] border border-rule bg-paper shadow-lg"
+      role="menu"
+    >
+      <div className="p-2 border-b border-rule">
+        <div className="flex items-center gap-2 h-9 bg-paper-2 px-2.5 rounded-md border border-rule transition-colors focus-within:border-mark focus-within:ring-2 focus-within:ring-mark/35">
+          <span className="text-ink-3">
+            <SearchIcon />
+          </span>
+          <input
+            autoFocus
+            type="text"
+            value={search}
+            onChange={(e) => onSearch(e.target.value)}
+            placeholder={t("data.add_filter_placeholder")}
+            className="flex-1 bg-transparent text-body text-ink outline-none border-0 placeholder:italic placeholder:text-ink-3 min-w-0"
+          />
+        </div>
+      </div>
+      <div className="max-h-[360px] overflow-y-auto py-1">
+        {items.length === 0 && (
+          <div className="px-3 py-6 caption text-ink-3 text-center">
+            {t("data.add_filter_no_matches")}
+          </div>
+        )}
+        {items.map((c) => {
+          const active = hasActive(filters[c.name]);
+          return (
+            <button
+              key={c.name}
+              onClick={() => onPick(c.name)}
+              className="w-full flex items-center gap-2 px-3 py-2 text-left text-body hover:bg-paper-2 transition-colors"
+              role="menuitem"
+            >
+              <span
+                aria-hidden
+                className={`inline-block h-1.5 w-1.5 rounded-full shrink-0 ${
+                  active ? "bg-mark" : "bg-transparent"
+                }`}
+              />
+              <span className="text-ink flex-1 truncate">{c.label}</span>
+              {!c.visible && (
+                <span className="caption text-ink-3 shrink-0">
+                  {t("data.add_filter_hidden")}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }

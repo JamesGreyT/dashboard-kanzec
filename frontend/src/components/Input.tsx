@@ -17,7 +17,7 @@ export default function Input({
   ...rest
 }: Props) {
   const field = (
-    <div className="flex items-center gap-2 h-10 bg-paper-2 px-3 rounded-[10px] focus-within:ring-2 focus-within:ring-mark/35">
+    <div className="flex items-center gap-2 h-10 bg-paper-2 px-3 rounded-[10px] border border-rule transition-colors focus-within:border-mark focus-within:ring-2 focus-within:ring-mark/35 hover:border-ink-3">
       {leading && <span className="text-ink-3">{leading}</span>}
       <input
         {...rest}
