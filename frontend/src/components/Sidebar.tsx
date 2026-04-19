@@ -3,15 +3,22 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../lib/auth";
 import LangToggle from "./LangToggle";
 
+type Glyph = "dashboard" | "orders" | "payments" | "people";
+
 interface Item {
   to: string;
   labelKey: string;
   roles: Array<"admin" | "operator" | "viewer">;
+  glyph?: Glyph;
 }
 
 const REGISTRY: Item[] = [
-  { to: "/dashboard", labelKey: "nav.dashboard", roles: ["admin", "operator", "viewer"] },
-  { to: "/data", labelKey: "nav.data", roles: ["admin", "operator", "viewer"] },
+  { to: "/dashboard", labelKey: "nav.dashboard", roles: ["admin", "operator", "viewer"], glyph: "dashboard" },
+];
+const DATA: Item[] = [
+  { to: "/data/orders", labelKey: "nav.orders", roles: ["admin", "operator", "viewer"], glyph: "orders" },
+  { to: "/data/payments", labelKey: "nav.payments", roles: ["admin", "operator", "viewer"], glyph: "payments" },
+  { to: "/data/legal-persons", labelKey: "nav.legal_persons", roles: ["admin", "operator", "viewer"], glyph: "people" },
 ];
 const OPERATIONS: Item[] = [
   { to: "/ops", labelKey: "nav.reports", roles: ["admin", "operator"] },
@@ -79,6 +86,8 @@ export default function Sidebar({
         <div className="leader" />
 
         <NavGroup titleKey="nav.registry" items={REGISTRY} role={user.role} onNavigate={onClose} />
+        <div className="leader" />
+        <NavGroup titleKey="nav.data_group" items={DATA} role={user.role} onNavigate={onClose} />
         {OPERATIONS.some((i) => i.roles.includes(user.role)) && (
           <>
             <div className="leader" />
@@ -143,18 +152,74 @@ function NavGroup({
               onClick={onNavigate}
               className={({ isActive }) =>
                 [
-                  "relative block h-9 px-3 rounded-md text-label leading-[36px] transition-colors",
+                  "group relative flex items-center gap-3 h-9 pl-3 pr-3 rounded-md text-label transition-colors",
                   isActive
                     ? "bg-mark-bg text-mark before:content-[''] before:absolute before:inset-y-[6px] before:left-0 before:w-[2px] before:bg-mark before:rounded-r"
                     : "text-ink-2 hover:bg-paper-2 hover:text-ink",
                 ].join(" ")
               }
             >
-              {t(i.labelKey)}
+              {({ isActive }: { isActive: boolean }) => (
+                <>
+                  {i.glyph && (
+                    <SidebarGlyph
+                      kind={i.glyph}
+                      className={
+                        isActive
+                          ? "text-mark"
+                          : "text-ink-3 group-hover:text-ink-2"
+                      }
+                    />
+                  )}
+                  <span className="truncate">{t(i.labelKey)}</span>
+                </>
+              )}
             </NavLink>
           </li>
         ))}
       </ul>
     </div>
   );
+}
+
+function SidebarGlyph({ kind, className = "" }: { kind: Glyph; className?: string }) {
+  const cls = `shrink-0 transition-colors ${className}`;
+  if (kind === "dashboard") {
+    return (
+      <svg className={cls} width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <rect x="3" y="3" width="8" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+        <rect x="13" y="3" width="8" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+        <rect x="13" y="11" width="8" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+        <rect x="3" y="15" width="8" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+      </svg>
+    );
+  }
+  if (kind === "orders") {
+    return (
+      <svg className={cls} width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path d="M5 4h10l3 3v13H5V4z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+        <path d="M8 10h8M8 14h8M8 18h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (kind === "payments") {
+    return (
+      <svg className={cls} width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <rect x="3" y="6" width="18" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
+        <circle cx="12" cy="12" r="2.25" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M6 9v6M18 9v6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (kind === "people") {
+    return (
+      <svg className={cls} width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path d="M4 20v-1.5a4.5 4.5 0 0 1 4.5-4.5h4a4.5 4.5 0 0 1 4.5 4.5V20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <circle cx="10.5" cy="8.5" r="3.5" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M17 11a3 3 0 0 0 0-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M20 20v-1a3.5 3.5 0 0 0-2.5-3.35" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  return null;
 }

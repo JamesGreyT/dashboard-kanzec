@@ -22,7 +22,10 @@ export default function App() {
           }
         >
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/data" element={<DataViewer />} />
+          <Route path="/data" element={<Navigate to="/data/orders" replace />} />
+          <Route path="/data/orders" element={<DataViewer lockedTable="deal_order" />} />
+          <Route path="/data/payments" element={<DataViewer lockedTable="payment" />} />
+          <Route path="/data/legal-persons" element={<DataViewer lockedTable="legal_person" />} />
           <Route
             path="/ops"
             element={

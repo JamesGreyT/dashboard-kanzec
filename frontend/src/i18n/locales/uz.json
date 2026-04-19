@@ -40,11 +40,15 @@
     "reading_the_register": "yuklanmoqda…"
   },
   "nav": {
-    "registry": "Ma'lumotlar",
+    "registry": "Asosiy",
+    "data_group": "Ma'lumotlar",
     "operations": "Operatsiyalar",
     "admin": "Administratsiya",
     "dashboard": "Boshqaruv paneli",
     "data": "Jadvallar",
+    "orders": "Buyurtmalar",
+    "payments": "To'lovlar",
+    "legal_persons": "Yuridik shaxslar",
     "reports": "Hisobotlar",
     "users": "Foydalanuvchilar",
     "audit": "Audit",
@@ -113,8 +117,11 @@
     "filter_cant_read": "qiymatlarni o'qib bo'lmadi.",
     "reading": "o'qilmoqda…",
     "orders": "Buyurtmalar",
+    "orders_blurb": "Sotuv buyurtmalari qatorlari, eng yangilari yuqorida. Yetkazib berish sanasi, zona, menejer, mijoz yoki mahsulot bo'yicha filtr qo'ying — kerakli bo'lakni tez topasiz.",
     "payments": "To'lovlar",
+    "payments_blurb": "Barcha filiallardan qabul qilingan kiruvchi to'lovlar. Mijoz yoki INN bo'yicha qidiring, yoki summa, usul, kollektor bo'yicha filtr qo'shing.",
     "legal_persons": "Yuridik shaxslar",
+    "legal_persons_blurb": "B2B kontragentlar uchun asosiy ma'lumotnoma. Smartup UI ko'rsatadigan barcha ustunlar shu yerda — «Filtr qo'shish» orqali mintaqa, guruh, telefon yoki boshqa yashirin ustunlar bo'yicha filtrlang.",
     "drawer_row_of_page": "qator {{n}} / {{total}} (ushbu sahifada)",
     "drawer_nav_hint": "harakat qilish uchun"
   },

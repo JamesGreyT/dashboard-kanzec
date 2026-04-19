@@ -56,14 +56,33 @@ const TABLE_LABEL_KEYS: Record<string, string> = {
   legal_person: "data.legal_persons",
 };
 
-export default function DataViewer() {
+const TABLE_ICON: Record<string, "orders" | "payments" | "people"> = {
+  deal_order: "orders",
+  payment: "payments",
+  legal_person: "people",
+};
+
+const TABLE_SUBTITLE_KEYS: Record<string, string> = {
+  deal_order: "data.orders_blurb",
+  payment: "data.payments_blurb",
+  legal_person: "data.legal_persons_blurb",
+};
+
+/**
+ * Data viewer page. Two modes:
+ *   - hub mode (default): shows a tab strip covering all tables
+ *   - locked mode: lockedTable set → hides tabs, renders a focused header
+ * Locked mode powers /data/orders, /data/payments, /data/legal-persons so
+ * each table has its own sidebar entry.
+ */
+export default function DataViewer({ lockedTable }: { lockedTable?: string } = {}) {
   const { t } = useTranslation();
   const tables = useQuery({
     queryKey: ["data.tables"],
     queryFn: () => api<{ tables: TableMeta[] }>("/api/data/tables"),
   });
 
-  const [activeKey, setActiveKey] = useState<string>("deal_order");
+  const [activeKey, setActiveKey] = useState<string>(lockedTable ?? "deal_order");
   const [search, setSearch] = useState("");
   const [offset, setOffset] = useState(0);
   const limit = 50;
@@ -88,6 +107,19 @@ export default function DataViewer() {
       /* no-op */
     }
   }, [density]);
+
+  // URL-driven lockedTable can change as the user switches sidebar entries;
+  // keep the internal active-key + popovers in sync with the route.
+  useEffect(() => {
+    if (lockedTable && lockedTable !== activeKey) {
+      setActiveKey(lockedTable);
+      setOffset(0);
+      setOpenFilterCol(null);
+      setOpenRowIdx(null);
+      setAddFilterMenuOpen(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lockedTable]);
 
   const activeTable = tables.data?.tables.find((t) => t.key === activeKey);
   const filters = filtersByTable[activeKey] ?? {};
@@ -276,27 +308,68 @@ export default function DataViewer() {
   const pkValue = (row: Row) =>
     activeTable ? activeTable.pk.map((p) => row[p]).join("~") : "";
 
+  const locked = Boolean(lockedTable);
+  const lockedTitleKey = activeTable ? TABLE_LABEL_KEYS[activeTable.key] : undefined;
+  const lockedSubtitleKey = activeTable ? TABLE_SUBTITLE_KEYS[activeTable.key] : undefined;
+  const lockedIcon = activeTable ? TABLE_ICON[activeTable.key] : undefined;
+
   return (
     <div>
       <div className="stagger-0">
-        <PageHeading
-          crumb={[
-            t("dashboard.crumb_dashboard"),
-            t("data.crumb_data"),
-            activeTable ? t(TABLE_LABEL_KEYS[activeTable.key] ?? activeTable.label) : "—",
-          ]}
-          title={t("data.title")}
-          subtitle={
-            activeTable && rowsQ.data
-              ? t("data.subtitle_rows", {
+        {locked && activeTable ? (
+          <div>
+            <div className="caption text-ink-3">
+              <span>{t("dashboard.crumb_dashboard")}</span>
+              <span className="mx-2">·</span>
+              <span>{t("data.crumb_data")}</span>
+              <span className="mx-2">·</span>
+              <span className="text-ink-2">
+                {t(TABLE_LABEL_KEYS[activeTable.key] ?? activeTable.label)}
+              </span>
+            </div>
+            <div className="mt-2 flex items-center gap-4">
+              <TableGlyph kind={lockedIcon} />
+              <h1 className="serif text-heading-lg text-ink leading-none">
+                {lockedTitleKey ? t(lockedTitleKey) : activeTable.label}
+                <span className="mark-stop">.</span>
+              </h1>
+            </div>
+            {lockedSubtitleKey && (
+              <p className="text-body text-ink-2 mt-3 max-w-2xl">
+                {t(lockedSubtitleKey)}
+              </p>
+            )}
+            {rowsQ.data && (
+              <p className="caption text-ink-3 mt-2 tabular-nums">
+                {t("data.subtitle_rows", {
                   n: rowsQ.data.total.toLocaleString(),
-                })
-              : undefined
-          }
-        />
+                })}
+              </p>
+            )}
+            <div className="leader mt-6" />
+          </div>
+        ) : (
+          <PageHeading
+            crumb={[
+              t("dashboard.crumb_dashboard"),
+              t("data.crumb_data"),
+              activeTable ? t(TABLE_LABEL_KEYS[activeTable.key] ?? activeTable.label) : "—",
+            ]}
+            title={t("data.title")}
+            subtitle={
+              activeTable && rowsQ.data
+                ? t("data.subtitle_rows", {
+                    n: rowsQ.data.total.toLocaleString(),
+                  })
+                : undefined
+            }
+          />
+        )}
       </div>
 
-      {/* Table tabs */}
+      {/* Table tabs — hidden in locked mode where the page is dedicated to
+          a single table (each has its own sidebar entry + URL). */}
+      {!locked && (
       <div className="stagger-1 mt-8 flex items-center gap-6 border-b border-rule">
         {tablesList.map((tab) => (
           <button
@@ -318,6 +391,7 @@ export default function DataViewer() {
           </button>
         ))}
       </div>
+      )}
 
       {/* Top strip — search + density toggle + CSV */}
       <div className="stagger-2 mt-6 flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
@@ -614,6 +688,49 @@ function SearchIcon() {
       <circle cx="6" cy="6" r="4.25" stroke="currentColor" strokeWidth="1.4" />
       <path d="M9.3 9.3 12 12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
     </svg>
+  );
+}
+
+/**
+ * Per-table heading glyph — tinted disc containing a minimal outline icon.
+ * Rendered in locked-mode page headers so each of the three dedicated data
+ * routes has its own visual identity without resorting to emoji.
+ */
+function TableGlyph({ kind }: { kind: "orders" | "payments" | "people" | undefined }) {
+  if (!kind) return null;
+  return (
+    <span
+      aria-hidden
+      className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-full"
+      style={{ background: "var(--mark-bg)", color: "var(--mark)" }}
+    >
+      {kind === "orders" && (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path
+            d="M5 4h10l3 3v13H5V4z"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinejoin="round"
+          />
+          <path d="M8 10h8M8 14h8M8 18h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      )}
+      {kind === "payments" && (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="6" width="18" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
+          <circle cx="12" cy="12" r="2.25" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M6 9v6M18 9v6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      )}
+      {kind === "people" && (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M4 20v-1.5a4.5 4.5 0 0 1 4.5-4.5h4a4.5 4.5 0 0 1 4.5 4.5V20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <circle cx="10.5" cy="8.5" r="3.5" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M17 11a3 3 0 0 0 0-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M20 20v-1a3.5 3.5 0 0 0-2.5-3.35" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      )}
+    </span>
   );
 }
 
