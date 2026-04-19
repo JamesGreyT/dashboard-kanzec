@@ -229,6 +229,7 @@
     "blurb": "Every client who still owes, ranked by who should hear from you today. Contact info, aging, and a one-tap call log are built in.",
     "overdue_promise": "overdue promise",
     "days": "days no payment",
+    "not_found": "Client not found or outside your assigned sales persons.",
     "empty_worklist": "Nobody owes anything right now. Well done.",
     "empty_prepayments": "No clients are currently in credit.",
     "empty_contact_log": "No calls logged yet.",

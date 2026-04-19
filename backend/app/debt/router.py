@@ -7,7 +7,7 @@ and author-gated on edit/delete (author or admin only).
 from __future__ import annotations
 
 from datetime import date
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
@@ -22,9 +22,14 @@ from . import service
 router = APIRouter(prefix="/api/debt", tags=["debt"])
 
 
+OutcomeLiteral = Literal[
+    "called", "no_answer", "promised", "rescheduled", "refused", "paid", "note",
+]
+
+
 class ContactBody(BaseModel):
-    outcome: str = Field(min_length=1)
-    promised_amount: float | None = None
+    outcome: OutcomeLiteral
+    promised_amount: float | None = Field(default=None, ge=0)
     promised_by_date: date | None = None
     follow_up_date: date | None = None
     note: str | None = Field(default=None, max_length=4000)

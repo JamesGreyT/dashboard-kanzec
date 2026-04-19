@@ -675,6 +675,11 @@ function DebtDrawer({
       pk={contact?.tin ? `TIN ${contact.tin}` : undefined}
     >
       {detail.isLoading && <div className="caption text-ink-3">{t("common.loading")}</div>}
+      {detail.isError && (
+        <div className="caption text-risk border-l-2 border-risk pl-3 py-2">
+          {t("debt.not_found")}
+        </div>
+      )}
       {contact && (
         <div className="flex flex-col gap-5">
           <Card className="p-4">

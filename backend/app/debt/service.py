@@ -41,25 +41,30 @@ Outcome = Literal[
 OUTCOMES = {"called", "no_answer", "promised", "rescheduled", "refused", "paid", "note"}
 
 
-def _scope_fragments(scope: UserScope | None) -> tuple[str, str, dict]:
-    """Return (order_filter, client_filter, params) fragments to AND into the
-    CTEs. `order_filter` restricts smartup_rep.deal_order rows to the user's
-    rooms. `client_filter` is the same restriction expressed as a
-    person_id IN (...) clause — applied to payment / log reads that don't
-    carry room_id directly."""
+def _scope_fragments(scope: UserScope | None) -> tuple[str, dict]:
+    """Return (person_filter, params) fragment to AND into deal_order /
+    payment / legal_person queries.
+
+    The fence is **person-based**: "clients you have sold to at least once".
+    Both deal_order (gross_invoiced) and payment (gross_paid) get filtered
+    by the same person set so aging math stays consistent and prepayments
+    don't become false positives (where an all-rooms payment appears as
+    credit against only-my-room's invoiced amount).
+
+    Admins / zero-room users pass through unscoped ("", {}).
+    """
     if not scope or not scope.is_scoped:
-        return "", "", {}
+        return "", {}
 
     placeholders = ", ".join(f":_scope_r{i}" for i in range(len(scope.room_ids)))
     params = {f"_scope_r{i}": r for i, r in enumerate(scope.room_ids)}
-    order_f = f"AND room_id IN ({placeholders})"
-    client_f = (
+    person_f = (
         f"AND person_id::text IN ("
         f"  SELECT DISTINCT person_id FROM smartup_rep.deal_order "
         f"   WHERE room_id IN ({placeholders})"
         f")"
     )
-    return order_f, client_f, params
+    return person_f, params
 
 
 def _priority(outstanding: float, days_since_payment: int | None, has_overdue: bool, aging_90: float) -> float:
@@ -93,14 +98,14 @@ async def compute_worklist(
 ) -> dict[str, Any]:
     """Return {summary, rows, total, by_collector}. Excludes clients with
     outstanding ≤ $10."""
-    order_f, client_f, scope_params = _scope_fragments(scope)
+    person_f, scope_params = _scope_fragments(scope)
 
     sql_core = f"""
     WITH my_orders AS (
       SELECT person_id, delivery_date, deal_id, product_amount, room_id
         FROM smartup_rep.deal_order
        WHERE person_id IS NOT NULL
-         {order_f}
+         {person_f}
     ),
     agg AS (
       SELECT person_id,
@@ -118,7 +123,7 @@ async def compute_worklist(
              COUNT(*)              AS pay_count
         FROM smartup_rep.payment
        WHERE person_id IS NOT NULL
-         {client_f}
+         {person_f}
        GROUP BY person_id::text
     ),
     ord_cumsum AS (
@@ -157,9 +162,11 @@ async def compute_worklist(
        GROUP BY o.person_id, o.room_id
     ),
     dominant_room AS (
+      -- Tiebreak on room_id so the ordering is deterministic when two rooms
+      -- have identical invoiced amounts for the same client.
       SELECT DISTINCT ON (person_id) person_id, room_id, room_invoiced
         FROM attribution
-       ORDER BY person_id, room_invoiced DESC
+       ORDER BY person_id, room_invoiced DESC, room_id
     ),
     latest_log AS (
       SELECT DISTINCT ON (person_id)
@@ -285,8 +292,24 @@ async def compute_worklist(
     rows = (await session.execute(text(rows_sql), rows_params)).mappings().all()
 
     # ---- By-collector rollup (dominant-room attribution) -----------------
+    # Only include rooms the requesting user can legitimately see — admins
+    # get all, scoped users get only their assigned rooms. Prevents a
+    # cross-room client from surfacing another collector's room in the
+    # requester's rollup even though our person-fenced scope lets us see
+    # the client.
+    by_collector_room_filter = ""
+    if scope and scope.is_scoped:
+        by_collector_room_filter = (
+            "AND primary_room_id IN ("
+            + ", ".join(f":_scope_r{i}" for i in range(len(scope.room_ids)))
+            + ")"
+        )
+
     by_collector_sql = f"""
-        WITH base AS ({sql_core})
+        WITH base AS ({sql_core}),
+        filtered AS (
+          SELECT * FROM base WHERE {where_sql}
+        )
         SELECT primary_room_id AS room_id,
                primary_room_name AS room_name,
                COUNT(*)                          AS debtors_count,
@@ -294,13 +317,16 @@ async def compute_worklist(
                COALESCE(SUM(aging_90_plus), 0)   AS over_90,
                (SELECT COALESCE(SUM(amount), 0)
                   FROM smartup_rep.payment p
-                 WHERE p.person_id::text IN (SELECT b2.person_id FROM base b2 WHERE b2.primary_room_id = base.primary_room_id)
+                 WHERE p.person_id::text IN (
+                           SELECT f2.person_id FROM filtered f2
+                            WHERE f2.primary_room_id = filtered.primary_room_id
+                       )
                    AND (p.payment_date AT TIME ZONE 'Asia/Tashkent')::date
                        >= date_trunc('month', (now() AT TIME ZONE 'Asia/Tashkent')::date)
                ) AS collected_mtd
-          FROM base
-         WHERE {where_sql}
-           AND primary_room_id IS NOT NULL
+          FROM filtered
+         WHERE primary_room_id IS NOT NULL
+           {by_collector_room_filter}
          GROUP BY primary_room_id, primary_room_name
          ORDER BY outstanding DESC
     """
@@ -323,7 +349,7 @@ async def compute_prepayments(
     offset: int,
 ) -> dict[str, Any]:
     """Clients who have paid more than they were invoiced."""
-    order_f, client_f, scope_params = _scope_fragments(scope)
+    person_f, scope_params = _scope_fragments(scope)
     params: dict[str, Any] = {
         **scope_params,
         "min_credit": float(_PREPAY_MIN_CREDIT),
@@ -340,7 +366,7 @@ async def compute_prepayments(
           SELECT person_id, SUM(product_amount)::numeric AS gross_invoiced
             FROM smartup_rep.deal_order
            WHERE person_id IS NOT NULL
-             {order_f}
+             {person_f}
            GROUP BY person_id
         ),
         pay AS (
@@ -349,7 +375,7 @@ async def compute_prepayments(
                  MAX(payment_date) AS last_payment_date
             FROM smartup_rep.payment
            WHERE person_id IS NOT NULL
-             {client_f}
+             {person_f}
            GROUP BY person_id::text
         )
         SELECT a.person_id,
@@ -382,10 +408,13 @@ async def get_client_detail(
     scope: UserScope | None,
     person_id: int,
 ) -> dict[str, Any]:
-    order_f, client_f, scope_params = _scope_fragments(scope)
+    person_f, scope_params = _scope_fragments(scope)
     params: dict[str, Any] = {**scope_params, "pid": person_id, "pid_text": str(person_id)}
 
-    # Contact block (full legal_person row, scoped)
+    # Contact block (full legal_person row, scoped). We scope the target row
+    # itself — person_f already uses `person_id::text IN (...)`, so an ANDed
+    # `person_id = :pid` narrows to the single row when in scope, or zero
+    # when out of scope.
     contact = (
         await session.execute(
             text(
@@ -398,7 +427,7 @@ async def get_client_detail(
                        parent_name, state_name, note, latlng, created_on, modified_on
                   FROM smartup_rep.legal_person
                  WHERE person_id = :pid
-                   {("AND " + _scope_person_filter(scope)) if scope and scope.is_scoped else ""}
+                   {person_f}
                 """
             ),
             params,
@@ -407,21 +436,22 @@ async def get_client_detail(
     if contact is None:
         return {}
 
-    # Orders timeline (last 20 leaf lines by delivery date)
+    # Orders timeline — scope already asserted via contact fetch; show every
+    # order for this client (cross-room context is intentional, see
+    # _scope_fragments docstring).
     orders = (
         await session.execute(
             text(
-                f"""
+                """
                 SELECT delivery_date, deal_id, room_id, room_name,
                        sales_manager, product_name, sold_quant, product_amount
                   FROM smartup_rep.deal_order
                  WHERE person_id::text = :pid_text
-                   {order_f.replace('AND ', ' AND ')}
                  ORDER BY delivery_date DESC, deal_id
                  LIMIT 50
                 """
             ),
-            params,
+            {"pid_text": str(person_id)},
         )
     ).mappings().all()
 
@@ -458,16 +488,17 @@ async def get_client_detail(
         )
     ).mappings().all()
 
-    # Aging snapshot (re-run mini-cte just for this client)
+    # Aging snapshot — scope already validated above. No additional room
+    # filter on orders; we show the client's full books (same as the
+    # person-fenced worklist semantics).
     aging = (
         await session.execute(
             text(
-                f"""
+                """
                 WITH my_orders AS (
                   SELECT delivery_date, deal_id, product_amount
                     FROM smartup_rep.deal_order
                    WHERE person_id::text = :pid_text
-                     {order_f.replace('AND ', ' AND ')}
                 ),
                 pay_total AS (
                   SELECT COALESCE(SUM(amount), 0) AS gross_paid
@@ -500,7 +531,7 @@ async def get_client_detail(
                   FROM unpaid
                 """
             ),
-            params,
+            {"pid_text": str(person_id), "pid": person_id},
         )
     ).mappings().one()
 
@@ -511,19 +542,6 @@ async def get_client_detail(
         "payments": [_jsonify_mapping(r) for r in payments],
         "contact_log": [_jsonify_mapping(r) for r in log_rows],
     }
-
-
-def _scope_person_filter(scope: UserScope) -> str:
-    """Used in get_client_detail to further guard the legal_person SELECT so
-    a scoped user can't fetch a client outside their room assignments even
-    with a hand-crafted person_id in the URL."""
-    placeholders = ", ".join(f":_scope_r{i}" for i in range(len(scope.room_ids)))
-    return (
-        f"person_id::text IN ("
-        f"  SELECT DISTINCT person_id FROM smartup_rep.deal_order "
-        f"   WHERE room_id IN ({placeholders})"
-        f")"
-    )
 
 
 # ---- Contact log CRUD ------------------------------------------------------
