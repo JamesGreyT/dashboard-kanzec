@@ -12,6 +12,8 @@
     "you": "вы",
     "cancel": "Отмена",
     "close": "Закрыть",
+    "delete": "удалить",
+    "loading": "загрузка…",
     "close_hint": "Закрыть — esc",
     "apply": "Применить фильтр.",
     "clear": "очистить",
@@ -43,6 +45,7 @@
   "nav": {
     "registry": "Главное",
     "data_group": "Данные",
+    "collection": "Взыскание",
     "operations": "Операции",
     "admin": "Администрация",
     "dashboard": "Панель",
@@ -50,6 +53,7 @@
     "orders": "Заказы",
     "payments": "Платежи",
     "legal_persons": "Юридические лица",
+    "debt": "Долги",
     "reports": "Отчёты",
     "users": "Пользователи",
     "audit": "Аудит",
@@ -219,5 +223,101 @@
     "audit_drawer_target": "Объект",
     "audit_drawer_ip": "IP",
     "audit_drawer_details": "Подробности"
+  },
+  "debt": {
+    "title": "Долги",
+    "blurb": "Каждый должник в одном списке, отсортированный по приоритету. Контакты, старение задолженности и журнал звонков — под рукой.",
+    "overdue_promise": "просроченное обещание",
+    "days": "дней без оплаты",
+    "empty_worklist": "Сейчас никто не должен. Отлично.",
+    "empty_prepayments": "Переплат сейчас нет.",
+    "empty_contact_log": "Звонков пока не зарегистрировано.",
+    "by_collector": "По продавцам",
+    "tab": {
+      "worklist": "Рабочий список",
+      "prepayments": "Переплаты"
+    },
+    "kpi": {
+      "total_ar": "Общий долг",
+      "over_90": "Риск · 90+ дн",
+      "debtors": "Должники",
+      "over_90_count": "Должников 90+ дн",
+      "gross_paid": "оплачено",
+      "gross_invoiced": "счёт"
+    },
+    "col": {
+      "client": "Клиент",
+      "outstanding": "Долг",
+      "days_no_pay": "Дней",
+      "aging": "Старение",
+      "last_contact": "Последний контакт",
+      "sales_person": "Продавец",
+      "over_90": "90+ дн",
+      "debtors": "Должники",
+      "collected_mtd": "Собрано (мес.)",
+      "region": "Регион",
+      "invoiced": "Начислено",
+      "paid": "Оплачено",
+      "credit": "Кредит",
+      "last_payment": "Последний платёж"
+    },
+    "filter": {
+      "search_placeholder": "поиск по имени / ИНН / телефону…",
+      "all_sales": "Все продавцы",
+      "all_aging": "Всё старение",
+      "all_outcomes": "Любой исход",
+      "overdue_only": "Только просроченные обещания"
+    },
+    "aging": {
+      "0_30": "0–30 дн",
+      "30_60": "30–60 дн",
+      "60_90": "60–90 дн",
+      "90_plus": "90+ дн"
+    },
+    "outcome": {
+      "none": "не контактировали",
+      "called": "позвонили",
+      "no_answer": "не ответил",
+      "promised": "обещал",
+      "rescheduled": "перенесено",
+      "refused": "отказ",
+      "paid": "оплатил",
+      "note": "заметка"
+    },
+    "contact": {
+      "phone": "Телефон",
+      "telegram": "Телеграм",
+      "address": "Адрес",
+      "region": "Регион",
+      "category": "Категория",
+      "owner": "Ответственный"
+    },
+    "drawer": {
+      "contact": "Контакты",
+      "orders": "Заказы",
+      "payments": "Платежи",
+      "calls": "Звонки",
+      "add_contact": "Записать контакт",
+      "outcome": "Исход",
+      "promised_amount": "Обещанная сумма",
+      "promised_by": "К дате",
+      "follow_up": "Связаться",
+      "note": "Заметка",
+      "save_contact": "Сохранить.",
+      "delete_confirm": "Удалить запись?",
+      "promised": "Обещал {{amount}} к {{date}}"
+    },
+    "orders_col": {
+      "delivery_date": "Дата",
+      "product_name": "Товар",
+      "sold_quant": "Кол-во",
+      "product_amount": "Сумма"
+    },
+    "pay_col": {
+      "payment_date": "Дата",
+      "amount": "Сумма",
+      "payment_method": "Способ",
+      "payer": "Инкассатор"
+    }
   }
 }

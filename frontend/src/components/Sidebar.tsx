@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../lib/auth";
 import LangToggle from "./LangToggle";
 
-type Glyph = "dashboard" | "orders" | "payments" | "people";
+type Glyph = "dashboard" | "orders" | "payments" | "people" | "scales";
 
 interface Item {
   to: string;
@@ -19,6 +19,9 @@ const DATA: Item[] = [
   { to: "/data/orders", labelKey: "nav.orders", roles: ["admin", "operator", "viewer"], glyph: "orders" },
   { to: "/data/payments", labelKey: "nav.payments", roles: ["admin", "operator", "viewer"], glyph: "payments" },
   { to: "/data/legal-persons", labelKey: "nav.legal_persons", roles: ["admin", "operator", "viewer"], glyph: "people" },
+];
+const COLLECTION: Item[] = [
+  { to: "/collection/debt", labelKey: "nav.debt", roles: ["admin", "operator", "viewer"], glyph: "scales" },
 ];
 const OPERATIONS: Item[] = [
   { to: "/ops", labelKey: "nav.reports", roles: ["admin", "operator"] },
@@ -98,6 +101,8 @@ export default function Sidebar({
         <NavGroup titleKey="nav.registry" items={REGISTRY} role={user.role} onNavigate={onClose} />
         <div className="leader" />
         <NavGroup titleKey="nav.data_group" items={DATA} role={user.role} onNavigate={onClose} />
+        <div className="leader" />
+        <NavGroup titleKey="nav.collection" items={COLLECTION} role={user.role} onNavigate={onClose} />
         {OPERATIONS.some((i) => i.roles.includes(user.role)) && (
           <>
             <div className="leader" />
@@ -325,6 +330,22 @@ export function GlyphSvg({
           stroke="currentColor"
           strokeWidth="1.5"
           strokeLinecap="round"
+        />
+      </svg>
+    );
+  }
+  if (kind === "scales") {
+    // Balance scale — the collection / receivables metaphor.
+    return (
+      <svg {...common}>
+        <path d="M12 4v16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M4 20h16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M5 6h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <path
+          d="M6 6 3.5 12h5L6 6ZM18 6l-2.5 6h5L18 6Z"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
         />
       </svg>
     );

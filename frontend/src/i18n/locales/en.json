@@ -12,6 +12,8 @@
     "you": "you",
     "cancel": "Cancel",
     "close": "Close",
+    "delete": "delete",
+    "loading": "loading…",
     "close_hint": "Close — esc",
     "apply": "Apply filter.",
     "clear": "clear",
@@ -43,6 +45,7 @@
   "nav": {
     "registry": "Main",
     "data_group": "Data",
+    "collection": "Collection",
     "operations": "Operations",
     "admin": "Admin",
     "dashboard": "Dashboard",
@@ -50,6 +53,7 @@
     "orders": "Orders",
     "payments": "Payments",
     "legal_persons": "Legal persons",
+    "debt": "Debt",
     "reports": "Reports",
     "users": "Users",
     "audit": "Audit",
@@ -219,5 +223,101 @@
     "audit_drawer_target": "Target",
     "audit_drawer_ip": "IP",
     "audit_drawer_details": "Details"
+  },
+  "debt": {
+    "title": "Debt",
+    "blurb": "Every client who still owes, ranked by who should hear from you today. Contact info, aging, and a one-tap call log are built in.",
+    "overdue_promise": "overdue promise",
+    "days": "days no payment",
+    "empty_worklist": "Nobody owes anything right now. Well done.",
+    "empty_prepayments": "No clients are currently in credit.",
+    "empty_contact_log": "No calls logged yet.",
+    "by_collector": "By sales person",
+    "tab": {
+      "worklist": "Worklist",
+      "prepayments": "Prepayments"
+    },
+    "kpi": {
+      "total_ar": "Total outstanding",
+      "over_90": "At risk · 90 d+",
+      "debtors": "Debtors",
+      "over_90_count": "90 d+ debtors",
+      "gross_paid": "paid",
+      "gross_invoiced": "invoiced"
+    },
+    "col": {
+      "client": "Client",
+      "outstanding": "Owed",
+      "days_no_pay": "Days",
+      "aging": "Aging",
+      "last_contact": "Last contact",
+      "sales_person": "Sales person",
+      "over_90": "90 d+",
+      "debtors": "Debtors",
+      "collected_mtd": "Collected (MTD)",
+      "region": "Region",
+      "invoiced": "Invoiced",
+      "paid": "Paid",
+      "credit": "Credit",
+      "last_payment": "Last payment"
+    },
+    "filter": {
+      "search_placeholder": "search name / TIN / phone…",
+      "all_sales": "All sales persons",
+      "all_aging": "All aging",
+      "all_outcomes": "Any outcome",
+      "overdue_only": "Only overdue promises"
+    },
+    "aging": {
+      "0_30": "0–30 d",
+      "30_60": "30–60 d",
+      "60_90": "60–90 d",
+      "90_plus": "90 d+"
+    },
+    "outcome": {
+      "none": "never contacted",
+      "called": "called",
+      "no_answer": "no answer",
+      "promised": "promised",
+      "rescheduled": "rescheduled",
+      "refused": "refused",
+      "paid": "paid",
+      "note": "note"
+    },
+    "contact": {
+      "phone": "Phone",
+      "telegram": "Telegram",
+      "address": "Address",
+      "region": "Region",
+      "category": "Category",
+      "owner": "Responsible"
+    },
+    "drawer": {
+      "contact": "Contact",
+      "orders": "Orders",
+      "payments": "Payments",
+      "calls": "Calls",
+      "add_contact": "Log contact",
+      "outcome": "Outcome",
+      "promised_amount": "Promised amount",
+      "promised_by": "By date",
+      "follow_up": "Follow-up",
+      "note": "Note",
+      "save_contact": "Save.",
+      "delete_confirm": "Delete this entry?",
+      "promised": "Promised {{amount}} by {{date}}"
+    },
+    "orders_col": {
+      "delivery_date": "Date",
+      "product_name": "Product",
+      "sold_quant": "Qty",
+      "product_amount": "Amount"
+    },
+    "pay_col": {
+      "payment_date": "Date",
+      "amount": "Amount",
+      "payment_method": "Method",
+      "payer": "Collector"
+    }
   }
 }

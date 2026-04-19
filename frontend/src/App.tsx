@@ -5,6 +5,7 @@ import RequireAuth from "./components/RequireAuth";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import DataViewer from "./pages/DataViewer";
+import Debt from "./pages/Debt";
 import Ops from "./pages/Ops";
 import AdminUsers from "./pages/AdminUsers";
 import AdminAudit from "./pages/AdminAudit";
@@ -26,6 +27,8 @@ export default function App() {
           <Route path="/data/orders" element={<DataViewer lockedTable="deal_order" />} />
           <Route path="/data/payments" element={<DataViewer lockedTable="payment" />} />
           <Route path="/data/legal-persons" element={<DataViewer lockedTable="legal_person" />} />
+          <Route path="/collection" element={<Navigate to="/collection/debt" replace />} />
+          <Route path="/collection/debt" element={<Debt />} />
           <Route
             path="/ops"
             element={

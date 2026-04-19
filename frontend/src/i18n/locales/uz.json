@@ -12,6 +12,8 @@
     "you": "siz",
     "cancel": "Bekor qilish",
     "close": "Yopish",
+    "delete": "o'chirish",
+    "loading": "yuklanmoqda…",
     "close_hint": "Yopish — esc",
     "apply": "Filtrni qo'llash.",
     "clear": "tozalash",
@@ -43,6 +45,7 @@
   "nav": {
     "registry": "Asosiy",
     "data_group": "Ma'lumotlar",
+    "collection": "Undirish",
     "operations": "Operatsiyalar",
     "admin": "Administratsiya",
     "dashboard": "Boshqaruv paneli",
@@ -50,6 +53,7 @@
     "orders": "Buyurtmalar",
     "payments": "To'lovlar",
     "legal_persons": "Yuridik shaxslar",
+    "debt": "Qarzlar",
     "reports": "Hisobotlar",
     "users": "Foydalanuvchilar",
     "audit": "Audit",
@@ -219,5 +223,101 @@
     "audit_drawer_target": "Ob'ekt",
     "audit_drawer_ip": "IP",
     "audit_drawer_details": "Tafsilotlar"
+  },
+  "debt": {
+    "title": "Qarzlar",
+    "blurb": "Barcha qarzdorlar bir ro'yxatda, ustuvorlik bo'yicha tartiblangan. Aloqa ma'lumotlari, qarzning eskirishi va qo'ng'iroqlar jurnali qo'l ostida.",
+    "overdue_promise": "muddati o'tgan va'da",
+    "days": "kun to'lovsiz",
+    "empty_worklist": "Hozir hech kim qarzdor emas. Zo'r.",
+    "empty_prepayments": "Hozir oldindan to'lov yo'q.",
+    "empty_contact_log": "Hozircha qo'ng'iroqlar ro'yxatga olinmagan.",
+    "by_collector": "Sotuvchilar bo'yicha",
+    "tab": {
+      "worklist": "Ishchi ro'yxat",
+      "prepayments": "Oldindan to'lovlar"
+    },
+    "kpi": {
+      "total_ar": "Umumiy qarz",
+      "over_90": "Xavf · 90+ kun",
+      "debtors": "Qarzdorlar",
+      "over_90_count": "90+ kunlik qarzdorlar",
+      "gross_paid": "to'langan",
+      "gross_invoiced": "hisob-kitob"
+    },
+    "col": {
+      "client": "Mijoz",
+      "outstanding": "Qarz",
+      "days_no_pay": "Kun",
+      "aging": "Eskirish",
+      "last_contact": "Oxirgi aloqa",
+      "sales_person": "Sotuvchi",
+      "over_90": "90+ kun",
+      "debtors": "Qarzdorlar",
+      "collected_mtd": "Yig'ilgan (oy)",
+      "region": "Viloyat",
+      "invoiced": "Hisoblangan",
+      "paid": "To'langan",
+      "credit": "Kredit",
+      "last_payment": "Oxirgi to'lov"
+    },
+    "filter": {
+      "search_placeholder": "ism / INN / telefon bo'yicha qidirish…",
+      "all_sales": "Barcha sotuvchilar",
+      "all_aging": "Barcha eskirish",
+      "all_outcomes": "Har qanday natija",
+      "overdue_only": "Faqat muddati o'tgan va'dalar"
+    },
+    "aging": {
+      "0_30": "0–30 kun",
+      "30_60": "30–60 kun",
+      "60_90": "60–90 kun",
+      "90_plus": "90+ kun"
+    },
+    "outcome": {
+      "none": "aloqaga kiritilmagan",
+      "called": "qo'ng'iroq qilindi",
+      "no_answer": "javob bermadi",
+      "promised": "va'da berdi",
+      "rescheduled": "ko'chirildi",
+      "refused": "rad etdi",
+      "paid": "to'ladi",
+      "note": "izoh"
+    },
+    "contact": {
+      "phone": "Telefon",
+      "telegram": "Telegram",
+      "address": "Manzil",
+      "region": "Viloyat",
+      "category": "Kategoriya",
+      "owner": "Mas'ul shaxs"
+    },
+    "drawer": {
+      "contact": "Aloqa",
+      "orders": "Buyurtmalar",
+      "payments": "To'lovlar",
+      "calls": "Qo'ng'iroqlar",
+      "add_contact": "Aloqani yozish",
+      "outcome": "Natija",
+      "promised_amount": "Va'da summasi",
+      "promised_by": "Sanaga",
+      "follow_up": "Keyingi aloqa",
+      "note": "Izoh",
+      "save_contact": "Saqlash.",
+      "delete_confirm": "Yozuvni o'chirish?",
+      "promised": "{{amount}} ni {{date}} ga va'da berdi"
+    },
+    "orders_col": {
+      "delivery_date": "Sana",
+      "product_name": "Mahsulot",
+      "sold_quant": "Miqdor",
+      "product_amount": "Summa"
+    },
+    "pay_col": {
+      "payment_date": "Sana",
+      "amount": "Summa",
+      "payment_method": "Usul",
+      "payer": "Yig'uvchi"
+    }
   }
 }
