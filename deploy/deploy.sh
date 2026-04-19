@@ -22,11 +22,15 @@ echo "[$(date -Is)] installing backend deps"
 # -----------------------------------------------------------------------------
 echo "[$(date -Is)] building frontend"
 cd "$APP/frontend"
-# Use ci when lockfile exists, install otherwise (first deploy).
+# Force a fully clean node_modules before `npm ci`. We've hit the
+# occasional "Rollup failed to resolve transitive dep" error when a
+# partial install gets inherited between runs; wiping the tree costs
+# ~20 s and makes deploys deterministic.
+rm -rf node_modules
 if [ -f package-lock.json ]; then
-    npm ci --silent
+    npm ci --no-audit --no-fund
 else
-    npm install --silent
+    npm install --no-audit --no-fund
 fi
 npm run build
 

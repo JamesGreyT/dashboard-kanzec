@@ -12,6 +12,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: ssh deploy
         uses: appleboy/ssh-action@v1.2.0
@@ -19,8 +20,19 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
+          command_timeout: 8m
+          script_stop: true
           script: |
             set -euo pipefail
             sudo -u smartup-etl /opt/dashboard-kanzec/deploy/deploy.sh
             sudo systemctl restart smartup-dashboard-api.service
-            echo "dashboard api restarted"
+            # Smoke-check: health endpoint must come back 200 within 10s.
+            for i in 1 2 3 4 5; do
+              if curl -sf -o /dev/null http://127.0.0.1:8081/api/healthz; then
+                echo "health ok on attempt $i"
+                exit 0
+              fi
+              sleep 2
+            done
+            echo "healthz never returned 200 after restart" >&2
+            exit 1
