@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { useTranslation } from "react-i18next";
@@ -372,6 +373,7 @@ export default function DataViewer() {
             </button>
             {addFilterMenuOpen && activeTable && (
               <AddFilterMenu
+                anchorEl={addFilterBtnRef.current}
                 columns={activeTable.columns}
                 filters={filters}
                 search={addFilterSearch}
@@ -622,6 +624,7 @@ function SearchIcon() {
  * Picking a column hands control off to ColumnFilter.
  */
 function AddFilterMenu({
+  anchorEl,
   columns,
   filters,
   search,
@@ -629,6 +632,7 @@ function AddFilterMenu({
   onPick,
   onClose,
 }: {
+  anchorEl: HTMLElement | null;
   columns: (ColumnMeta & { visible: boolean })[];
   filters: Filters;
   search: string;
@@ -638,11 +642,46 @@ function AddFilterMenu({
 }) {
   const { t } = useTranslation();
   const menuRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
+
+  // Portal-to-body + fixed positioning so the dropdown can escape the page's
+  // stacking contexts (the Card below creates its own). Matches the pattern
+  // used by ColumnFilter.
+  useLayoutEffect(() => {
+    if (!anchorEl || !menuRef.current) return;
+    const place = () => {
+      if (!anchorEl || !menuRef.current) return;
+      const btn = anchorEl.getBoundingClientRect();
+      const pop = menuRef.current.getBoundingClientRect();
+      const margin = 12;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const width = Math.max(pop.width, 300);
+      let left = btn.right - width; // right-align to the button
+      if (left < margin) left = margin;
+      if (left + width > vw - margin) left = vw - margin - width;
+      let top = btn.bottom + 6;
+      if (top + pop.height > vh - margin) {
+        // Flip above if there's no room below.
+        top = Math.max(margin, btn.top - pop.height - 6);
+      }
+      setPos({ top, left, width });
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [anchorEl]);
 
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
       if (!menuRef.current) return;
-      if (menuRef.current.contains(e.target as Node)) return;
+      const target = e.target as Node;
+      if (menuRef.current.contains(target)) return;
+      if (anchorEl && anchorEl.contains(target)) return; // clicks on the toggle are handled by the toggle itself
       onClose();
     };
     const onKey = (e: KeyboardEvent) => {
@@ -654,7 +693,7 @@ function AddFilterMenu({
       window.removeEventListener("mousedown", onDown);
       window.removeEventListener("keydown", onKey);
     };
-  }, [onClose]);
+  }, [onClose, anchorEl]);
 
   const q = search.trim().toLowerCase();
   const items = columns.filter((c) => {
@@ -664,10 +703,18 @@ function AddFilterMenu({
     );
   });
 
-  return (
+  return createPortal(
     <div
       ref={menuRef}
-      className="absolute right-0 top-[calc(100%+6px)] z-30 w-[300px] rounded-[10px] border border-rule bg-paper shadow-lg"
+      style={{
+        position: "fixed",
+        top: pos?.top ?? -9999,
+        left: pos?.left ?? -9999,
+        width: pos?.width ?? 300,
+        visibility: pos ? "visible" : "hidden",
+        zIndex: 50,
+      }}
+      className="rounded-[10px] border border-rule bg-paper shadow-lg"
       role="menu"
     >
       <div className="p-2 border-b border-rule">
@@ -716,6 +763,7 @@ function AddFilterMenu({
           );
         })}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
