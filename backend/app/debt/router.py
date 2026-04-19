@@ -63,6 +63,36 @@ async def worklist(
     )
 
 
+@router.get("/ledger")
+async def ledger(
+    scope: ScopedUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    limit: int = Query(200, ge=1, le=2000),
+    offset: int = Query(0, ge=0),
+    sales_manager_room_id: str | None = None,
+    region: str | None = None,
+    category: str | None = None,
+    overdue_only: bool = False,
+    search: str | None = None,
+    term_days: int = Query(30, ge=0, le=365),
+) -> dict:
+    """Per-client debt ledger matching the 'Data' sheet in
+    KanzecAR_CONTINUOUS_FIXED.xlsx. Positive `qarz` = customer owes us.
+    Aging buckets measured from (delivery_date + term_days).
+    """
+    filters = service.LedgerFilters(
+        sales_manager_room_id=sales_manager_room_id,
+        region=region,
+        category=category,
+        overdue_only=overdue_only,
+        search=search,
+    )
+    return await service.compute_ledger(
+        session, scope=scope, filters=filters,
+        limit=limit, offset=offset, term_days=term_days,
+    )
+
+
 @router.get("/prepayments")
 async def prepayments(
     scope: ScopedUser,

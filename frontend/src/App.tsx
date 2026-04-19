@@ -7,6 +7,7 @@ import Dashboard from "./pages/Dashboard";
 import DataViewer from "./pages/DataViewer";
 import Debt from "./pages/Debt";
 import DebtClient from "./pages/DebtClient";
+import DebtLedger from "./pages/DebtLedger";
 import Ops from "./pages/Ops";
 import AdminUsers from "./pages/AdminUsers";
 import AdminAudit from "./pages/AdminAudit";
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="/collection" element={<Navigate to="/collection/debt" replace />} />
           <Route path="/collection/debt" element={<Debt />} />
           <Route path="/collection/debt/client/:personId" element={<DebtClient />} />
+          <Route path="/collection/ledger" element={<DebtLedger />} />
           <Route
             path="/ops"
             element={

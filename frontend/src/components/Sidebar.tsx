@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../lib/auth";
 import LangToggle from "./LangToggle";
 
-type Glyph = "dashboard" | "orders" | "payments" | "people" | "scales";
+type Glyph = "dashboard" | "orders" | "payments" | "people" | "scales" | "ledger";
 
 interface Item {
   to: string;
@@ -22,6 +22,7 @@ const DATA: Item[] = [
 ];
 const COLLECTION: Item[] = [
   { to: "/collection/debt", labelKey: "nav.debt", roles: ["admin", "operator", "viewer"], glyph: "scales" },
+  { to: "/collection/ledger", labelKey: "nav.ledger", roles: ["admin", "operator", "viewer"], glyph: "ledger" },
 ];
 const OPERATIONS: Item[] = [
   { to: "/ops", labelKey: "nav.reports", roles: ["admin", "operator"] },
@@ -347,6 +348,15 @@ export function GlyphSvg({
           strokeWidth="1.5"
           strokeLinejoin="round"
         />
+      </svg>
+    );
+  }
+  if (kind === "ledger") {
+    // Bound ledger book — the spreadsheet / register metaphor.
+    return (
+      <svg {...common}>
+        <rect x="4" y="4" width="16" height="16" rx="1" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M4 9h16M4 14h16M9 4v16" stroke="currentColor" strokeWidth="1.5" />
       </svg>
     );
   }

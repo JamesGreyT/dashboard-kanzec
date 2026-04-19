@@ -2,7 +2,7 @@
   "common": {
     "app": "Kanzec Operations",
     "tashkent": "Tashkent",
-    "loading": "— loading —",
+    "loading": "loading…",
     "empty": "— no entries —",
     "filtered": "— no entries match this filter —",
     "error": "— error —",
@@ -13,7 +13,6 @@
     "cancel": "Cancel",
     "close": "Close",
     "delete": "delete",
-    "loading": "loading…",
     "close_hint": "Close — esc",
     "show_password": "Show password",
     "hide_password": "Hide password",
@@ -56,6 +55,7 @@
     "payments": "Payments",
     "legal_persons": "Legal persons",
     "debt": "Debt",
+    "ledger": "Ledger",
     "reports": "Reports",
     "users": "Users",
     "audit": "Audit",
@@ -352,6 +352,49 @@
       "amount": "Amount",
       "payment_method": "Method",
       "payer": "Collector"
+    }
+  },
+  "ledger": {
+    "title": "Ledger",
+    "blurb": "Per-client debt register. Mirrors the KanzecAR spreadsheet column-for-column — opening balances, sales, returns, payments and aging. FIFO aging measured from (delivery date + term days).",
+    "empty": "No debtors match the current filter.",
+    "totals_row": "Σ TOTALS",
+    "search_placeholder": "search: client name or TIN…",
+    "kpi": {
+      "debtor_count": "Debtors",
+      "total_qarz": "Total outstanding",
+      "total_overdue": "Overdue",
+      "total_opening": "Net opening balance",
+      "opening_hint": "Pre-2022 carry-over"
+    },
+    "filter": {
+      "all_managers": "All sales managers",
+      "term_option": "{{n}}-day terms",
+      "term_hint": "Aging buckets are measured from (delivery date + N days).",
+      "overdue_only": "Overdue only"
+    },
+    "col": {
+      "client": "Client",
+      "term_days": "Term (days)",
+      "opening_debt": "Opening AR",
+      "opening_credit": "Opening AP",
+      "sotuv": "Sales",
+      "vozrat": "Returns",
+      "tolov": "Payments",
+      "total_credits": "Total credits",
+      "total_debt": "Total debt",
+      "qarz": "Qarz",
+      "not_due": "Not yet due",
+      "overdue": "Overdue",
+      "bucket_1_30": "1–30",
+      "bucket_31_60": "31–60",
+      "bucket_61_90": "61–90",
+      "bucket_90_plus": "90+",
+      "overdue_0": "Overdue 0+",
+      "overdue_30": "Overdue 30+",
+      "overdue_60": "Overdue 60+",
+      "overdue_90": "Overdue 90+",
+      "manager": "Manager"
     }
   }
 }

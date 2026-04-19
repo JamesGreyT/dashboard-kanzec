@@ -2,7 +2,7 @@
   "common": {
     "app": "Kanzec Operatsiyalar",
     "tashkent": "Toshkent",
-    "loading": "— yuklanmoqda —",
+    "loading": "yuklanmoqda…",
     "empty": "— yozuvlar yo'q —",
     "filtered": "— filtr bo'yicha yozuv yo'q —",
     "error": "— xatolik —",
@@ -13,7 +13,6 @@
     "cancel": "Bekor qilish",
     "close": "Yopish",
     "delete": "o'chirish",
-    "loading": "yuklanmoqda…",
     "close_hint": "Yopish — esc",
     "show_password": "Parolni ko'rsatish",
     "hide_password": "Parolni yashirish",
@@ -59,7 +58,8 @@
     "reports": "Hisobotlar",
     "users": "Foydalanuvchilar",
     "audit": "Audit",
-    "signout": "Chiqish"
+    "signout": "Chiqish",
+    "ledger": "Reestr"
   },
   "roles": {
     "admin": "administrator",
@@ -352,6 +352,49 @@
       "amount": "Summa",
       "payment_method": "Usul",
       "payer": "Yig'uvchi"
+    }
+  },
+  "ledger": {
+    "title": "Reestr",
+    "blurb": "Har bir mijoz uchun qarzdorlar reestri. KanzecAR jadvali aynan ustunma-ustun takrorlangan — boshlang’ich qoldiq, sotuv, vozrat, to’lov va eskirish. Eskirish (delivery_date + muddat) dan hisoblanadi.",
+    "empty": "Tanlangan filtrga mos qarzdor yo’q.",
+    "totals_row": "Σ JAMI",
+    "search_placeholder": "qidir: mijoz nomi yoki STIR…",
+    "kpi": {
+      "debtor_count": "Qarzdorlar",
+      "total_qarz": "Jami qarz",
+      "total_overdue": "Muddati o’tgan",
+      "total_opening": "Sof ochilish qoldig’i",
+      "opening_hint": "2022-gacha qoldiq"
+    },
+    "filter": {
+      "all_managers": "Barcha menejerlar",
+      "term_option": "{{n}} kun muddat",
+      "term_hint": "Eskirish darajalari (delivery_date + N kun) dan o’lchanadi.",
+      "overdue_only": "Faqat muddati o’tgan"
+    },
+    "col": {
+      "client": "Mijoz",
+      "term_days": "Necha kun?",
+      "opening_debt": "Boshlang’ich qarz",
+      "opening_credit": "Boshlang’ich kredit",
+      "sotuv": "Sotuv",
+      "vozrat": "Vozrat",
+      "tolov": "To’lov",
+      "total_credits": "Jami kreditlar",
+      "total_debt": "Jami qarzdorlik",
+      "qarz": "Qarz",
+      "not_due": "Muddati tugamagan",
+      "overdue": "Muddati o’tgan",
+      "bucket_1_30": "1–30",
+      "bucket_31_60": "31–60",
+      "bucket_61_90": "61–90",
+      "bucket_90_plus": "90+",
+      "overdue_0": "O’tgan 0+",
+      "overdue_30": "O’tgan 30+",
+      "overdue_60": "O’tgan 60+",
+      "overdue_90": "O’tgan 90+",
+      "manager": "Menejer"
     }
   }
 }

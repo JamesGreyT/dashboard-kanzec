@@ -787,6 +787,281 @@ async def delete_contact_log_entry(
     )
 
 
+_LEDGER_MIN_OWED = Decimal("10")
+DEFAULT_TERM_DAYS = 30  # matches the Params sheet in KanzecAR_CONTINUOUS_FIXED.xlsx
+
+
+@dataclass
+class LedgerFilters:
+    sales_manager_room_id: str | None = None
+    region: str | None = None
+    category: str | None = None
+    overdue_only: bool = False
+    search: str | None = None
+
+
+async def compute_ledger(
+    session: AsyncSession,
+    *,
+    scope: UserScope | None,
+    filters: LedgerFilters,
+    limit: int,
+    offset: int,
+    term_days: int = DEFAULT_TERM_DAYS,
+) -> dict[str, Any]:
+    """Per-client debt ledger — mirrors the 'Data' sheet in
+    KanzecAR_CONTINUOUS_FIXED.xlsx. Columns map 1:1 onto the spreadsheet:
+
+      ClientName | Nehca kun? | Boshlang'ich qarz | Boshlang'ich kredit
+      Sotuv      | Vozrat     | To'lov            | TotalCredits
+      TotalDebt  | Qarz       | Muddati tugamagan | Muddati o'tgan
+      1-30 | 31-60 | 61-90 | 90+ | Overdue0 | Overdue30 | Overdue60 | Overdue90
+      Meneger
+
+    FIFO aging — payments settle oldest invoices first. Overdue buckets are
+    measured from `delivery_date + term_days` (the due date), matching how
+    accountants read the report. Opening balances ride along the same way
+    the worklist uses them: synthetic $opening_debt invoice dated
+    2022-09-13 and synthetic $opening_credit payment of the same date.
+    """
+    person_f, scope_params = _scope_fragments(scope)
+    params: dict[str, Any] = {
+        **scope_params,
+        "term": int(term_days),
+        "min_owed": float(_LEDGER_MIN_OWED),
+    }
+
+    filter_sqls: list[str] = []
+    if filters.sales_manager_room_id:
+        filter_sqls.append("primary_room_id = :f_room")
+        params["f_room"] = filters.sales_manager_room_id
+    if filters.region:
+        filter_sqls.append("region_name ILIKE :f_region")
+        params["f_region"] = f"%{filters.region}%"
+    if filters.category:
+        filter_sqls.append("category ILIKE :f_category")
+        params["f_category"] = f"%{filters.category}%"
+    if filters.overdue_only:
+        filter_sqls.append("overdue > 0")
+    if filters.search:
+        filter_sqls.append("(client_name ILIKE :f_search OR tin ILIKE :f_search)")
+        params["f_search"] = f"%{filters.search}%"
+    filter_sql = (" AND " + " AND ".join(filter_sqls)) if filter_sqls else ""
+
+    core = f"""
+    WITH opening AS (
+      SELECT person_id::text AS person_id, opening_debt, opening_credit
+        FROM smartup_rep.opening_balance
+       WHERE person_id IS NOT NULL
+    ),
+    real_orders AS (
+      SELECT person_id, delivery_date, deal_id, product_amount, room_id
+        FROM smartup_rep.deal_order
+       WHERE person_id IS NOT NULL
+         {person_f}
+    ),
+    -- Gross per-client: sotuv = SUM of positive product_amount (real sales);
+    -- vozrat = SUM of |negative product_amount| (returns). Smartup exports
+    -- returns as negative rows in the same `deal_order` feed.
+    client_gross AS (
+      SELECT person_id,
+             SUM(GREATEST(product_amount, 0))  AS sotuv,
+             SUM(GREATEST(-product_amount, 0)) AS vozrat,
+             MAX(delivery_date)                AS last_order_date,
+             COUNT(*)                          AS order_count
+        FROM real_orders
+       GROUP BY person_id
+    ),
+    real_pay AS (
+      SELECT person_id::text AS person_id,
+             SUM(amount)          AS tolov,
+             MAX(payment_date)    AS last_payment_date,
+             COUNT(*)             AS pay_count
+        FROM smartup_rep.payment
+       WHERE person_id IS NOT NULL
+         {person_f}
+       GROUP BY person_id::text
+    ),
+    -- Universe of debtors: anyone with orders OR with an opening balance
+    -- (even a client with only $X opening debt and no post-2022 activity
+    -- should appear — they still owe us).
+    universe AS (
+      SELECT person_id FROM client_gross
+      UNION
+      SELECT person_id FROM opening WHERE opening_debt > 0 OR opening_credit > 0
+    ),
+    -- FIFO invoice ledger: positive real invoices only + synthetic opening.
+    -- Returns (negative product_amount rows) are NOT invoices; they flow
+    -- into the paid side so cumulative_invoiced stays monotonic. Otherwise
+    -- FIFO's unpaid_slice formula (GREATEST(LEAST(amt, cum - paid), 0))
+    -- would silently drop the return credit and over-state unpaid.
+    my_orders AS (
+      SELECT person_id, delivery_date, deal_id, product_amount, false AS is_opening
+        FROM real_orders
+       WHERE product_amount > 0
+      UNION ALL
+      SELECT u.person_id, DATE '2022-09-13', 'OPENING',
+             o.opening_debt, true
+        FROM universe u
+        JOIN opening o USING (person_id)
+       WHERE o.opening_debt > 0
+    ),
+    -- Total credits against FIFO: real payments + returns + opening_credit.
+    tot_pay AS (
+      SELECT person_id, SUM(amt) AS paid_for_fifo
+        FROM (
+          SELECT person_id::text AS person_id, amount AS amt
+            FROM smartup_rep.payment
+           WHERE person_id IS NOT NULL
+             {person_f}
+          UNION ALL
+          SELECT person_id, -product_amount AS amt
+            FROM real_orders
+           WHERE product_amount < 0
+          UNION ALL
+          SELECT u.person_id, o.opening_credit AS amt
+            FROM universe u JOIN opening o USING (person_id)
+           WHERE o.opening_credit > 0
+        ) u GROUP BY person_id
+    ),
+    ord_cumsum AS (
+      SELECT person_id, delivery_date, deal_id, product_amount,
+             SUM(product_amount) OVER (
+               PARTITION BY person_id
+               ORDER BY delivery_date, deal_id
+               ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+             ) AS cum_invoiced
+        FROM my_orders
+    ),
+    ord_unpaid AS (
+      SELECT c.person_id, c.delivery_date,
+             GREATEST(
+               LEAST(c.product_amount,
+                     c.cum_invoiced - COALESCE(tp.paid_for_fifo, 0)),
+               0
+             ) AS unpaid_slice
+        FROM ord_cumsum c
+        LEFT JOIN tot_pay tp USING (person_id)
+    ),
+    aging AS (
+      -- age_days = how old the invoice is. Due date = delivery_date + term.
+      -- overdue_days = age_days - term.  >0 means past due.
+      SELECT x.person_id,
+             SUM(CASE WHEN x.age_days <= :term                         THEN x.unpaid_slice ELSE 0 END) AS not_due,
+             SUM(CASE WHEN x.age_days >  :term                         THEN x.unpaid_slice ELSE 0 END) AS overdue,
+             SUM(CASE WHEN x.age_days >  :term      AND x.age_days <= :term + 30 THEN x.unpaid_slice ELSE 0 END) AS bucket_1_30,
+             SUM(CASE WHEN x.age_days >  :term + 30 AND x.age_days <= :term + 60 THEN x.unpaid_slice ELSE 0 END) AS bucket_31_60,
+             SUM(CASE WHEN x.age_days >  :term + 60 AND x.age_days <= :term + 90 THEN x.unpaid_slice ELSE 0 END) AS bucket_61_90,
+             SUM(CASE WHEN x.age_days >  :term + 90                    THEN x.unpaid_slice ELSE 0 END) AS bucket_90_plus
+        FROM (
+          SELECT person_id, unpaid_slice, (CURRENT_DATE - delivery_date) AS age_days
+            FROM ord_unpaid
+        ) x
+       GROUP BY x.person_id
+    ),
+    -- Attribute each client to their dominant sales room (by invoice value).
+    attribution AS (
+      SELECT person_id, room_id, SUM(product_amount) AS room_invoiced
+        FROM real_orders
+       WHERE room_id IS NOT NULL
+       GROUP BY person_id, room_id
+    ),
+    dominant_room AS (
+      SELECT DISTINCT ON (person_id) person_id, room_id
+        FROM attribution
+       ORDER BY person_id, room_invoiced DESC, room_id
+    )
+    SELECT u.person_id,
+           lp.name                                AS client_name,
+           lp.tin,
+           lp.region_name,
+           lp.group_name2                         AS category,
+           :term                                  AS term_days,
+           COALESCE(ob.opening_debt, 0)           AS opening_debt,
+           COALESCE(ob.opening_credit, 0)         AS opening_credit,
+           COALESCE(cg.sotuv, 0)                  AS sotuv,
+           COALESCE(cg.vozrat, 0)                 AS vozrat,
+           COALESCE(rp.tolov, 0)                  AS tolov,
+           (COALESCE(cg.vozrat, 0)
+              + COALESCE(rp.tolov, 0)
+              + COALESCE(ob.opening_credit, 0))   AS total_credits,
+           (COALESCE(cg.sotuv, 0)
+              + COALESCE(ob.opening_debt, 0))     AS total_debt,
+           (COALESCE(cg.sotuv, 0)
+              + COALESCE(ob.opening_debt, 0)
+              - COALESCE(cg.vozrat, 0)
+              - COALESCE(rp.tolov, 0)
+              - COALESCE(ob.opening_credit, 0))   AS qarz,
+           COALESCE(ag.not_due, 0)                AS not_due,
+           COALESCE(ag.overdue, 0)                AS overdue,
+           COALESCE(ag.bucket_1_30, 0)            AS bucket_1_30,
+           COALESCE(ag.bucket_31_60, 0)           AS bucket_31_60,
+           COALESCE(ag.bucket_61_90, 0)           AS bucket_61_90,
+           COALESCE(ag.bucket_90_plus, 0)         AS bucket_90_plus,
+           COALESCE(ag.overdue, 0)                AS overdue_0,
+           (COALESCE(ag.bucket_31_60, 0)
+              + COALESCE(ag.bucket_61_90, 0)
+              + COALESCE(ag.bucket_90_plus, 0))   AS overdue_30,
+           (COALESCE(ag.bucket_61_90, 0)
+              + COALESCE(ag.bucket_90_plus, 0))   AS overdue_60,
+           COALESCE(ag.bucket_90_plus, 0)         AS overdue_90,
+           cg.last_order_date,
+           rp.last_payment_date,
+           dr.room_id                             AS primary_room_id,
+           rr.room_name                           AS manager
+      FROM universe u
+      LEFT JOIN client_gross cg USING (person_id)
+      LEFT JOIN real_pay     rp USING (person_id)
+      LEFT JOIN opening      ob USING (person_id)
+      LEFT JOIN aging        ag USING (person_id)
+      LEFT JOIN dominant_room dr USING (person_id)
+      LEFT JOIN app.room rr ON rr.room_id = dr.room_id
+      LEFT JOIN smartup_rep.legal_person lp ON lp.person_id::text = u.person_id
+    """
+
+    where_tail = f"qarz > :min_owed {filter_sql}"
+
+    count_sql = f"""
+        WITH base AS ({core})
+        SELECT COUNT(*) AS n FROM base WHERE {where_tail}
+    """
+    total = int((await session.execute(text(count_sql), params)).scalar() or 0)
+
+    rows_sql = f"""
+        WITH base AS ({core})
+        SELECT * FROM base WHERE {where_tail}
+         ORDER BY qarz DESC NULLS LAST
+         LIMIT :lim OFFSET :off
+    """
+    rows_params = {**params, "lim": limit, "off": offset}
+    rows = (
+        await session.execute(text(rows_sql), rows_params)
+    ).mappings().all()
+
+    # Summary: grand totals across the filtered set (ignoring pagination).
+    summary_sql = f"""
+        WITH base AS ({core})
+        SELECT
+          COUNT(*)                         AS debtor_count,
+          COALESCE(SUM(qarz), 0)           AS total_qarz,
+          COALESCE(SUM(sotuv), 0)          AS total_sotuv,
+          COALESCE(SUM(tolov), 0)          AS total_tolov,
+          COALESCE(SUM(overdue), 0)        AS total_overdue,
+          COALESCE(SUM(bucket_90_plus), 0) AS total_over_90,
+          COALESCE(SUM(opening_debt), 0)   AS total_opening_debt,
+          COALESCE(SUM(opening_credit), 0) AS total_opening_credit
+        FROM base WHERE {where_tail}
+    """
+    summary = (await session.execute(text(summary_sql), params)).mappings().one()
+
+    return {
+        "rows": [_jsonify_mapping(r) for r in rows],
+        "total": total,
+        "summary": _jsonify_mapping(summary),
+        "term_days": int(term_days),
+    }
+
+
 # ---- Helpers ---------------------------------------------------------------
 
 
