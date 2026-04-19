@@ -100,31 +100,74 @@ async def compute_worklist(
     outstanding ≤ $10."""
     person_f, scope_params = _scope_fragments(scope)
 
+    # Opening balances (pre-2022 AR/AP) are merged into `my_orders` / `pay`
+    # as synthetic rows dated 2022-09-13 — one day before our first
+    # deal_order row. FIFO aging then naturally buckets opening AR into 90+
+    # (since the synthetic date is ~4 years old), and opening AP (credit)
+    # offsets the oldest unpaid invoice exactly like a real payment would.
+    # The synthetic row_count is excluded from order_count / pay_count so
+    # we don't mislead the UI about how many real transactions exist.
     sql_core = f"""
-    WITH my_orders AS (
+    WITH opening AS (
+      SELECT person_id::text AS person_id,
+             opening_debt,
+             opening_credit
+        FROM smartup_rep.opening_balance
+       WHERE person_id IS NOT NULL
+    ),
+    real_orders AS (
       SELECT person_id, delivery_date, deal_id, product_amount, room_id
         FROM smartup_rep.deal_order
        WHERE person_id IS NOT NULL
          {person_f}
     ),
+    my_orders AS (
+      SELECT person_id, delivery_date, deal_id, product_amount, room_id,
+             false AS is_opening
+        FROM real_orders
+      UNION ALL
+      SELECT o.person_id,
+             DATE '2022-09-13'      AS delivery_date,
+             'OPENING'              AS deal_id,
+             o.opening_debt         AS product_amount,
+             NULL::text             AS room_id,
+             true                   AS is_opening
+        FROM opening o
+       WHERE o.opening_debt > 0
+         AND o.person_id IN (SELECT DISTINCT person_id FROM real_orders)
+    ),
     agg AS (
       SELECT person_id,
              SUM(product_amount)::numeric AS gross_invoiced,
              MIN(delivery_date)            AS first_order_date,
-             MAX(delivery_date)            AS last_order_date,
-             COUNT(*)                      AS order_count
+             -- last_order_date + order_count track REAL orders only; the
+             -- synthetic opening row shouldn't read as "activity".
+             MAX(delivery_date) FILTER (WHERE NOT is_opening) AS last_order_date,
+             COUNT(*) FILTER (WHERE NOT is_opening)            AS order_count,
+             SUM(product_amount) FILTER (WHERE is_opening)     AS opening_debt
         FROM my_orders
        GROUP BY person_id
     ),
     pay AS (
-      SELECT person_id::text AS person_id,
+      SELECT person_id,
              SUM(amount)::numeric  AS gross_paid,
-             MAX(payment_date)     AS last_payment_date,
-             COUNT(*)              AS pay_count
-        FROM smartup_rep.payment
-       WHERE person_id IS NOT NULL
-         {person_f}
-       GROUP BY person_id::text
+             MAX(payment_date) FILTER (WHERE NOT is_opening) AS last_payment_date,
+             COUNT(*) FILTER (WHERE NOT is_opening)          AS pay_count,
+             SUM(amount) FILTER (WHERE is_opening)           AS opening_credit
+        FROM (
+          SELECT person_id::text AS person_id, amount, payment_date,
+                 false AS is_opening
+            FROM smartup_rep.payment
+           WHERE person_id IS NOT NULL
+             {person_f}
+          UNION ALL
+          SELECT person_id, opening_credit AS amount,
+                 TIMESTAMP '2022-09-13 00:00:00' AS payment_date,
+                 true AS is_opening
+            FROM opening
+           WHERE opening_credit > 0
+        ) u
+       GROUP BY person_id
     ),
     ord_cumsum AS (
       SELECT o.person_id,
@@ -183,6 +226,8 @@ async def compute_worklist(
            a.gross_invoiced,
            COALESCE(pp.gross_paid, 0) AS gross_paid,
            (a.gross_invoiced - COALESCE(pp.gross_paid, 0)) AS outstanding,
+           COALESCE(a.opening_debt, 0)   AS opening_debt,
+           COALESCE(pp.opening_credit, 0) AS opening_credit,
            a.last_order_date,
            a.order_count,
            pp.last_payment_date,
@@ -361,22 +406,35 @@ async def compute_prepayments(
         search_sql = " AND (lp.name ILIKE :q OR lp.tin ILIKE :q)"
         params["q"] = f"%{search}%"
 
+    # Opening balances are folded in so prepayment truly means "paid more than
+    # they ever owed us, including pre-2022 carryover."
     base_sql = f"""
-        WITH agg AS (
-          SELECT person_id, SUM(product_amount)::numeric AS gross_invoiced
-            FROM smartup_rep.deal_order
+        WITH opening AS (
+          SELECT person_id::text AS person_id, opening_debt, opening_credit
+            FROM smartup_rep.opening_balance
+           WHERE person_id IS NOT NULL
+        ),
+        agg AS (
+          SELECT person_id,
+                 SUM(product_amount)::numeric
+                   + COALESCE((SELECT opening_debt FROM opening o WHERE o.person_id = d.person_id), 0)
+                   AS gross_invoiced
+            FROM smartup_rep.deal_order d
            WHERE person_id IS NOT NULL
              {person_f}
            GROUP BY person_id
         ),
         pay AS (
           SELECT person_id::text AS person_id,
-                 SUM(amount)::numeric AS gross_paid,
+                 SUM(amount)::numeric
+                   + COALESCE((SELECT opening_credit FROM opening o
+                                WHERE o.person_id = (p.person_id)::text), 0)
+                   AS gross_paid,
                  MAX(payment_date) AS last_payment_date
-            FROM smartup_rep.payment
+            FROM smartup_rep.payment p
            WHERE person_id IS NOT NULL
              {person_f}
-           GROUP BY person_id::text
+           GROUP BY person_id
         )
         SELECT a.person_id,
                lp.name, lp.tin, lp.region_name,
@@ -491,23 +549,37 @@ async def get_client_detail(
     # Aging snapshot — scope already validated above. No additional room
     # filter on orders; we show the client's full books (same as the
     # person-fenced worklist semantics).
+    # Opening balance is synthesized into my_orders / pay_total exactly
+    # like compute_worklist does, so per-client aging buckets stay
+    # consistent with the worklist row for this person.
     aging = (
         await session.execute(
             text(
                 """
-                WITH my_orders AS (
-                  SELECT delivery_date, deal_id, product_amount
+                WITH opening AS (
+                  SELECT opening_debt, opening_credit
+                    FROM smartup_rep.opening_balance
+                   WHERE person_id = :pid
+                ),
+                my_orders AS (
+                  SELECT delivery_date, deal_id, product_amount, false AS is_opening
                     FROM smartup_rep.deal_order
                    WHERE person_id::text = :pid_text
+                  UNION ALL
+                  SELECT DATE '2022-09-13', 'OPENING', opening_debt, true
+                    FROM opening WHERE opening_debt > 0
                 ),
                 pay_total AS (
-                  SELECT COALESCE(SUM(amount), 0) AS gross_paid
-                    FROM smartup_rep.payment
-                   WHERE person_id = :pid
+                  SELECT COALESCE(
+                           (SELECT SUM(amount) FROM smartup_rep.payment WHERE person_id = :pid),
+                           0
+                         )
+                         + COALESCE((SELECT opening_credit FROM opening), 0) AS gross_paid
                 ),
                 cs AS (
                   SELECT delivery_date,
                          product_amount,
+                         is_opening,
                          SUM(product_amount) OVER (
                            ORDER BY delivery_date, deal_id
                            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
@@ -524,6 +596,8 @@ async def get_client_detail(
                 SELECT
                   (SELECT COALESCE(SUM(product_amount), 0) FROM my_orders)            AS gross_invoiced,
                   (SELECT gross_paid FROM pay_total)                                  AS gross_paid,
+                  COALESCE((SELECT opening_debt   FROM opening), 0)                   AS opening_debt,
+                  COALESCE((SELECT opening_credit FROM opening), 0)                   AS opening_credit,
                   SUM(CASE WHEN (CURRENT_DATE - delivery_date) BETWEEN 0  AND 29  THEN unpaid_slice ELSE 0 END) AS aging_0_30,
                   SUM(CASE WHEN (CURRENT_DATE - delivery_date) BETWEEN 30 AND 59  THEN unpaid_slice ELSE 0 END) AS aging_30_60,
                   SUM(CASE WHEN (CURRENT_DATE - delivery_date) BETWEEN 60 AND 89  THEN unpaid_slice ELSE 0 END) AS aging_60_90,

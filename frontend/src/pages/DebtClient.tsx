@@ -67,6 +67,8 @@ interface ClientDetail {
   aging: {
     gross_invoiced: number;
     gross_paid: number;
+    opening_debt: number;
+    opening_credit: number;
     aging_0_30: number;
     aging_30_60: number;
     aging_60_90: number;
@@ -285,6 +287,26 @@ function AgingBreakdown({ aging }: { aging: ClientDetail["aging"] }) {
       <div className="leader mt-5" />
 
       <div className="grid grid-cols-[1fr_auto] gap-y-1 gap-x-4 text-body">
+        {aging.opening_debt > 0 && (
+          <>
+            <span className="caption text-ink-3" title={t("debt.opening_hint")}>
+              {t("debt.opening_ar_label")}
+            </span>
+            <span className="tabular-nums text-ink-2 italic text-right">
+              {formatUsd(aging.opening_debt)}
+            </span>
+          </>
+        )}
+        {aging.opening_credit > 0 && (
+          <>
+            <span className="caption text-ink-3" title={t("debt.opening_hint")}>
+              {t("debt.opening_ap_label")}
+            </span>
+            <span className="tabular-nums text-ink-2 italic text-right">
+              {formatUsd(aging.opening_credit)}
+            </span>
+          </>
+        )}
         <span className="caption text-ink-3">{t("debt.kpi.gross_invoiced")}</span>
         <span className="tabular-nums text-ink text-right">
           {formatUsd(aging.gross_invoiced)}

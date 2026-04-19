@@ -46,6 +46,8 @@ interface WorklistRow {
   gross_invoiced: number;
   gross_paid: number;
   outstanding: number;
+  opening_debt: number;
+  opening_credit: number;
   last_order_date: string | null;
   order_count: number;
   last_payment_date: string | null;
@@ -1034,6 +1036,16 @@ function DossierCard({
               amount: formatUsd(row.gross_invoiced),
             })}
           </div>
+          {(row.opening_debt > 0 || row.opening_credit > 0) && (
+            <div
+              className="caption italic text-ink-3 mt-1 tabular-nums"
+              title={t("debt.opening_hint")}
+            >
+              {row.opening_debt > 0
+                ? t("debt.opening_ar", { amount: formatUsd(row.opening_debt) })
+                : t("debt.opening_ap", { amount: formatUsd(row.opening_credit) })}
+            </div>
+          )}
         </div>
       </div>
     </Card>
