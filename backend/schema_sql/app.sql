@@ -70,3 +70,26 @@ CREATE TABLE IF NOT EXISTS app.user_rooms (
     PRIMARY KEY (user_id, room_id)
 );
 CREATE INDEX IF NOT EXISTS idx_user_rooms_room ON app.user_rooms (room_id);
+
+-- Debt contact log ------------------------------------------------------------
+-- A row per call / note a collector makes against a client. The Debt worklist
+-- joins the latest row per person_id so collectors can see the last outcome +
+-- any promised-payment commitment inline without opening a drawer. `outcome`
+-- is enum-in-code (see app/debt/service.py).
+CREATE TABLE IF NOT EXISTS app.debt_contact_log (
+    id               BIGSERIAL PRIMARY KEY,
+    person_id        BIGINT      NOT NULL,
+    contacted_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    contacted_by     BIGINT      NOT NULL REFERENCES app.user(id) ON DELETE RESTRICT,
+    outcome          TEXT        NOT NULL CHECK (outcome IN
+                       ('called','no_answer','promised','rescheduled','refused','paid','note')),
+    promised_amount  NUMERIC(18,4),
+    promised_by_date DATE,
+    follow_up_date   DATE,
+    note             TEXT,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_debt_log_person    ON app.debt_contact_log (person_id, contacted_at DESC);
+CREATE INDEX IF NOT EXISTS idx_debt_log_follow_up ON app.debt_contact_log (follow_up_date) WHERE follow_up_date IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_debt_log_by_user   ON app.debt_contact_log (contacted_by, contacted_at DESC);

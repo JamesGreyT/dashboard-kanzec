@@ -14,6 +14,7 @@ from .config import settings
 from .dashboard.router import router as dashboard_router
 from .data.router import router as data_router
 from .db import SessionLocal, healthcheck
+from .debt.router import router as debt_router
 from .ops.router import router as ops_router
 from .rooms import service as rooms_service
 from .rooms.router import router as rooms_router
@@ -93,6 +94,7 @@ app.include_router(ops_router)
 app.include_router(users_router)
 app.include_router(audit_router)
 app.include_router(rooms_router)
+app.include_router(debt_router)
 
 
 @app.get("/api/healthz")
