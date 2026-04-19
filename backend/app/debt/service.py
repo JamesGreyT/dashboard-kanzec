@@ -407,7 +407,10 @@ async def compute_prepayments(
         params["q"] = f"%{search}%"
 
     # Opening balances are folded in so prepayment truly means "paid more than
-    # they ever owed us, including pre-2022 carryover."
+    # they ever owed us, including pre-2022 carryover." Synthesize opening
+    # rows directly into the source feeds — same pattern as compute_worklist
+    # — so clients whose ONLY balance is an opening credit (no post-2022
+    # activity) still surface here. FULL OUTER JOIN catches the edge cases.
     base_sql = f"""
         WITH opening AS (
           SELECT person_id::text AS person_id, opening_debt, opening_credit
@@ -415,37 +418,45 @@ async def compute_prepayments(
            WHERE person_id IS NOT NULL
         ),
         agg AS (
-          SELECT person_id,
-                 SUM(product_amount)::numeric
-                   + COALESCE((SELECT opening_debt FROM opening o WHERE o.person_id = d.person_id), 0)
-                   AS gross_invoiced
-            FROM smartup_rep.deal_order d
-           WHERE person_id IS NOT NULL
-             {person_f}
-           GROUP BY person_id
+          SELECT person_id, SUM(amt)::numeric AS gross_invoiced
+            FROM (
+              SELECT person_id, product_amount AS amt
+                FROM smartup_rep.deal_order
+               WHERE person_id IS NOT NULL
+                 {person_f}
+              UNION ALL
+              SELECT person_id, opening_debt AS amt
+                FROM opening WHERE opening_debt > 0
+            ) u GROUP BY person_id
         ),
         pay AS (
-          SELECT person_id::text AS person_id,
-                 SUM(amount)::numeric
-                   + COALESCE((SELECT opening_credit FROM opening o
-                                WHERE o.person_id = (p.person_id)::text), 0)
-                   AS gross_paid,
-                 MAX(payment_date) AS last_payment_date
-            FROM smartup_rep.payment p
-           WHERE person_id IS NOT NULL
-             {person_f}
-           GROUP BY person_id
+          SELECT person_id,
+                 SUM(amt)::numeric AS gross_paid,
+                 MAX(pd) FILTER (WHERE NOT is_opening) AS last_payment_date
+            FROM (
+              SELECT person_id::text AS person_id, amount AS amt,
+                     payment_date AS pd, false AS is_opening
+                FROM smartup_rep.payment
+               WHERE person_id IS NOT NULL
+                 {person_f}
+              UNION ALL
+              SELECT person_id, opening_credit AS amt,
+                     TIMESTAMP '2022-09-13 00:00:00' AS pd,
+                     true AS is_opening
+                FROM opening WHERE opening_credit > 0
+            ) u GROUP BY person_id
         )
-        SELECT a.person_id,
+        SELECT COALESCE(a.person_id, p.person_id) AS person_id,
                lp.name, lp.tin, lp.region_name,
-               a.gross_invoiced,
-               p.gross_paid,
-               (p.gross_paid - a.gross_invoiced) AS credit_balance,
+               COALESCE(a.gross_invoiced, 0) AS gross_invoiced,
+               COALESCE(p.gross_paid,     0) AS gross_paid,
+               (COALESCE(p.gross_paid, 0) - COALESCE(a.gross_invoiced, 0)) AS credit_balance,
                p.last_payment_date
           FROM agg a
-          JOIN pay p USING (person_id)
-          LEFT JOIN smartup_rep.legal_person lp ON lp.person_id::text = a.person_id
-         WHERE (p.gross_paid - a.gross_invoiced) > :min_credit
+          FULL OUTER JOIN pay p USING (person_id)
+          LEFT JOIN smartup_rep.legal_person lp
+                 ON lp.person_id::text = COALESCE(a.person_id, p.person_id)
+         WHERE (COALESCE(p.gross_paid, 0) - COALESCE(a.gross_invoiced, 0)) > :min_credit
          {search_sql}
     """
     count_sql = f"SELECT COUNT(*) AS n FROM ({base_sql}) s"
