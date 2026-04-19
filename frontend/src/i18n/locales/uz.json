@@ -15,6 +15,8 @@
     "delete": "o'chirish",
     "loading": "yuklanmoqda…",
     "close_hint": "Yopish — esc",
+    "show_password": "Parolni ko'rsatish",
+    "hide_password": "Parolni yashirish",
     "apply": "Filtrni qo'llash.",
     "clear": "tozalash",
     "clear_all": "hammasini tozalash",
