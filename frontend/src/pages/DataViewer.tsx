@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useTranslation } from "react-i18next";
 import { api, getAccessToken } from "../lib/api";
 import PageHeading from "../components/PageHeading";
+import { GlyphSvg } from "../components/Sidebar";
 import Card from "../components/Card";
 import DataTable, { Column, Density } from "../components/DataTable";
 import Drawer from "../components/Drawer";
@@ -704,32 +705,7 @@ function TableGlyph({ kind }: { kind: "orders" | "payments" | "people" | undefin
       className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-full"
       style={{ background: "var(--mark-bg)", color: "var(--mark)" }}
     >
-      {kind === "orders" && (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M5 4h10l3 3v13H5V4z"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinejoin="round"
-          />
-          <path d="M8 10h8M8 14h8M8 18h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-      )}
-      {kind === "payments" && (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <rect x="3" y="6" width="18" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
-          <circle cx="12" cy="12" r="2.25" stroke="currentColor" strokeWidth="1.5" />
-          <path d="M6 9v6M18 9v6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-      )}
-      {kind === "people" && (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M4 20v-1.5a4.5 4.5 0 0 1 4.5-4.5h4a4.5 4.5 0 0 1 4.5 4.5V20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          <circle cx="10.5" cy="8.5" r="3.5" stroke="currentColor" strokeWidth="1.5" />
-          <path d="M17 11a3 3 0 0 0 0-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          <path d="M20 20v-1a3.5 3.5 0 0 0-2.5-3.35" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-      )}
+      <GlyphSvg kind={kind} size={22} />
     </span>
   );
 }

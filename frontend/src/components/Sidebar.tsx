@@ -183,41 +183,139 @@ function NavGroup({
 }
 
 function SidebarGlyph({ kind, className = "" }: { kind: Glyph; className?: string }) {
-  const cls = `shrink-0 transition-colors ${className}`;
+  return (
+    <GlyphSvg
+      kind={kind}
+      size={16}
+      className={`shrink-0 transition-colors ${className}`}
+    />
+  );
+}
+
+/**
+ * Editorial line-art glyphs shared between the sidebar (16px) and the
+ * locked-mode page header disc (22px). Single source keeps link + page
+ * visually tied together.
+ *
+ *   dashboard — bar chart with baseline (data-viz)
+ *   orders    — isometric parcel / shipping box
+ *   payments  — stack of coins in perspective
+ *   people    — classical columned building (courthouse) — signals
+ *               "registered legal entity" better than a generic person glyph
+ */
+export function GlyphSvg({
+  kind,
+  size = 16,
+  className = "",
+}: {
+  kind: Glyph;
+  size?: number;
+  className?: string;
+}) {
+  const common = {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none" as const,
+    "aria-hidden": true as const,
+    className,
+  };
   if (kind === "dashboard") {
     return (
-      <svg className={cls} width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <rect x="3" y="3" width="8" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-        <rect x="13" y="3" width="8" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-        <rect x="13" y="11" width="8" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-        <rect x="3" y="15" width="8" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+      <svg {...common}>
+        <path
+          d="M4 20V12M9 20V7M14 20V14M19 20V4"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+        />
+        <path
+          d="M3.5 20.5h17"
+          stroke="currentColor"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+          opacity="0.55"
+        />
       </svg>
     );
   }
   if (kind === "orders") {
     return (
-      <svg className={cls} width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path d="M5 4h10l3 3v13H5V4z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-        <path d="M8 10h8M8 14h8M8 18h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <svg {...common}>
+        <path
+          d="M12 3.5 4 7l8 3.5L20 7l-8-3.5Z"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M4 7v10l8 3.5"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M20 7v10l-8 3.5"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M12 10.5v10"
+          stroke="currentColor"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+          opacity="0.55"
+        />
       </svg>
     );
   }
   if (kind === "payments") {
     return (
-      <svg className={cls} width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <rect x="3" y="6" width="18" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
-        <circle cx="12" cy="12" r="2.25" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M6 9v6M18 9v6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <svg {...common}>
+        <ellipse cx="12" cy="6" rx="7" ry="2.4" stroke="currentColor" strokeWidth="1.5" />
+        <path
+          d="M5 6v3.5c0 1.33 3.13 2.4 7 2.4s7-1.07 7-2.4V6"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M5 11.5V15c0 1.33 3.13 2.4 7 2.4s7-1.07 7-2.4v-3.5"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M5 17v1.2c0 1.33 3.13 2.4 7 2.4s7-1.07 7-2.4V17"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
       </svg>
     );
   }
   if (kind === "people") {
     return (
-      <svg className={cls} width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path d="M4 20v-1.5a4.5 4.5 0 0 1 4.5-4.5h4a4.5 4.5 0 0 1 4.5 4.5V20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        <circle cx="10.5" cy="8.5" r="3.5" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M17 11a3 3 0 0 0 0-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M20 20v-1a3.5 3.5 0 0 0-2.5-3.35" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <svg {...common}>
+        <path
+          d="M3.5 9.5h17L12 4 3.5 9.5Z"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M6 10.5v7M10 10.5v7M14 10.5v7M18 10.5v7"
+          stroke="currentColor"
+          strokeWidth="1.4"
+          strokeLinecap="round"
+        />
+        <path
+          d="M3 20.5h18M3.5 18h17"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
       </svg>
     );
   }
