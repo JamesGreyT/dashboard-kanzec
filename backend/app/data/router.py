@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth.deps import CurrentUser
 from ..db import get_session
+from ..scope import ScopedUser
 from . import catalog, service
 
 router = APIRouter(prefix="/api/data", tags=["data"])
@@ -40,7 +41,7 @@ def _extract_filters(request: Request) -> list[tuple[str, str, str]]:
 async def list_rows(
     key: str,
     request: Request,
-    _: CurrentUser,
+    scope: ScopedUser,
     session: Annotated[AsyncSession, Depends(get_session)],
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
@@ -51,6 +52,7 @@ async def list_rows(
     return await service.list_rows(
         session, key,
         filters=filters, search=search, sort=sort, limit=limit, offset=offset,
+        scope=scope,
     )
 
 
@@ -58,31 +60,31 @@ async def list_rows(
 async def distinct_values(
     key: str,
     column: str,
-    _: CurrentUser,
+    scope: ScopedUser,
     session: Annotated[AsyncSession, Depends(get_session)],
     q: str | None = None,
     limit: int = Query(200, ge=1, le=500),
 ) -> dict:
-    return await service.distinct_values(session, key, column, search=q, limit=limit)
+    return await service.distinct_values(session, key, column, search=q, limit=limit, scope=scope)
 
 
 @router.get("/{key}/row/{pk}")
 async def get_row(
     key: str,
     pk: str,
-    _: CurrentUser,
+    scope: ScopedUser,
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> dict:
     # pk is "~"-joined — e.g. "2026-04-17~44923~240568035~941232" for a 4-part PK
     parts = pk.split("~")
-    return await service.get_row(session, key, parts)
+    return await service.get_row(session, key, parts, scope=scope)
 
 
 @router.get("/{key}/export")
 async def export_csv(
     key: str,
     request: Request,
-    _: CurrentUser,
+    scope: ScopedUser,
     session: Annotated[AsyncSession, Depends(get_session)],
     sort: str | None = None,
     search: str | None = None,
@@ -91,7 +93,7 @@ async def export_csv(
 
     async def gen():
         async for chunk in service.stream_csv(
-            session, key, filters=filters, search=search, sort=sort
+            session, key, filters=filters, search=search, sort=sort, scope=scope,
         ):
             yield chunk
 

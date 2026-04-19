@@ -1,6 +1,9 @@
 """Dashboard overview — aggregates read from smartup_rep.* + smartup.* .
 
 All date math happens in Asia/Tashkent to match the ETL's timezone convention.
+
+Every query is composed through `app.scope.clause_for_table(...)` so a
+scoped user sees only their own rooms' aggregates.
 """
 from __future__ import annotations
 
@@ -10,11 +13,27 @@ from typing import Any
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..scope import UserScope, clause_for_table
+
 _TZ = "Asia/Tashkent"
 
 
-async def overview(session: AsyncSession) -> dict[str, Any]:
+def _scope_and(scope: UserScope | None, schema_table: str) -> tuple[str, dict]:
+    """Return a ' AND <frag>' suffix + params (or empty) for a query that
+    already has a WHERE clause. Keeps the call-sites tidy."""
+    if scope is None:
+        return "", {}
+    frag, params = clause_for_table(scope, schema_table)
+    if not frag:
+        return "", {}
+    return f" AND {frag}", params
+
+
+async def overview(session: AsyncSession, scope: UserScope | None = None) -> dict[str, Any]:
     today_sql = f"(now() AT TIME ZONE '{_TZ}')::date"
+
+    order_and, order_params = _scope_and(scope, "smartup_rep.deal_order")
+    payment_and, payment_params = _scope_and(scope, "smartup_rep.payment")
 
     # --- today: orders count + amount ----------------------------------------
     row = (
@@ -24,7 +43,9 @@ async def overview(session: AsyncSession) -> dict[str, Any]:
                        COALESCE(SUM(product_amount), 0) AS orders_amount
                   FROM smartup_rep.deal_order
                  WHERE delivery_date = {today_sql}
-            """)
+                   {order_and}
+            """),
+            order_params,
         )
     ).one()
     today_orders = {"count": int(row.orders_count), "amount": float(row.orders_amount)}
@@ -36,7 +57,9 @@ async def overview(session: AsyncSession) -> dict[str, Any]:
                        COALESCE(SUM(product_amount), 0) AS orders_amount
                   FROM smartup_rep.deal_order
                  WHERE delivery_date = {today_sql} - 1
-            """)
+                   {order_and}
+            """),
+            order_params,
         )
     ).one()
     yest_orders = {"count": int(yrow.orders_count), "amount": float(yrow.orders_amount)}
@@ -49,7 +72,9 @@ async def overview(session: AsyncSession) -> dict[str, Any]:
                        COALESCE(SUM(amount), 0) AS payments_amount
                   FROM smartup_rep.payment
                  WHERE (payment_date AT TIME ZONE '{_TZ}')::date = {today_sql}
-            """)
+                   {payment_and}
+            """),
+            payment_params,
         )
     ).one()
     today_payments = {"count": int(prow.payments_count), "amount": float(prow.payments_amount)}
@@ -60,7 +85,9 @@ async def overview(session: AsyncSession) -> dict[str, Any]:
                 SELECT COALESCE(SUM(amount), 0) AS payments_amount
                   FROM smartup_rep.payment
                  WHERE (payment_date AT TIME ZONE '{_TZ}')::date = {today_sql} - 1
-            """)
+                   {payment_and}
+            """),
+            payment_params,
         )
     ).one()
     yest_payments = {"amount": float(ypayrow.payments_amount)}
@@ -72,7 +99,9 @@ async def overview(session: AsyncSession) -> dict[str, Any]:
                 SELECT COALESCE(SUM(product_amount), 0) AS total
                   FROM smartup_rep.deal_order
                  WHERE delivery_date >= {today_sql} - 6
-            """)
+                   {order_and}
+            """),
+            order_params,
         )
     ).one()
     week_orders_amount = float(wrow.total)
@@ -85,12 +114,15 @@ async def overview(session: AsyncSession) -> dict[str, Any]:
                   FROM smartup_rep.deal_order
                  WHERE delivery_date >= {today_sql} - 29
                    AND person_id IS NOT NULL
-            """)
+                   {order_and}
+            """),
+            order_params,
         )
     ).one()
     active_clients_30d = int(crow.active_clients)
 
     # --- 30-day orders+payments series for the chart -----------------------
+    series_params = {**order_params, **payment_params}
     series_rows = (
         await session.execute(
             text(f"""
@@ -101,6 +133,7 @@ async def overview(session: AsyncSession) -> dict[str, Any]:
                   SELECT delivery_date AS d, COALESCE(SUM(product_amount),0) AS amt
                     FROM smartup_rep.deal_order
                    WHERE delivery_date >= {today_sql} - 29
+                     {order_and}
                    GROUP BY 1
                 ),
                 p AS (
@@ -108,6 +141,7 @@ async def overview(session: AsyncSession) -> dict[str, Any]:
                          COALESCE(SUM(amount),0) AS amt
                     FROM smartup_rep.payment
                    WHERE (payment_date AT TIME ZONE '{_TZ}')::date >= {today_sql} - 29
+                     {payment_and}
                    GROUP BY 1
                 )
                 SELECT d.d AS day,
@@ -117,7 +151,8 @@ async def overview(session: AsyncSession) -> dict[str, Any]:
                   LEFT JOIN o USING (d)
                   LEFT JOIN p USING (d)
                  ORDER BY d.d
-            """)
+            """),
+            series_params,
         )
     ).all()
     series = [
@@ -169,6 +204,7 @@ async def overview(session: AsyncSession) -> dict[str, Any]:
                          product_amount AS amount
                     FROM smartup_rep.deal_order
                    WHERE delivery_date = {today_sql}
+                     {order_and}
                    ORDER BY _ingested_at DESC
                    LIMIT 20
                 )
@@ -180,12 +216,14 @@ async def overview(session: AsyncSession) -> dict[str, Any]:
                          amount
                     FROM smartup_rep.payment
                    WHERE (payment_date AT TIME ZONE '{_TZ}')::date = {today_sql}
+                     {payment_and}
                    ORDER BY payment_date DESC
                    LIMIT 20
                 )
                 ORDER BY ts DESC
                 LIMIT 20
-            """)
+            """),
+            {**order_params, **payment_params},
         )
     ).all()
     recent_activity = [

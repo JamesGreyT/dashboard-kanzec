@@ -17,6 +17,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import bindparam, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..scope import UserScope, clause_for_table
 from .catalog import CATALOG, ColumnDef, TableDef
 
 
@@ -50,12 +51,16 @@ def _build_where(
     table: TableDef,
     filters: list[tuple[str, str, str]],
     search: str | None,
+    scope: UserScope | None = None,
 ) -> tuple[str, dict[str, Any]]:
     """Returns (where_clause_sql, params_dict). Always safe — no user strings
     land in the SQL itself, only catalog-whitelisted column names and ops.
 
     `filters` is a list of (column, op, value_str) triples. Multiple filters
     on the same column are ANDed (e.g. `>= 2026-04-01` + `<= 2026-04-30`).
+
+    If `scope` is set and the user is scoped, a per-table scope fragment is
+    AND'd in after the caller's filters.
     """
     clauses: list[str] = []
     params: dict[str, Any] = {}
@@ -105,6 +110,14 @@ def _build_where(
                 params[pname] = f"%{search}%"
             clauses.append("(" + " OR ".join(or_parts) + ")")
 
+    if scope is not None:
+        frag, scope_params = clause_for_table(
+            scope, f"{table.schema}.{table.table}"
+        )
+        if frag:
+            clauses.append(frag)
+            params.update(scope_params)
+
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
     return where, params
 
@@ -142,9 +155,10 @@ async def list_rows(
     sort: str | None,
     limit: int,
     offset: int,
+    scope: UserScope | None = None,
 ) -> dict[str, Any]:
     table = _table(key)
-    where, params = _build_where(table, filters, search)
+    where, params = _build_where(table, filters, search, scope=scope)
     order_by = _build_order_by(table, sort)
 
     col_list = ", ".join(f'"{c}"' for c in table.columns)
@@ -178,6 +192,7 @@ async def distinct_values(
     *,
     search: str | None,
     limit: int,
+    scope: UserScope | None = None,
 ) -> dict[str, Any]:
     """Return up to `limit` distinct values of `column`, with counts, ordered
     by frequency (desc) then value (asc). Powers the Excel-style checkbox
@@ -190,10 +205,16 @@ async def distinct_values(
     limit = max(1, min(limit, 500))
 
     params: dict[str, Any] = {"lim": limit + 1}
-    where = ""
+    where_parts: list[str] = []
     if search:
-        where = f'WHERE "{column}"::text ILIKE :q'
+        where_parts.append(f'"{column}"::text ILIKE :q')
         params["q"] = f"%{search}%"
+    if scope is not None:
+        frag, scope_params = clause_for_table(scope, f"{table.schema}.{table.table}")
+        if frag:
+            where_parts.append(frag)
+            params.update(scope_params)
+    where = ("WHERE " + " AND ".join(where_parts)) if where_parts else ""
 
     rows = (
         await session.execute(
@@ -216,7 +237,13 @@ async def distinct_values(
     }
 
 
-async def get_row(session: AsyncSession, key: str, pk_values: list[str]) -> dict:
+async def get_row(
+    session: AsyncSession,
+    key: str,
+    pk_values: list[str],
+    *,
+    scope: UserScope | None = None,
+) -> dict:
     table = _table(key)
     if len(pk_values) != len(table.pk):
         raise HTTPException(
@@ -230,6 +257,11 @@ async def get_row(session: AsyncSession, key: str, pk_values: list[str]) -> dict
         pname = f"p{i}"
         where_parts.append(f'"{name}" = :{pname}')
         params[pname] = _parse_filter_value(col, raw)
+    if scope is not None:
+        frag, scope_params = clause_for_table(scope, f"{table.schema}.{table.table}")
+        if frag:
+            where_parts.append(frag)
+            params.update(scope_params)
     col_list = ", ".join(f'"{c}"' for c in table.columns)
     row = (
         await session.execute(
@@ -250,10 +282,11 @@ async def stream_csv(
     search: str | None,
     sort: str | None,
     max_rows: int = 100_000,
+    scope: UserScope | None = None,
 ) -> AsyncIterator[bytes]:
     """Yield CSV bytes in batches. Bounded at max_rows to avoid runaway exports."""
     table = _table(key)
-    where, params = _build_where(table, filters, search)
+    where, params = _build_where(table, filters, search, scope=scope)
     order_by = _build_order_by(table, sort)
     col_list = ", ".join(f'"{c}"' for c in table.columns)
 

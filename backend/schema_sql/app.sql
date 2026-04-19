@@ -47,10 +47,9 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_action_time ON app.audit_log (action, c
 -- Rooms -----------------------------------------------------------------------
 -- Each Smartup filial/room is a sales-manager / debt-collector unit. We keep a
 -- materialised reference table so we can attach users to rooms (see user_rooms
--- once Phase 2 lands), surface per-collector rollups on the Debt page, and let
--- admins retire stale rooms without deleting data. The table is refreshed from
--- smartup_rep.deal_order.room_id on app boot and every 10 minutes by
--- app/rooms/service.refresh_rooms.
+-- below), surface per-collector rollups on the Debt page, and let admins retire
+-- stale rooms without deleting data. Refreshed from smartup_rep.deal_order on
+-- app boot and every 10 minutes by app/rooms/service.refresh_rooms.
 CREATE TABLE IF NOT EXISTS app.room (
     room_id     TEXT        PRIMARY KEY,
     room_code   TEXT,
@@ -59,3 +58,15 @@ CREATE TABLE IF NOT EXISTS app.room (
     seen_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_room_active ON app.room (active) WHERE active = true;
+
+-- User ↔ rooms (M:N) ----------------------------------------------------------
+-- 0 rows for a user  = unscoped (sees all — default behaviour for admins and
+--                      for any not-yet-migrated operator/viewer)
+-- 1 row             = single-room collector
+-- N rows            = team lead / supervisor (union of N rooms)
+CREATE TABLE IF NOT EXISTS app.user_rooms (
+    user_id   BIGINT NOT NULL REFERENCES app.user(id) ON DELETE CASCADE,
+    room_id   TEXT   NOT NULL REFERENCES app.room(room_id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, room_id)
+);
+CREATE INDEX IF NOT EXISTS idx_user_rooms_room ON app.user_rooms (room_id);
