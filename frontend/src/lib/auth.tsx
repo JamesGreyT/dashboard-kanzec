@@ -22,10 +22,22 @@ import {
 
 export type Role = "admin" | "operator" | "viewer";
 
+export interface RoomRef {
+  room_id: string;
+  room_name: string;
+}
+
 export interface User {
   id: number;
   username: string;
   role: Role;
+  // For admins scope_rooms is always []. For operators/viewers, non-empty
+  // means the user is scoped to those rooms (see backend app/scope.py).
+  scope_rooms: RoomRef[];
+}
+
+export function isScoped(user: User | null): boolean {
+  return !!user && user.scope_rooms.length > 0;
 }
 
 interface TokenResponse {

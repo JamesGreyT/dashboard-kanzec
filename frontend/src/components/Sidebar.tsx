@@ -80,6 +80,16 @@ export default function Sidebar({
               {user.username}
             </div>
             <div className="eyebrow mt-1">{t(`roles.${user.role}`)}</div>
+            {user.scope_rooms.length > 0 && (
+              <div
+                className="caption mt-1 text-ink-3 truncate"
+                title={user.scope_rooms.map((r) => r.room_name).join(", ")}
+              >
+                {user.scope_rooms.length === 1
+                  ? user.scope_rooms[0].room_name
+                  : t("common.rooms_count", { n: user.scope_rooms.length })}
+              </div>
+            )}
           </div>
         </div>
 
