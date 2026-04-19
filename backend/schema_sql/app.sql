@@ -43,3 +43,19 @@ CREATE TABLE IF NOT EXISTS app.audit_log (
 );
 CREATE INDEX IF NOT EXISTS idx_audit_log_user_time   ON app.audit_log (user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_log_action_time ON app.audit_log (action, created_at DESC);
+
+-- Rooms -----------------------------------------------------------------------
+-- Each Smartup filial/room is a sales-manager / debt-collector unit. We keep a
+-- materialised reference table so we can attach users to rooms (see user_rooms
+-- once Phase 2 lands), surface per-collector rollups on the Debt page, and let
+-- admins retire stale rooms without deleting data. The table is refreshed from
+-- smartup_rep.deal_order.room_id on app boot and every 10 minutes by
+-- app/rooms/service.refresh_rooms.
+CREATE TABLE IF NOT EXISTS app.room (
+    room_id     TEXT        PRIMARY KEY,
+    room_code   TEXT,
+    room_name   TEXT        NOT NULL,
+    active      BOOLEAN     NOT NULL DEFAULT true,
+    seen_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_room_active ON app.room (active) WHERE active = true;
