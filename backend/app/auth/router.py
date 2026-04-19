@@ -11,6 +11,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import settings
@@ -24,6 +25,11 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 _REFRESH_COOKIE = "kanzec_refresh"
 
 
+class RoomRef(BaseModel):
+    room_id: str
+    room_name: str
+
+
 class LoginBody(BaseModel):
     username: str = Field(min_length=1, max_length=128)
     password: str = Field(min_length=1, max_length=256)
@@ -33,10 +39,33 @@ class UserOut(BaseModel):
     id: int
     username: str
     role: str
+    scope_rooms: list[RoomRef]
 
-    @classmethod
-    def from_user(cls, u: User) -> "UserOut":
-        return cls(id=u.id, username=u.username, role=u.role)
+    @property
+    def is_scoped(self) -> bool:
+        return bool(self.scope_rooms)
+
+
+async def _user_out(session: AsyncSession, u: User) -> UserOut:
+    # Admins are always unscoped (see app/scope.py), regardless of user_rooms.
+    if u.role == "admin":
+        return UserOut(id=u.id, username=u.username, role=u.role, scope_rooms=[])
+    rows = (
+        await session.execute(
+            text(
+                """
+                SELECT ur.room_id, r.room_name
+                  FROM app.user_rooms ur
+                  JOIN app.room r ON r.room_id = ur.room_id
+                 WHERE ur.user_id = :uid
+                 ORDER BY r.room_name
+                """
+            ),
+            {"uid": u.id},
+        )
+    ).all()
+    rooms = [RoomRef(room_id=r.room_id, room_name=r.room_name) for r in rows]
+    return UserOut(id=u.id, username=u.username, role=u.role, scope_rooms=rooms)
 
 
 class TokenResponse(BaseModel):
@@ -81,7 +110,7 @@ async def login(
     )
     await session.commit()
     _set_refresh_cookie(response, refresh, settings.refresh_ttl_seconds)
-    return TokenResponse(access_token=access, user=UserOut.from_user(user))
+    return TokenResponse(access_token=access, user=await _user_out(session, user))
 
 
 @router.post("/refresh", response_model=TokenResponse)
@@ -105,7 +134,7 @@ async def refresh(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, str(e)) from None
     await session.commit()
     _set_refresh_cookie(response, new_refresh, settings.refresh_ttl_seconds)
-    return TokenResponse(access_token=access, user=UserOut.from_user(user))
+    return TokenResponse(access_token=access, user=await _user_out(session, user))
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
@@ -121,5 +150,8 @@ async def logout(
 
 
 @router.get("/me", response_model=UserOut)
-async def me(user: CurrentUser) -> UserOut:
-    return UserOut.from_user(user)
+async def me(
+    user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> UserOut:
+    return await _user_out(session, user)
