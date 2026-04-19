@@ -230,10 +230,18 @@
     "overdue_promise": "overdue promise",
     "days": "days no payment",
     "not_found": "Client not found or outside your assigned sales persons.",
+    "empty_title": "Nothing to collect",
+    "empty_prepayments_title": "Ledger balanced",
     "empty_worklist": "Nobody owes anything right now. Well done.",
     "empty_prepayments": "No clients are currently in credit.",
     "empty_contact_log": "No calls logged yet.",
+    "empty_orders": "No orders recorded.",
+    "empty_payments": "No payments recorded.",
+    "updated_ago": "Updated {{s}}s ago",
+    "of_n_invoiced": "of {{amount}} invoiced",
     "by_collector": "By sales person",
+    "by_collector_title": "Today's ledger",
+    "clear_filter": "clear filter",
     "tab": {
       "worklist": "Worklist",
       "prepayments": "Prepayments"
@@ -244,7 +252,8 @@
       "debtors": "Debtors",
       "over_90_count": "90 d+ debtors",
       "gross_paid": "paid",
-      "gross_invoiced": "invoiced"
+      "gross_invoiced": "invoiced",
+      "overdue_promises": "Overdue promises"
     },
     "col": {
       "client": "Client",
@@ -263,11 +272,15 @@
       "last_payment": "Last payment"
     },
     "filter": {
+      "title": "Filters",
       "search_placeholder": "search name / TIN / phone…",
-      "all_sales": "All sales persons",
-      "all_aging": "All aging",
-      "all_outcomes": "Any outcome",
-      "overdue_only": "Only overdue promises"
+      "sales_manager": "Sales",
+      "aging": "Aging",
+      "outcome": "Outcome",
+      "all_sales": "All",
+      "all_aging": "Any",
+      "all_outcomes": "Any",
+      "overdue_only": "Overdue only"
     },
     "aging": {
       "0_30": "0–30 d",
@@ -298,7 +311,10 @@
       "orders": "Orders",
       "payments": "Payments",
       "calls": "Calls",
+      "calls_count": "{{n}} call(s) logged",
       "add_contact": "Log contact",
+      "shortcut_hint": "Tip — press Q / N / P / R to pick an outcome",
+      "note_placeholder": "What was said? Anything to remember for the next call…",
       "outcome": "Outcome",
       "promised_amount": "Promised amount",
       "promised_by": "By date",

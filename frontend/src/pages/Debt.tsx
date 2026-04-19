@@ -1,27 +1,31 @@
 /**
- * Qarzlar / Debt collection worklist. Lives at /collection/debt.
+ * Qarzlar / Debt collection worklist — "The Collector's Ledger".
  *
- * For a collector: opens on their room's debtors sorted by priority, one card
- * per client with inline contact info + aging bar + last-call outcome. Click
- * a row → drawer with Orders / Payments / Contact-log tabs and a single form
- * to record the next call outcome.
- *
- * For an admin or team lead: same worklist, plus a "By sales person"
- * rollup panel showing per-room outstanding / at-risk / collected-MTD.
+ * Editorial redesign: every debtor reads as a magazine pull-quote dossier
+ * with the serif amount owed as the anchor. Contact affordances (phone,
+ * telegram) are tap-to-dial / one-click copy. Aging renders as a
+ * typographic column-inch bar, not a generic pill. The drawer becomes the
+ * collector's "dossier page" with keyboard-shortcut outcome buttons so a
+ * caller can log a contact without leaving the keyboard.
  */
-import { FormEvent, useMemo, useState } from "react";
+import {
+  FormEvent,
+  ReactNode,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AnimatePresence, motion } from "motion/react";
 import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
-import { useAuth, isScoped } from "../lib/auth";
+import { useAuth } from "../lib/auth";
 import Card from "../components/Card";
 import Button from "../components/Button";
-import StatCard from "../components/StatCard";
 import Drawer from "../components/Drawer";
 import Input from "../components/Input";
 import Pagination from "../components/Pagination";
 import Modal from "../components/Modal";
-import { GlyphSvg } from "../components/Sidebar";
 
 type Outcome =
   | "called"
@@ -113,7 +117,19 @@ const OUTCOMES: Outcome[] = [
   "note",
 ];
 
-function formatUsd(n: number): string {
+const OUTCOME_SHORTCUT: Record<Outcome, string> = {
+  called: "Q",
+  no_answer: "N",
+  promised: "P",
+  rescheduled: "R",
+  refused: "X",
+  paid: "$",
+  note: "·",
+};
+
+// ---- Formatting helpers ---------------------------------------------------
+
+function formatUsd(n: number | null | undefined): string {
   if (n == null) return "—";
   return n.toLocaleString("en-US", {
     style: "currency",
@@ -122,70 +138,213 @@ function formatUsd(n: number): string {
   });
 }
 
-function AgingBar({ row }: { row: WorklistRow }) {
+/** Parse "YYYY-MM-DD" as a calendar date (no TZ shift). Avoids the Americas
+ *  off-by-one when date-only fields land in `new Date()`. */
+function renderDate(iso: string | null | undefined, locale: string): string {
+  if (!iso) return "—";
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return iso;
+  const [, y, mo, d] = m;
+  return new Date(Date.UTC(+y, +mo - 1, +d)).toLocaleDateString(locale || "en-GB", {
+    timeZone: "UTC",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function renderDateTime(iso: string | null | undefined, locale: string): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString(locale || "en-GB", {
+    timeZone: "Asia/Tashkent",
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+// ---- Typographic atoms ---------------------------------------------------
+
+function Leader() {
+  return <span className="dotted-leader" />;
+}
+
+/** 4-bucket aging column with captions beneath — magazine table style. */
+function AgingColumn({
+  row,
+  dense = false,
+}: {
+  row: Pick<WorklistRow, "aging_0_30" | "aging_30_60" | "aging_60_90" | "aging_90_plus">;
+  dense?: boolean;
+}) {
+  const { t } = useTranslation();
   const total =
     row.aging_0_30 + row.aging_30_60 + row.aging_60_90 + row.aging_90_plus;
-  if (total <= 0) return <span className="caption text-ink-3">—</span>;
-  const seg = (v: number, tone: string) => ({
-    flex: v / total,
-    tone,
-  });
-  const segs = [
-    seg(row.aging_0_30, "bg-good"),
-    seg(row.aging_30_60, "bg-mark-2"),
-    seg(row.aging_60_90, "bg-mark"),
-    seg(row.aging_90_plus, "bg-risk"),
+  const buckets: Array<{ key: "0_30" | "30_60" | "60_90" | "90_plus"; v: number; tone: string }> = [
+    { key: "0_30", v: row.aging_0_30, tone: "bg-good/70" },
+    { key: "30_60", v: row.aging_30_60, tone: "bg-warn/70" },
+    { key: "60_90", v: row.aging_60_90, tone: "bg-mark/60" },
+    { key: "90_plus", v: row.aging_90_plus, tone: "bg-risk" },
   ];
+  if (total <= 0) {
+    return <span className="caption text-ink-3">—</span>;
+  }
+  const barHeight = dense ? "h-[3px]" : "h-[6px]";
   return (
-    <div
-      className="flex h-2 w-full rounded-full overflow-hidden bg-paper-2"
-      title={`0-30: ${formatUsd(row.aging_0_30)} · 30-60: ${formatUsd(row.aging_30_60)} · 60-90: ${formatUsd(row.aging_60_90)} · 90+: ${formatUsd(row.aging_90_plus)}`}
-    >
-      {segs.map((s, i) =>
-        s.flex > 0 ? (
-          <div
-            key={i}
-            style={{ flex: s.flex }}
-            className={`${s.tone} h-full`}
-          />
-        ) : null,
+    <div className={dense ? "flex flex-col gap-1 w-full" : "flex flex-col gap-2 w-full"}>
+      <div className="flex gap-[2px]">
+        {buckets.map((b) => {
+          const pct = total > 0 ? b.v / total : 0;
+          if (pct <= 0)
+            return (
+              <div
+                key={b.key}
+                className={`flex-none w-[2px] ${barHeight} bg-rule`}
+              />
+            );
+          return (
+            <div
+              key={b.key}
+              title={`${t(`debt.aging.${b.key}`)} · ${formatUsd(b.v)}`}
+              className={`${barHeight} ${b.tone}`}
+              style={{ flex: pct }}
+            />
+          );
+        })}
+      </div>
+      {!dense && (
+        <div className="grid grid-cols-4 gap-[2px]">
+          {buckets.map((b) => (
+            <div key={b.key} className="flex flex-col gap-0.5">
+              <span
+                className="font-mono text-[10px] uppercase text-ink-3"
+                style={{ letterSpacing: "0.08em" }}
+              >
+                {t(`debt.aging.${b.key}`)}
+              </span>
+              <span
+                className={`mono text-mono-xs tabular-nums ${
+                  b.v > 0 ? "text-ink-2" : "text-ink-3"
+                }`}
+              >
+                {b.v > 0 ? formatUsd(b.v) : "·"}
+              </span>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
 }
 
-function OutcomeBadge({ outcome }: { outcome: Outcome | null | undefined }) {
+function OutcomeKicker({ outcome }: { outcome: Outcome }) {
   const { t } = useTranslation();
-  if (!outcome) return <span className="caption text-ink-3">—</span>;
-  const tone = {
-    called: "bg-paper-2 text-ink-2",
-    no_answer: "bg-paper-2 text-ink-3",
-    promised: "bg-mark-bg text-mark",
-    rescheduled: "bg-paper-2 text-ink-2",
-    refused: "bg-risk-bg text-risk",
-    paid: "bg-good/10 text-good",
-    note: "bg-paper-2 text-ink-3",
-  }[outcome];
+  const tone: Record<Outcome, string> = {
+    called: "text-ink-2",
+    no_answer: "text-ink-3",
+    promised: "text-mark",
+    rescheduled: "text-warn",
+    refused: "text-risk",
+    paid: "text-good",
+    note: "text-ink-3",
+  };
   return (
-    <span className={`caption px-2 py-0.5 rounded ${tone}`}>
+    <span
+      className={`eyebrow ${tone[outcome]}`}
+      style={{ letterSpacing: "0.14em" }}
+    >
       {t(`debt.outcome.${outcome}`)}
     </span>
   );
 }
 
+function PhoneGlyph({ className = "" }: { className?: string }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden className={className}>
+      <path
+        d="M5.5 4h3.6l1.2 4-2 1.6a12 12 0 0 0 6.1 6.1l1.6-2 4 1.2v3.6A2 2 0 0 1 18 20.5 16 16 0 0 1 3.5 6 2 2 0 0 1 5.5 4Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function TelegramGlyph({ className = "" }: { className?: string }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden className={className}>
+      <path
+        d="M3 11.5 20 5l-2.8 14.2L11 15.4 15.6 10 9 14l-4-1-2-1.5Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function CopyableAction({
+  href,
+  onCopy,
+  children,
+  kind,
+}: {
+  href?: string;
+  onCopy?: string;
+  children: ReactNode;
+  kind: "phone" | "telegram";
+}) {
+  const [copied, setCopied] = useState(false);
+  if (!onCopy) return null;
+  const Glyph = kind === "phone" ? PhoneGlyph : TelegramGlyph;
+  return (
+    <a
+      href={href}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!href) {
+          navigator.clipboard.writeText(onCopy).catch(() => {});
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1200);
+        }
+      }}
+      className="group inline-flex items-center gap-2 text-body text-ink-2 hover:text-mark transition-colors"
+    >
+      <Glyph className="shrink-0 text-ink-3 group-hover:text-mark transition-colors" />
+      <span className="mono text-mono-sm tabular-nums">{children}</span>
+      <AnimatePresence>
+        {copied && (
+          <motion.span
+            initial={{ opacity: 0, y: 2 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -2 }}
+            className="caption text-good"
+          >
+            ✓
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </a>
+  );
+}
+
+// ---- Main page ------------------------------------------------------------
+
 export default function Debt() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage || "en-GB";
   const { user } = useAuth();
   const [tab, setTab] = useState<"worklist" | "prepayments">("worklist");
 
-  // Filters -----------------------------------------------------------------
   const [search, setSearch] = useState("");
   const [salesRoomId, setSalesRoomId] = useState<string>("");
   const [agingBucket, setAgingBucket] = useState<string>("");
   const [outcome, setOutcome] = useState<string>("");
   const [overdueOnly, setOverdueOnly] = useState(false);
   const [offset, setOffset] = useState(0);
-  const limit = 50;
+  const limit = 25;
 
   const rooms = useQuery({
     queryKey: ["rooms"],
@@ -226,88 +385,173 @@ export default function Debt() {
 
   const [openPersonId, setOpenPersonId] = useState<number | null>(null);
 
-  const userIsTeamLeadOrAdmin = !isScoped(user) || (user?.scope_rooms.length ?? 0) >= 2;
+  const [heartbeat, setHeartbeat] = useState(Date.now());
+  useEffect(() => {
+    const h = setInterval(() => setHeartbeat(Date.now()), 1000);
+    return () => clearInterval(h);
+  }, []);
+  const lastFetchMs = worklist.dataUpdatedAt || null;
+  const ageSec = lastFetchMs
+    ? Math.max(0, Math.floor((heartbeat - lastFetchMs) / 1000))
+    : null;
+
+  const userIsTeamLeadOrAdmin =
+    user?.role === "admin" || (user?.scope_rooms.length ?? 0) !== 1;
+  const showByCollector =
+    userIsTeamLeadOrAdmin && (worklist.data?.by_collector.length ?? 0) > 0;
 
   const worklistRows = worklist.data?.rows ?? [];
 
   return (
     <div>
+      {/* ============================================================
+          Masthead
+          ============================================================ */}
       <div className="stagger-0">
-        <div>
-          <div className="caption text-ink-3">
-            <span>{t("dashboard.crumb_dashboard")}</span>
-            <span className="mx-2">·</span>
-            <span>{t("nav.collection")}</span>
-            <span className="mx-2">·</span>
-            <span className="text-ink-2">{t("nav.debt")}</span>
-          </div>
-          <div className="mt-2 flex items-center gap-4">
-            <span
-              aria-hidden
-              className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-full"
-              style={{ background: "var(--mark-bg)", color: "var(--mark)" }}
-            >
-              <GlyphSvg kind="payments" size={22} />
-            </span>
-            <h1 className="serif text-heading-lg text-ink leading-none">
-              {t("debt.title")}
+        <div className="caption text-ink-3">
+          <span>{t("dashboard.crumb_dashboard")}</span>
+          <span className="mx-2 text-ink-3/60">·</span>
+          <span>{t("nav.collection")}</span>
+          <span className="mx-2 text-ink-3/60">·</span>
+          <span className="text-ink-2">{t("nav.debt")}</span>
+        </div>
+
+        <div className="mt-3 grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+          <div>
+            <h1 className="serif text-heading-lg text-ink leading-[0.95]">
+              <span className="serif-italic">{t("debt.title")}</span>
               <span className="mark-stop">.</span>
             </h1>
+            <p className="text-body text-ink-2 mt-3 max-w-[52ch]">
+              {t("debt.blurb")}
+            </p>
           </div>
-          <p className="text-body text-ink-2 mt-3 max-w-2xl">
-            {t("debt.blurb")}
-          </p>
-          <div className="leader mt-6" />
+
+          <div className="md:text-right">
+            <div
+              className="eyebrow text-ink-3"
+              style={{ letterSpacing: "0.18em" }}
+            >
+              {t("debt.kpi.total_ar")}
+            </div>
+            <div className="serif nums text-[3rem] md:text-[3.6rem] leading-none text-mark mt-2 tabular-nums">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.span
+                  key={String(worklist.data?.summary.total_outstanding ?? 0)}
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 4 }}
+                  transition={{ duration: 0.3, ease: [0.2, 0.8, 0.2, 1] }}
+                  className="inline-block"
+                >
+                  {formatUsd(worklist.data?.summary.total_outstanding ?? 0)}
+                </motion.span>
+              </AnimatePresence>
+            </div>
+            <div className="mt-1 caption text-ink-3 tabular-nums">
+              {worklist.data
+                ? t("debt.updated_ago", { s: ageSec ?? 0 })
+                : t("common.loading")}
+              <span className="ml-2 inline-flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-good animate-live-pulse inline-block" />
+                <span className="caption text-ink-3">{t("common.live")}</span>
+              </span>
+            </div>
+          </div>
         </div>
+
+        <div className="leader mt-8" />
       </div>
 
-      <div className="stagger-1 mt-4 flex items-center gap-6 border-b border-rule">
-        {(["worklist", "prepayments"] as const).map((k) => (
-          <button
-            key={k}
-            onClick={() => {
-              setTab(k);
-              setOffset(0);
-            }}
-            className={[
-              "pb-3 text-label transition-colors",
-              tab === k
-                ? "text-mark border-b-2 border-mark -mb-px"
-                : "text-ink-2 hover:text-ink border-b-2 border-transparent",
-            ].join(" ")}
-          >
-            {t(`debt.tab.${k}`)}
-          </button>
-        ))}
-      </div>
-
-      {tab === "worklist" && (
-        <>
-          <div className="stagger-2 mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <StatCard
-              label={t("debt.kpi.total_ar")}
-              value={formatUsd(worklist.data?.summary.total_outstanding ?? 0)}
-            />
-            <StatCard
-              label={t("debt.kpi.over_90")}
-              value={formatUsd(worklist.data?.summary.total_over_90 ?? 0)}
-            />
-            <StatCard
-              label={t("debt.kpi.debtors")}
-              value={(worklist.data?.summary.debtor_count ?? 0).toLocaleString()}
-            />
-            <StatCard
-              label={t("debt.kpi.over_90_count")}
-              value={(
-                worklist.data?.summary.debtor_over_90_count ?? 0
-              ).toLocaleString()}
-            />
+      {/* Tabs */}
+      <div className="stagger-1 flex items-end justify-between gap-6">
+        <div className="flex items-center gap-8">
+          {(["worklist", "prepayments"] as const).map((k) => (
+            <button
+              key={k}
+              onClick={() => {
+                setTab(k);
+                setOffset(0);
+              }}
+              className={[
+                "pb-2 relative transition-colors",
+                tab === k ? "text-mark" : "text-ink-2 hover:text-ink",
+              ].join(" ")}
+            >
+              <span className="serif-italic text-heading-sm leading-none">
+                {t(`debt.tab.${k}`)}
+              </span>
+              {tab === k && (
+                <motion.span
+                  layoutId="debt-tab-underline"
+                  className="absolute left-0 right-0 -bottom-px h-[2px] bg-mark"
+                />
+              )}
+            </button>
+          ))}
+        </div>
+        {tab === "worklist" && (
+          <div className="caption text-ink-3 tabular-nums">
+            {worklist.data?.summary.debtor_count ?? 0}{" "}
+            {t("debt.col.debtors").toLowerCase()} ·{" "}
+            <span className="text-risk">
+              {worklist.data?.summary.debtor_over_90_count ?? 0}{" "}
+              {t("debt.kpi.over_90_count").toLowerCase()}
+            </span>
           </div>
+        )}
+      </div>
 
-          {userIsTeamLeadOrAdmin && (worklist.data?.by_collector.length ?? 0) > 0 && (
-            <Card className="stagger-3 mt-4 p-0 overflow-hidden">
-              <div className="px-4 py-3 border-b border-rule">
-                <div className="eyebrow">{t("debt.by_collector")}</div>
+      {tab === "worklist" ? (
+        <>
+          {/* Editorial masthead — "Today's posting" */}
+          <Card className="stagger-2 mt-4" accent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-y-4 gap-x-6">
+              <MastheadStat
+                label={t("debt.kpi.total_ar")}
+                value={formatUsd(worklist.data?.summary.total_outstanding ?? 0)}
+              />
+              <MastheadStat
+                label={t("debt.kpi.over_90")}
+                value={formatUsd(worklist.data?.summary.total_over_90 ?? 0)}
+                tone="risk"
+              />
+              <MastheadStat
+                label={t("debt.kpi.debtors")}
+                value={(worklist.data?.summary.debtor_count ?? 0).toLocaleString()}
+              />
+              <MastheadStat
+                label={t("debt.kpi.overdue_promises")}
+                value={formatUsd(worklist.data?.summary.total_overdue_promises ?? 0)}
+                tone={
+                  worklist.data?.summary.total_overdue_promises ? "mark" : "quiet"
+                }
+              />
+            </div>
+          </Card>
+
+          {showByCollector && (
+            <Card className="stagger-3 mt-6 p-0 overflow-hidden">
+              <div className="px-5 md:px-7 pt-5 md:pt-7 pb-4 flex items-baseline justify-between">
+                <div>
+                  <div className="eyebrow" style={{ letterSpacing: "0.18em" }}>
+                    {t("debt.by_collector")}
+                  </div>
+                  <div className="serif-italic text-heading-sm text-ink mt-1">
+                    {t("debt.by_collector_title")}
+                  </div>
+                </div>
+                {salesRoomId && (
+                  <button
+                    onClick={() => {
+                      setSalesRoomId("");
+                      setOffset(0);
+                    }}
+                    className="caption text-ink-2 hover:text-mark hover:underline decoration-mark underline-offset-[3px]"
+                  >
+                    {t("debt.clear_filter")}
+                  </button>
+                )}
               </div>
               <table className="w-full border-separate border-spacing-0">
                 <thead>
@@ -318,10 +562,14 @@ export default function Debt() {
                       "debt.col.over_90",
                       "debt.col.debtors",
                       "debt.col.collected_mtd",
-                    ].map((k) => (
+                    ].map((k, i) => (
                       <th
                         key={k}
-                        className="h-10 px-4 border-b border-rule eyebrow font-semibold text-ink-3 text-left"
+                        className={[
+                          "h-10 px-5 md:px-7 border-y border-rule eyebrow text-ink-3",
+                          i === 0 ? "text-left" : "text-right",
+                        ].join(" ")}
+                        style={{ letterSpacing: "0.16em" }}
                       >
                         {t(k)}
                       </th>
@@ -329,44 +577,198 @@ export default function Debt() {
                   </tr>
                 </thead>
                 <tbody>
-                  {worklist.data?.by_collector.map((r) => (
-                    <tr
-                      key={r.room_id}
-                      className="transition-colors hover:bg-paper-2 cursor-pointer"
-                      onClick={() => {
-                        setSalesRoomId(
-                          salesRoomId === r.room_id ? "" : r.room_id,
-                        );
-                        setOffset(0);
-                      }}
-                    >
-                      <td className="h-[44px] px-4 border-b border-rule text-body text-ink">
-                        {r.room_name}
-                        {salesRoomId === r.room_id && (
-                          <span className="caption ml-2 text-mark">●</span>
-                        )}
-                      </td>
-                      <td className="h-[44px] px-4 border-b border-rule text-body text-ink tabular-nums">
-                        {formatUsd(r.outstanding)}
-                      </td>
-                      <td className="h-[44px] px-4 border-b border-rule text-body text-risk tabular-nums">
-                        {formatUsd(r.over_90)}
-                      </td>
-                      <td className="h-[44px] px-4 border-b border-rule caption text-ink-2 tabular-nums">
-                        {r.debtors_count}
-                      </td>
-                      <td className="h-[44px] px-4 border-b border-rule text-body text-good tabular-nums">
-                        {formatUsd(r.collected_mtd)}
-                      </td>
-                    </tr>
-                  ))}
+                  {worklist.data?.by_collector.map((r, i) => {
+                    const active = salesRoomId === r.room_id;
+                    return (
+                      <tr
+                        key={r.room_id}
+                        onClick={() => {
+                          setSalesRoomId(active ? "" : r.room_id);
+                          setOffset(0);
+                        }}
+                        className={[
+                          "transition-colors cursor-pointer",
+                          active
+                            ? "bg-mark-bg/40"
+                            : i % 2 === 0
+                              ? "hover:bg-paper-2"
+                              : "bg-paper-2/40 hover:bg-paper-2",
+                        ].join(" ")}
+                      >
+                        <td className="h-[48px] px-5 md:px-7 border-b border-rule text-body text-ink relative">
+                          {active && (
+                            <span
+                              aria-hidden
+                              className="absolute left-0 top-2 bottom-2 w-[2px] bg-mark rounded-r"
+                            />
+                          )}
+                          <span className="serif-italic">{r.room_name}</span>
+                        </td>
+                        <td className="h-[48px] px-5 md:px-7 border-b border-rule text-right serif text-ink tabular-nums">
+                          {formatUsd(r.outstanding)}
+                        </td>
+                        <td className="h-[48px] px-5 md:px-7 border-b border-rule text-right text-risk tabular-nums serif">
+                          {formatUsd(r.over_90)}
+                        </td>
+                        <td className="h-[48px] px-5 md:px-7 border-b border-rule text-right caption text-ink-2 tabular-nums">
+                          {r.debtors_count}
+                        </td>
+                        <td className="h-[48px] px-5 md:px-7 border-b border-rule text-right text-good tabular-nums serif">
+                          {formatUsd(r.collected_mtd)}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </Card>
           )}
 
-          <div className="stagger-3 mt-6 flex flex-col md:flex-row md:items-center gap-3">
-            <div className="flex-1 min-w-[200px]">
+          {/* Filter masthead */}
+          <div className="stagger-3 mt-8">
+            <div className="eyebrow mb-3" style={{ letterSpacing: "0.18em" }}>
+              {t("debt.filter.title")}
+            </div>
+            <div className="flex flex-col md:flex-row md:items-center gap-3">
+              <div className="flex-1 min-w-[200px]">
+                <Input
+                  placeholder={t("debt.filter.search_placeholder")}
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setOffset(0);
+                  }}
+                />
+              </div>
+              {userIsTeamLeadOrAdmin && rooms.data && (
+                <ChipSelect
+                  label={t("debt.filter.sales_manager")}
+                  value={salesRoomId}
+                  onChange={(v) => {
+                    setSalesRoomId(v);
+                    setOffset(0);
+                  }}
+                  options={[
+                    { value: "", label: t("debt.filter.all_sales") },
+                    ...rooms.data.rooms.map((r) => ({
+                      value: r.room_id,
+                      label: r.room_name,
+                    })),
+                  ]}
+                />
+              )}
+              <ChipSelect
+                label={t("debt.filter.aging")}
+                value={agingBucket}
+                onChange={(v) => {
+                  setAgingBucket(v);
+                  setOffset(0);
+                }}
+                options={[
+                  { value: "", label: t("debt.filter.all_aging") },
+                  ...(["0_30", "30_60", "60_90", "90_plus"] as const).map((b) => ({
+                    value: b,
+                    label: t(`debt.aging.${b}`),
+                  })),
+                ]}
+              />
+              <ChipSelect
+                label={t("debt.filter.outcome")}
+                value={outcome}
+                onChange={(v) => {
+                  setOutcome(v);
+                  setOffset(0);
+                }}
+                options={[
+                  { value: "", label: t("debt.filter.all_outcomes") },
+                  { value: "none", label: t("debt.outcome.none") },
+                  ...OUTCOMES.map((o) => ({
+                    value: o,
+                    label: t(`debt.outcome.${o}`),
+                  })),
+                ]}
+              />
+              <label
+                className={[
+                  "inline-flex items-center gap-2 h-10 px-3 rounded-[10px] border transition-colors cursor-pointer select-none",
+                  overdueOnly
+                    ? "border-mark bg-mark-bg text-mark"
+                    : "border-rule bg-card text-ink-2 hover:border-rule-2",
+                ].join(" ")}
+              >
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={overdueOnly}
+                  onChange={(e) => {
+                    setOverdueOnly(e.target.checked);
+                    setOffset(0);
+                  }}
+                />
+                <span
+                  aria-hidden
+                  className={[
+                    "inline-block h-3 w-3 rounded-sm transition-colors",
+                    overdueOnly ? "bg-mark" : "border border-ink-3/50",
+                  ].join(" ")}
+                />
+                <span className="caption">{t("debt.filter.overdue_only")}</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Dossier list */}
+          <div className="stagger-4 mt-6 flex flex-col gap-3">
+            {worklist.isLoading && (
+              <Card className="p-8">
+                <div className="caption text-ink-3 text-center">
+                  {t("common.loading")}
+                </div>
+              </Card>
+            )}
+
+            {!worklist.isLoading && worklistRows.length === 0 && (
+              <Card className="py-16 md:py-24">
+                <div className="text-center">
+                  <div className="serif-italic text-heading-md text-ink">
+                    {t("debt.empty_title")}
+                    <span className="mark-stop">.</span>
+                  </div>
+                  <div className="text-body text-ink-2 mt-3 max-w-[40ch] mx-auto">
+                    {t("debt.empty_worklist")}
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {worklistRows.map((r, idx) => (
+              <DossierCard
+                key={r.person_id}
+                row={r}
+                rank={offset + idx + 1}
+                locale={locale}
+                onOpen={() => setOpenPersonId(r.person_id)}
+              />
+            ))}
+          </div>
+
+          {worklist.data && worklist.data.total > limit && (
+            <div className="stagger-5 mt-6">
+              <Card className="p-0 overflow-hidden">
+                <Pagination
+                  offset={offset}
+                  limit={limit}
+                  total={worklist.data.total}
+                  onOffset={setOffset}
+                />
+              </Card>
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <div className="stagger-2 mt-6 flex items-center gap-3">
+            <div className="flex-1">
               <Input
                 placeholder={t("debt.filter.search_placeholder")}
                 value={search}
@@ -376,243 +778,45 @@ export default function Debt() {
                 }}
               />
             </div>
-            {userIsTeamLeadOrAdmin && rooms.data && (
-              <select
-                value={salesRoomId}
-                onChange={(e) => {
-                  setSalesRoomId(e.target.value);
-                  setOffset(0);
-                }}
-                className="h-10 bg-paper-2 px-3 rounded-[10px] border border-rule text-body"
-              >
-                <option value="">{t("debt.filter.all_sales")}</option>
-                {rooms.data.rooms.map((r) => (
-                  <option key={r.room_id} value={r.room_id}>
-                    {r.room_name}
-                  </option>
-                ))}
-              </select>
-            )}
-            <select
-              value={agingBucket}
-              onChange={(e) => {
-                setAgingBucket(e.target.value);
-                setOffset(0);
-              }}
-              className="h-10 bg-paper-2 px-3 rounded-[10px] border border-rule text-body"
-            >
-              <option value="">{t("debt.filter.all_aging")}</option>
-              {["0_30", "30_60", "60_90", "90_plus"].map((b) => (
-                <option key={b} value={b}>
-                  {t(`debt.aging.${b}`)}
-                </option>
-              ))}
-            </select>
-            <select
-              value={outcome}
-              onChange={(e) => {
-                setOutcome(e.target.value);
-                setOffset(0);
-              }}
-              className="h-10 bg-paper-2 px-3 rounded-[10px] border border-rule text-body"
-            >
-              <option value="">{t("debt.filter.all_outcomes")}</option>
-              <option value="none">{t("debt.outcome.none")}</option>
-              {OUTCOMES.map((o) => (
-                <option key={o} value={o}>
-                  {t(`debt.outcome.${o}`)}
-                </option>
-              ))}
-            </select>
-            <label className="flex items-center gap-2 caption text-ink-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={overdueOnly}
-                onChange={(e) => {
-                  setOverdueOnly(e.target.checked);
-                  setOffset(0);
-                }}
-              />
-              {t("debt.filter.overdue_only")}
-            </label>
+            <div className="caption text-ink-3 shrink-0 tabular-nums">
+              {(prepayments.data?.total ?? 0).toLocaleString()}{" "}
+              {t("debt.tab.prepayments").toLowerCase()}
+            </div>
           </div>
 
-          <Card className="stagger-3 mt-4 p-0 overflow-hidden">
-            <table className="w-full border-separate border-spacing-0">
-              <thead>
-                <tr>
-                  {[
-                    "debt.col.client",
-                    "debt.col.outstanding",
-                    "debt.col.days_no_pay",
-                    "debt.col.aging",
-                    "debt.col.last_contact",
-                  ].map((k) => (
-                    <th
-                      key={k}
-                      className="h-10 px-4 border-b border-rule eyebrow font-semibold text-ink-3 text-left"
-                    >
-                      {t(k)}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {worklistRows.map((r) => (
-                  <tr
-                    key={r.person_id}
-                    onClick={() => setOpenPersonId(r.person_id)}
-                    className="cursor-pointer transition-colors hover:bg-paper-2"
-                  >
-                    <td className="h-[64px] px-4 border-b border-rule text-body text-ink">
-                      <div className="font-medium">{r.name ?? "—"}</div>
-                      <div className="caption text-ink-3 mt-0.5">
-                        {[
-                          r.primary_room_name,
-                          r.category,
-                          r.region_name,
-                          r.main_phone,
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </div>
-                    </td>
-                    <td className="h-[64px] px-4 border-b border-rule text-body text-ink tabular-nums align-top pt-3">
-                      <div className="serif text-[20px] leading-none">
-                        {formatUsd(r.outstanding)}
-                      </div>
-                      {r.has_overdue_promise && (
-                        <div className="caption text-risk mt-1">
-                          ⚠ {t("debt.overdue_promise")}
-                        </div>
-                      )}
-                    </td>
-                    <td className="h-[64px] px-4 border-b border-rule caption text-ink-2 tabular-nums">
-                      {r.days_since_payment != null
-                        ? `${r.days_since_payment} ${t("debt.days")}`
-                        : "—"}
-                    </td>
-                    <td className="h-[64px] px-4 border-b border-rule w-[180px]">
-                      <AgingBar row={r} />
-                    </td>
-                    <td className="h-[64px] px-4 border-b border-rule">
-                      <OutcomeBadge outcome={r.last_contact_outcome} />
-                      {r.last_contact_at && (
-                        <div className="caption text-ink-3 mt-1">
-                          {new Date(r.last_contact_at).toLocaleDateString()}
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                {worklist.isLoading && (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-10 caption text-ink-3 text-center">
-                      {t("common.loading")}
-                    </td>
-                  </tr>
-                )}
-                {!worklist.isLoading && worklistRows.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-10 caption text-ink-3 text-center">
-                      {t("debt.empty_worklist")}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-            {worklist.data && (
-              <Pagination
-                offset={offset}
-                limit={limit}
-                total={worklist.data.total}
-                onOffset={setOffset}
-              />
-            )}
-          </Card>
-        </>
-      )}
+          <div className="stagger-3 mt-4 flex flex-col gap-3">
+            {(prepayments.data?.rows ?? []).map((r) => (
+              <PrepaymentCard key={r.person_id} row={r} locale={locale} />
+            ))}
 
-      {tab === "prepayments" && (
-        <>
-          <div className="stagger-2 mt-6">
-            <Input
-              placeholder={t("debt.filter.search_placeholder")}
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setOffset(0);
-              }}
-            />
+            {!prepayments.isLoading &&
+              (prepayments.data?.rows.length ?? 0) === 0 && (
+                <Card className="py-16 md:py-24">
+                  <div className="text-center">
+                    <div className="serif-italic text-heading-md text-ink">
+                      {t("debt.empty_prepayments_title")}
+                      <span className="mark-stop">.</span>
+                    </div>
+                    <div className="text-body text-ink-2 mt-3 max-w-[40ch] mx-auto">
+                      {t("debt.empty_prepayments")}
+                    </div>
+                  </div>
+                </Card>
+              )}
           </div>
-          <Card className="stagger-3 mt-4 p-0 overflow-hidden">
-            <table className="w-full border-separate border-spacing-0">
-              <thead>
-                <tr>
-                  {[
-                    "debt.col.client",
-                    "debt.col.region",
-                    "debt.col.invoiced",
-                    "debt.col.paid",
-                    "debt.col.credit",
-                    "debt.col.last_payment",
-                  ].map((k) => (
-                    <th
-                      key={k}
-                      className="h-10 px-4 border-b border-rule eyebrow font-semibold text-ink-3 text-left"
-                    >
-                      {t(k)}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {(prepayments.data?.rows ?? []).map((r) => (
-                  <tr key={r.person_id} className="transition-colors hover:bg-paper-2">
-                    <td className="h-[52px] px-4 border-b border-rule text-body text-ink">
-                      {r.name ?? "—"}
-                      {r.tin && (
-                        <span className="caption text-ink-3 ml-2 mono">{r.tin}</span>
-                      )}
-                    </td>
-                    <td className="h-[52px] px-4 border-b border-rule caption text-ink-2">
-                      {r.region_name ?? "—"}
-                    </td>
-                    <td className="h-[52px] px-4 border-b border-rule text-body text-ink tabular-nums">
-                      {formatUsd(r.gross_invoiced)}
-                    </td>
-                    <td className="h-[52px] px-4 border-b border-rule text-body text-ink tabular-nums">
-                      {formatUsd(r.gross_paid)}
-                    </td>
-                    <td className="h-[52px] px-4 border-b border-rule text-body text-good tabular-nums">
-                      {formatUsd(r.credit_balance)}
-                    </td>
-                    <td className="h-[52px] px-4 border-b border-rule caption text-ink-3 tabular-nums">
-                      {r.last_payment_date
-                        ? new Date(r.last_payment_date).toLocaleDateString()
-                        : "—"}
-                    </td>
-                  </tr>
-                ))}
-                {!prepayments.isLoading &&
-                  (prepayments.data?.rows.length ?? 0) === 0 && (
-                    <tr>
-                      <td colSpan={6} className="px-4 py-10 caption text-ink-3 text-center">
-                        {t("debt.empty_prepayments")}
-                      </td>
-                    </tr>
-                  )}
-              </tbody>
-            </table>
-            {prepayments.data && (
-              <Pagination
-                offset={offset}
-                limit={limit}
-                total={prepayments.data.total}
-                onOffset={setOffset}
-              />
-            )}
-          </Card>
+
+          {prepayments.data && prepayments.data.total > limit && (
+            <div className="stagger-4 mt-6">
+              <Card className="p-0 overflow-hidden">
+                <Pagination
+                  offset={offset}
+                  limit={limit}
+                  total={prepayments.data.total}
+                  onOffset={setOffset}
+                />
+              </Card>
+            </div>
+          )}
         </>
       )}
 
@@ -626,7 +830,290 @@ export default function Debt() {
   );
 }
 
-// ---- Drawer ---------------------------------------------------------------
+function MastheadStat({
+  label,
+  value,
+  tone = "ink",
+}: {
+  label: string;
+  value: string;
+  tone?: "ink" | "mark" | "risk" | "good" | "quiet";
+}) {
+  const toneClass = {
+    ink: "text-ink",
+    mark: "text-mark",
+    risk: "text-risk",
+    good: "text-good",
+    quiet: "text-ink-3",
+  }[tone];
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="eyebrow text-ink-3" style={{ letterSpacing: "0.18em" }}>
+        {label}
+      </span>
+      <span
+        className={`serif nums text-[1.75rem] md:text-[2rem] leading-none tabular-nums ${toneClass}`}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function ChipSelect({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  const active = value !== "";
+  const current = options.find((o) => o.value === value)?.label ?? "";
+  return (
+    <label
+      className={[
+        "relative inline-flex items-center gap-2 h-10 pl-3 pr-8 rounded-[10px] border transition-colors cursor-pointer",
+        active
+          ? "border-mark bg-mark-bg text-mark"
+          : "border-rule bg-card text-ink-2 hover:border-rule-2 hover:text-ink",
+      ].join(" ")}
+    >
+      <span
+        className="caption text-ink-3 uppercase"
+        style={{ letterSpacing: "0.14em" }}
+      >
+        {label}
+      </span>
+      <span className="text-body">{current}</span>
+      <span
+        aria-hidden
+        className="absolute right-3 top-1/2 -translate-y-1/2 serif text-ink-3"
+      >
+        ▾
+      </span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="absolute inset-0 opacity-0 cursor-pointer"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function DossierCard({
+  row,
+  rank,
+  locale,
+  onOpen,
+}: {
+  row: WorklistRow;
+  rank: number;
+  locale: string;
+  onOpen: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Card
+      interactive
+      className="p-0 overflow-hidden cursor-pointer"
+      accent={row.aging_90_plus > 0}
+    >
+      <div
+        onClick={onOpen}
+        className="p-5 md:p-7 grid gap-5 md:grid-cols-[auto_minmax(0,1fr)_auto]"
+      >
+        <div className="flex md:flex-col md:items-end gap-2 md:gap-1 md:w-12 shrink-0 order-1 md:order-1">
+          <span
+            className="mono text-mono-xs text-ink-3 tabular-nums"
+            style={{ letterSpacing: "0.05em" }}
+          >
+            №{rank.toString().padStart(2, "0")}
+          </span>
+          {row.has_overdue_promise && (
+            <span
+              className="inline-block w-2 h-2 rounded-full bg-mark animate-live-pulse"
+              title={t("debt.overdue_promise")}
+            />
+          )}
+        </div>
+
+        <div className="order-3 md:order-2 flex flex-col gap-4 min-w-0">
+          <div>
+            <h3 className="serif-italic text-heading-sm text-ink leading-tight">
+              {row.name ?? "—"}
+            </h3>
+            <div className="mt-1 caption text-ink-3 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              {row.primary_room_name && (
+                <span>
+                  <span className="text-ink-3">
+                    {t("debt.col.sales_person")}:
+                  </span>{" "}
+                  <span className="text-ink-2">{row.primary_room_name}</span>
+                </span>
+              )}
+              {row.category && (
+                <>
+                  <span className="text-ink-3/50">·</span>
+                  <span className="text-ink-2">{row.category}</span>
+                </>
+              )}
+              {row.region_name && (
+                <>
+                  <span className="text-ink-3/50">·</span>
+                  <span className="text-ink-2">{row.region_name}</span>
+                </>
+              )}
+              {row.tin && (
+                <>
+                  <span className="text-ink-3/50">·</span>
+                  <span className="mono text-mono-xs">{row.tin}</span>
+                </>
+              )}
+            </div>
+          </div>
+
+          {(row.main_phone || row.telegram) && (
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+              {row.main_phone && (
+                <CopyableAction
+                  kind="phone"
+                  href={`tel:${row.main_phone.replace(/[^+\d]/g, "")}`}
+                  onCopy={row.main_phone}
+                >
+                  {row.main_phone}
+                </CopyableAction>
+              )}
+              {row.telegram && (
+                <CopyableAction kind="telegram" onCopy={row.telegram}>
+                  {row.telegram}
+                </CopyableAction>
+              )}
+            </div>
+          )}
+
+          <AgingColumn row={row} />
+
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 caption text-ink-3">
+            {row.days_since_payment != null && (
+              <span className="serif-italic">
+                {row.days_since_payment} {t("debt.days")}
+              </span>
+            )}
+            {row.last_contact_at && row.last_contact_outcome && (
+              <>
+                <span className="text-ink-3/50">·</span>
+                <span className="flex items-center gap-1.5">
+                  <OutcomeKicker outcome={row.last_contact_outcome} />
+                  <span className="serif-italic">
+                    {renderDateTime(row.last_contact_at, locale)}
+                  </span>
+                  {row.last_contact_by && (
+                    <span className="text-ink-3">— {row.last_contact_by}</span>
+                  )}
+                </span>
+              </>
+            )}
+            {row.has_overdue_promise && row.last_promised_amount != null && (
+              <>
+                <span className="text-ink-3/50">·</span>
+                <span className="text-mark serif-italic">
+                  ⚠{" "}
+                  {t("debt.drawer.promised", {
+                    amount: formatUsd(row.last_promised_amount),
+                    date: renderDate(row.last_promised_by_date, locale),
+                  })}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="order-2 md:order-3 flex flex-col md:items-end justify-start md:justify-start">
+          <div className="eyebrow text-ink-3" style={{ letterSpacing: "0.18em" }}>
+            {t("debt.col.outstanding")}
+          </div>
+          <div
+            className={[
+              "serif nums tabular-nums leading-none mt-2",
+              row.aging_90_plus > 0 ? "text-mark" : "text-ink",
+            ].join(" ")}
+            style={{ fontSize: "2.25rem" }}
+          >
+            {formatUsd(row.outstanding)}
+          </div>
+          <div className="caption text-ink-3 mt-2 tabular-nums">
+            {t("debt.of_n_invoiced", {
+              amount: formatUsd(row.gross_invoiced),
+            })}
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function PrepaymentCard({ row, locale }: { row: PrepayRow; locale: string }) {
+  const { t } = useTranslation();
+  return (
+    <Card className="p-5 md:p-7 grid gap-4 md:grid-cols-[minmax(0,1fr)_auto]">
+      <div>
+        <h3 className="serif-italic text-heading-sm text-ink leading-tight">
+          {row.name ?? "—"}
+        </h3>
+        <div className="mt-1 caption text-ink-3 flex items-center gap-x-2 flex-wrap">
+          {row.region_name && <span>{row.region_name}</span>}
+          {row.tin && (
+            <>
+              <span className="text-ink-3/50">·</span>
+              <span className="mono text-mono-xs">{row.tin}</span>
+            </>
+          )}
+          {row.last_payment_date && (
+            <>
+              <span className="text-ink-3/50">·</span>
+              <span>
+                {t("debt.col.last_payment")}:{" "}
+                <span className="serif-italic">
+                  {renderDate(row.last_payment_date, locale)}
+                </span>
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="md:text-right">
+        <div className="eyebrow text-ink-3" style={{ letterSpacing: "0.18em" }}>
+          {t("debt.col.credit")}
+        </div>
+        <div
+          className="serif nums tabular-nums text-good leading-none mt-2"
+          style={{ fontSize: "2rem" }}
+        >
+          + {formatUsd(row.credit_balance)}
+        </div>
+        <div className="caption text-ink-3 mt-2 tabular-nums">
+          {t("debt.of_n_invoiced", {
+            amount: formatUsd(row.gross_invoiced),
+          })}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+// ==========================================================================
+// Drawer — Dossier
+// ==========================================================================
 
 interface ClientDetail {
   contact: Record<string, any>;
@@ -653,197 +1140,283 @@ function DebtDrawer({
   personId: number;
   onClose: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage || "en-GB";
   const qc = useQueryClient();
   const detail = useQuery({
     queryKey: ["debt.client", personId],
     queryFn: () => api<ClientDetail>(`/api/debt/client/${personId}`),
   });
-  const [tab, setTab] = useState<"orders" | "payments" | "calls">("calls");
+  const [tab, setTab] = useState<"calls" | "orders" | "payments">("calls");
 
   const contact = detail.data?.contact;
   const aging = detail.data?.aging;
-
-  const outstanding =
-    (aging?.gross_invoiced ?? 0) - (aging?.gross_paid ?? 0);
+  const outstanding = (aging?.gross_invoiced ?? 0) - (aging?.gross_paid ?? 0);
 
   return (
     <Drawer
       open
       onClose={onClose}
-      title={contact?.name ?? "—"}
+      title={t("nav.debt")}
       pk={contact?.tin ? `TIN ${contact.tin}` : undefined}
+      width={640}
     >
-      {detail.isLoading && <div className="caption text-ink-3">{t("common.loading")}</div>}
+      {detail.isLoading && (
+        <div className="caption text-ink-3 py-8 text-center">
+          {t("common.loading")}
+        </div>
+      )}
       {detail.isError && (
         <div className="caption text-risk border-l-2 border-risk pl-3 py-2">
           {t("debt.not_found")}
         </div>
       )}
       {contact && (
-        <div className="flex flex-col gap-5">
-          <Card className="p-4">
-            <div className="serif text-[26px] leading-none text-ink tabular-nums">
-              {formatUsd(outstanding)}
+        <div className="flex flex-col gap-8">
+          <div>
+            <h2 className="serif text-heading-md text-ink leading-tight">
+              <span className="serif-italic">{contact.name ?? "—"}</span>
+              <span className="mark-stop">.</span>
+            </h2>
+            <div className="mt-1 caption text-ink-3 flex flex-wrap gap-x-2 gap-y-0.5">
+              {contact.category && <span>{contact.category}</span>}
+              {contact.region_name && (
+                <>
+                  <span className="text-ink-3/50">·</span>
+                  <span>{contact.region_name}</span>
+                </>
+              )}
+              {contact.tin && (
+                <>
+                  <span className="text-ink-3/50">·</span>
+                  <span className="mono text-mono-xs">TIN {contact.tin}</span>
+                </>
+              )}
             </div>
-            <div className="caption text-ink-3 mt-1">
-              {t("debt.kpi.total_ar")} · {t("debt.kpi.gross_paid")}{" "}
-              {formatUsd(aging?.gross_paid ?? 0)} ·{" "}
-              {t("debt.kpi.gross_invoiced")}{" "}
-              {formatUsd(aging?.gross_invoiced ?? 0)}
+
+            <div className="leader mt-4" />
+
+            <div className="grid gap-2">
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="eyebrow" style={{ letterSpacing: "0.18em" }}>
+                  {t("debt.col.outstanding")}
+                </span>
+                <span
+                  className="serif text-heading-lg leading-none tabular-nums"
+                  style={{
+                    color: outstanding > 0 ? "var(--mark)" : "var(--good)",
+                  }}
+                >
+                  {formatUsd(outstanding)}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2 caption text-ink-3 mt-1">
+                <span>{t("debt.kpi.gross_invoiced")}</span>
+                <span className="tabular-nums">
+                  {formatUsd(aging?.gross_invoiced ?? 0)}
+                </span>
+                <Leader />
+                <span>{t("debt.kpi.gross_paid")}</span>
+                <span className="tabular-nums">
+                  {formatUsd(aging?.gross_paid ?? 0)}
+                </span>
+              </div>
             </div>
+
             {aging && (
-              <div className="mt-3 grid grid-cols-4 gap-2">
-                {[
-                  ["0_30", aging.aging_0_30],
-                  ["30_60", aging.aging_30_60],
-                  ["60_90", aging.aging_60_90],
-                  ["90_plus", aging.aging_90_plus],
-                ].map(([k, v]) => (
-                  <div key={k as string} className="flex flex-col">
-                    <span className="caption text-ink-3">
-                      {t(`debt.aging.${k}`)}
-                    </span>
-                    <span className="tabular-nums text-ink">
-                      {formatUsd(v as number)}
-                    </span>
-                  </div>
-                ))}
+              <div className="mt-5">
+                <AgingColumn row={aging as any} />
               </div>
             )}
-          </Card>
-
-          <Card className="p-4">
-            <div className="eyebrow mb-2">{t("debt.drawer.contact")}</div>
-            <dl className="grid grid-cols-[120px_1fr] gap-x-4 gap-y-1 text-body">
-              {[
-                ["debt.contact.phone", contact.main_phone],
-                ["debt.contact.telegram", contact.telegram],
-                ["debt.contact.address", contact.address],
-                ["debt.contact.region", contact.region_name],
-                ["debt.contact.category", contact.category],
-                ["debt.contact.owner", contact.owner_name],
-              ].map(([k, v]) =>
-                v ? (
-                  <div key={k as string} className="contents">
-                    <dt className="eyebrow text-ink-3 text-right">{t(k as string)}</dt>
-                    <dd className="text-ink">{v as string}</dd>
-                  </div>
-                ) : null,
-              )}
-            </dl>
-          </Card>
-
-          <div className="flex items-center gap-4 border-b border-rule">
-            {(["calls", "orders", "payments"] as const).map((k) => (
-              <button
-                key={k}
-                onClick={() => setTab(k)}
-                className={[
-                  "pb-2 text-label transition-colors",
-                  tab === k
-                    ? "text-mark border-b-2 border-mark -mb-px"
-                    : "text-ink-2 hover:text-ink border-b-2 border-transparent",
-                ].join(" ")}
-              >
-                {t(`debt.drawer.${k}`)}
-              </button>
-            ))}
           </div>
 
-          {tab === "calls" && (
-            <CallsTab
-              personId={personId}
-              entries={detail.data?.contact_log ?? []}
-              onChange={() => {
-                qc.invalidateQueries({ queryKey: ["debt.client", personId] });
-                qc.invalidateQueries({ queryKey: ["debt.worklist"] });
-              }}
-            />
-          )}
-          {tab === "orders" && (
-            <Card className="p-0 overflow-hidden">
-              <table className="w-full text-body">
-                <thead>
-                  <tr>
-                    {["delivery_date", "product_name", "sold_quant", "product_amount"].map(
-                      (k) => (
-                        <th
-                          key={k}
-                          className="h-8 px-3 border-b border-rule eyebrow text-left"
-                        >
-                          {t(`debt.orders_col.${k}`)}
-                        </th>
-                      ),
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {(detail.data?.orders ?? []).map((o, i) => (
-                    <tr key={i}>
-                      <td className="h-8 px-3 border-b border-rule caption tabular-nums">
-                        {o.delivery_date}
-                      </td>
-                      <td className="h-8 px-3 border-b border-rule text-ink">{o.product_name}</td>
-                      <td className="h-8 px-3 border-b border-rule tabular-nums">
-                        {o.sold_quant}
-                      </td>
-                      <td className="h-8 px-3 border-b border-rule tabular-nums">
-                        {formatUsd(o.product_amount)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Card>
-          )}
-          {tab === "payments" && (
-            <Card className="p-0 overflow-hidden">
-              <table className="w-full text-body">
-                <thead>
-                  <tr>
-                    {["payment_date", "amount", "payment_method", "payer"].map((k) => (
-                      <th
-                        key={k}
-                        className="h-8 px-3 border-b border-rule eyebrow text-left"
+          {(contact.main_phone ||
+            contact.telegram ||
+            contact.address ||
+            contact.owner_name) && (
+            <div>
+              <div className="eyebrow mb-3" style={{ letterSpacing: "0.18em" }}>
+                {t("debt.drawer.contact")}
+              </div>
+              <dl className="flex flex-col gap-2">
+                {contact.main_phone && (
+                  <ContactRow
+                    label={t("debt.contact.phone")}
+                    value={
+                      <CopyableAction
+                        kind="phone"
+                        href={`tel:${String(contact.main_phone).replace(
+                          /[^+\d]/g,
+                          "",
+                        )}`}
+                        onCopy={contact.main_phone}
                       >
-                        {t(`debt.pay_col.${k}`)}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {(detail.data?.payments ?? []).map((p, i) => (
-                    <tr key={i}>
-                      <td className="h-8 px-3 border-b border-rule caption tabular-nums">
-                        {p.payment_date
-                          ? new Date(p.payment_date).toLocaleDateString()
-                          : "—"}
-                      </td>
-                      <td className="h-8 px-3 border-b border-rule text-good tabular-nums">
-                        {formatUsd(p.amount)}
-                      </td>
-                      <td className="h-8 px-3 border-b border-rule">{p.payment_method}</td>
-                      <td className="h-8 px-3 border-b border-rule">{p.payer}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Card>
+                        {contact.main_phone}
+                      </CopyableAction>
+                    }
+                  />
+                )}
+                {contact.telegram && (
+                  <ContactRow
+                    label={t("debt.contact.telegram")}
+                    value={
+                      <CopyableAction kind="telegram" onCopy={contact.telegram}>
+                        {contact.telegram}
+                      </CopyableAction>
+                    }
+                  />
+                )}
+                {contact.address && (
+                  <ContactRow
+                    label={t("debt.contact.address")}
+                    value={
+                      <span className="text-body text-ink">{contact.address}</span>
+                    }
+                  />
+                )}
+                {contact.owner_name && (
+                  <ContactRow
+                    label={t("debt.contact.owner")}
+                    value={
+                      <span className="text-body text-ink">{contact.owner_name}</span>
+                    }
+                  />
+                )}
+              </dl>
+            </div>
           )}
+
+          <div>
+            <div className="flex items-baseline gap-6 border-b border-rule">
+              {(["calls", "orders", "payments"] as const).map((k) => (
+                <button
+                  key={k}
+                  onClick={() => setTab(k)}
+                  className={[
+                    "relative pb-2 transition-colors",
+                    tab === k ? "text-mark" : "text-ink-2 hover:text-ink",
+                  ].join(" ")}
+                >
+                  <span className="serif-italic text-heading-sm leading-none">
+                    {t(`debt.drawer.${k}`)}
+                  </span>
+                  {tab === k && (
+                    <motion.span
+                      layoutId="debt-drawer-underline"
+                      className="absolute left-0 right-0 -bottom-px h-[2px] bg-mark"
+                    />
+                  )}
+                </button>
+              ))}
+              <div className="flex-1" />
+              <span className="caption text-ink-3 tabular-nums">
+                {tab === "calls"
+                  ? `${detail.data?.contact_log.length ?? 0}`
+                  : tab === "orders"
+                    ? `${detail.data?.orders.length ?? 0}`
+                    : `${detail.data?.payments.length ?? 0}`}
+              </span>
+            </div>
+
+            <div className="mt-5">
+              {tab === "calls" && (
+                <CallsTab
+                  personId={personId}
+                  entries={detail.data?.contact_log ?? []}
+                  locale={locale}
+                  onChange={() => {
+                    qc.invalidateQueries({ queryKey: ["debt.client", personId] });
+                    qc.invalidateQueries({ queryKey: ["debt.worklist"] });
+                  }}
+                />
+              )}
+              {tab === "orders" && (
+                <ul className="flex flex-col gap-0">
+                  {(detail.data?.orders ?? []).map((o, i) => (
+                    <li
+                      key={i}
+                      className="py-2 flex items-baseline gap-2 text-body border-b border-rule last:border-b-0"
+                    >
+                      <span className="caption text-ink-3 w-20 shrink-0 tabular-nums">
+                        {renderDate(o.delivery_date, locale)}
+                      </span>
+                      <span className="text-ink flex-1 truncate">
+                        {o.product_name ?? "—"}
+                      </span>
+                      <span className="mono text-mono-sm text-ink-3 tabular-nums w-14 text-right">
+                        × {Number(o.sold_quant ?? 0).toLocaleString()}
+                      </span>
+                      <span className="serif tabular-nums w-28 text-right text-ink">
+                        {formatUsd(o.product_amount)}
+                      </span>
+                    </li>
+                  ))}
+                  {(detail.data?.orders.length ?? 0) === 0 && (
+                    <li className="caption text-ink-3 text-center py-6">
+                      {t("debt.empty_orders")}
+                    </li>
+                  )}
+                </ul>
+              )}
+              {tab === "payments" && (
+                <ul className="flex flex-col gap-0">
+                  {(detail.data?.payments ?? []).map((p, i) => (
+                    <li
+                      key={i}
+                      className="py-2 flex items-baseline gap-2 text-body border-b border-rule last:border-b-0"
+                    >
+                      <span className="caption text-ink-3 w-20 shrink-0 tabular-nums">
+                        {renderDateTime(p.payment_date, locale)}
+                      </span>
+                      <span className="text-ink-2 flex-1 truncate caption">
+                        {p.payer ?? "—"}
+                      </span>
+                      <span className="caption text-ink-3 w-20 text-right">
+                        {p.payment_method ?? ""}
+                      </span>
+                      <span className="serif tabular-nums w-28 text-right text-good">
+                        + {formatUsd(p.amount)}
+                      </span>
+                    </li>
+                  ))}
+                  {(detail.data?.payments.length ?? 0) === 0 && (
+                    <li className="caption text-ink-3 text-center py-6">
+                      {t("debt.empty_payments")}
+                    </li>
+                  )}
+                </ul>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </Drawer>
   );
 }
 
+function ContactRow({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="flex items-baseline gap-2">
+      <dt
+        className="eyebrow text-ink-3 w-24 shrink-0"
+        style={{ letterSpacing: "0.14em" }}
+      >
+        {label}
+      </dt>
+      <dd className="flex-1 min-w-0">{value}</dd>
+    </div>
+  );
+}
+
 function CallsTab({
   personId,
   entries,
+  locale,
   onChange,
 }: {
   personId: number;
   entries: ClientDetail["contact_log"];
+  locale: string;
   onChange: () => void;
 }) {
   const { t } = useTranslation();
@@ -857,33 +1430,42 @@ function CallsTab({
   });
 
   return (
-    <Card className="p-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className="eyebrow">{t("debt.drawer.calls")}</div>
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <span className="caption text-ink-3">
+          {entries.length === 0
+            ? t("debt.empty_contact_log")
+            : t("debt.drawer.calls_count", { n: entries.length })}
+        </span>
         <Button variant="primary" onClick={() => setAdding(true)}>
           + {t("debt.drawer.add_contact")}
         </Button>
       </div>
-      {entries.length === 0 && (
-        <div className="caption text-ink-3 py-4 text-center">
-          {t("debt.empty_contact_log")}
-        </div>
-      )}
-      <ul className="flex flex-col gap-3">
-        {entries.map((e) => (
-          <li key={e.id} className="border-l-2 border-rule pl-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <OutcomeBadge outcome={e.outcome} />
-                <span className="caption text-ink-3 tabular-nums">
-                  {new Date(e.contacted_at).toLocaleString()}
+
+      <ul className="flex flex-col">
+        {entries.map((e, i) => (
+          <li
+            key={e.id}
+            className={[
+              "py-3 relative pl-4 border-b border-rule last:border-b-0",
+              i === 0 ? "pt-0" : "",
+            ].join(" ")}
+          >
+            <span
+              aria-hidden
+              className="absolute left-0 top-3 bottom-3 w-[2px] bg-rule"
+            />
+            <div className="flex items-baseline gap-3 flex-wrap">
+              <OutcomeKicker outcome={e.outcome} />
+              <span className="caption text-ink-3 tabular-nums">
+                {renderDateTime(e.contacted_at, locale)}
+              </span>
+              {e.contacted_by_name && (
+                <span className="caption text-ink-3">
+                  — {e.contacted_by_name}
                 </span>
-                {e.contacted_by_name && (
-                  <span className="caption text-ink-3">
-                    · {e.contacted_by_name}
-                  </span>
-                )}
-              </div>
+              )}
+              <span className="flex-1" />
               {(user?.role === "admin" || e.contacted_by === user?.id) && (
                 <button
                   onClick={() => {
@@ -891,23 +1473,26 @@ function CallsTab({
                       del.mutate(e.id);
                     }
                   }}
-                  className="caption text-risk hover:underline"
+                  className="caption text-ink-3 hover:text-risk hover:underline decoration-risk underline-offset-[3px]"
                 >
                   {t("common.delete")}
                 </button>
               )}
             </div>
             {e.promised_amount != null && (
-              <div className="caption text-ink-2 mt-1">
+              <div className="caption text-mark mt-1 serif-italic">
                 {t("debt.drawer.promised", {
                   amount: formatUsd(e.promised_amount),
-                  date: e.promised_by_date ?? "",
+                  date: renderDate(e.promised_by_date, locale),
                 })}
               </div>
             )}
-            {e.follow_up_date && (
-              <div className="caption text-ink-2 mt-0.5">
-                {t("debt.drawer.follow_up")}: {e.follow_up_date}
+            {e.follow_up_date && e.promised_amount == null && (
+              <div className="caption text-ink-2 mt-1">
+                {t("debt.drawer.follow_up")}:{" "}
+                <span className="serif-italic">
+                  {renderDate(e.follow_up_date, locale)}
+                </span>
               </div>
             )}
             {e.note && (
@@ -918,6 +1503,7 @@ function CallsTab({
           </li>
         ))}
       </ul>
+
       {adding && (
         <AddContactModal
           personId={personId}
@@ -928,7 +1514,7 @@ function CallsTab({
           }}
         />
       )}
-    </Card>
+    </div>
   );
 }
 
@@ -955,8 +1541,12 @@ function AddContactModal({
         method: "POST",
         body: JSON.stringify({
           outcome,
-          promised_amount: promisedAmount ? Number(promisedAmount) : null,
-          promised_by_date: promisedBy || null,
+          promised_amount:
+            outcome === "promised" && promisedAmount
+              ? Number(promisedAmount)
+              : null,
+          promised_by_date:
+            outcome === "promised" ? promisedBy || null : null,
           follow_up_date: followUp || null,
           note: note || null,
         }),
@@ -964,6 +1554,29 @@ function AddContactModal({
     onSuccess,
     onError: (e: Error) => setErr(e.message),
   });
+
+  // Keyboard shortcuts: Q N P R X $ · — pick outcome without taking a hand
+  // off the keyboard. Ignore when typing in a text field.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA")
+      )
+        return;
+      const match = (Object.entries(OUTCOME_SHORTCUT) as [Outcome, string][]).find(
+        ([, v]) => v.toUpperCase() === e.key.toUpperCase() || v === e.key,
+      );
+      if (match) {
+        e.preventDefault();
+        setOutcome(match[0]);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   function submit(e: FormEvent) {
     e.preventDefault();
@@ -973,40 +1586,69 @@ function AddContactModal({
 
   return (
     <Modal open onClose={onClose} title={t("debt.drawer.add_contact")}>
-      <form onSubmit={submit} className="flex flex-col gap-4">
-        <label className="grid grid-cols-[120px_1fr] items-center gap-x-4">
-          <span className="eyebrow text-right">{t("debt.drawer.outcome")}</span>
-          <select
-            value={outcome}
-            onChange={(e) => setOutcome(e.target.value as Outcome)}
-            className="h-10 bg-paper-2 px-3 rounded-[10px] border border-rule text-body"
-          >
-            {OUTCOMES.map((o) => (
-              <option key={o} value={o}>
-                {t(`debt.outcome.${o}`)}
-              </option>
-            ))}
-          </select>
-        </label>
-        {outcome === "promised" && (
-          <>
-            <Input
-              layout="inline"
-              label={t("debt.drawer.promised_amount")}
-              type="number"
-              step="0.01"
-              value={promisedAmount}
-              onChange={(e) => setPromisedAmount(e.target.value)}
-            />
-            <Input
-              layout="inline"
-              label={t("debt.drawer.promised_by")}
-              type="date"
-              value={promisedBy}
-              onChange={(e) => setPromisedBy(e.target.value)}
-            />
-          </>
-        )}
+      <form onSubmit={submit} className="flex flex-col gap-5">
+        <div>
+          <div className="eyebrow mb-2" style={{ letterSpacing: "0.14em" }}>
+            {t("debt.drawer.outcome")}
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {OUTCOMES.map((o) => {
+              const active = o === outcome;
+              return (
+                <button
+                  key={o}
+                  type="button"
+                  onClick={() => setOutcome(o)}
+                  className={[
+                    "flex flex-col items-center gap-1 py-2 px-2 rounded-[10px] border transition-colors text-left",
+                    active
+                      ? "border-mark bg-mark-bg text-mark"
+                      : "border-rule bg-card text-ink-2 hover:border-rule-2 hover:text-ink",
+                  ].join(" ")}
+                >
+                  <span
+                    className="caption uppercase"
+                    style={{ letterSpacing: "0.1em" }}
+                  >
+                    {t(`debt.outcome.${o}`)}
+                  </span>
+                  <kbd className="mono text-mono-xs text-ink-3 font-medium">
+                    {OUTCOME_SHORTCUT[o]}
+                  </kbd>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <AnimatePresence initial={false}>
+          {outcome === "promised" && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="grid md:grid-cols-2 gap-5 overflow-hidden"
+            >
+              <Input
+                layout="inline"
+                label={t("debt.drawer.promised_amount")}
+                type="number"
+                step="0.01"
+                min="0"
+                value={promisedAmount}
+                onChange={(e) => setPromisedAmount(e.target.value)}
+              />
+              <Input
+                layout="inline"
+                label={t("debt.drawer.promised_by")}
+                type="date"
+                value={promisedBy}
+                onChange={(e) => setPromisedBy(e.target.value)}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <Input
           layout="inline"
           label={t("debt.drawer.follow_up")}
@@ -1014,25 +1656,43 @@ function AddContactModal({
           value={followUp}
           onChange={(e) => setFollowUp(e.target.value)}
         />
-        <label className="grid grid-cols-[120px_1fr] items-start gap-x-4">
-          <span className="eyebrow text-right mt-2">{t("debt.drawer.note")}</span>
+
+        <label className="grid grid-cols-[100px_1fr] items-start gap-x-4">
+          <span
+            className="eyebrow text-right mt-2"
+            style={{ letterSpacing: "0.14em" }}
+          >
+            {t("debt.drawer.note")}
+          </span>
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            rows={4}
-            className="bg-paper-2 px-3 py-2 rounded-[10px] border border-rule text-body outline-none focus:border-mark"
+            rows={3}
+            placeholder={t("debt.drawer.note_placeholder")}
+            className="bg-paper-2 px-3 py-2 rounded-[10px] border border-rule text-body outline-none focus:border-mark resize-none"
           />
         </label>
+
         {err && (
-          <div className="caption text-risk border-l-2 border-risk pl-3">{err}</div>
+          <div className="caption text-risk border-l-2 border-risk pl-3">
+            {err}
+          </div>
         )}
-        <div className="flex items-center justify-end gap-5 mt-2">
-          <Button variant="link" type="button" onClick={onClose}>
-            {t("common.cancel")}
-          </Button>
-          <Button variant="primary" type="submit" disabled={m.isPending}>
-            {m.isPending ? t("admin.form_saving") : t("debt.drawer.save_contact")}
-          </Button>
+
+        <div className="flex items-center justify-between gap-5 mt-2">
+          <span className="caption text-ink-3 serif-italic">
+            {t("debt.drawer.shortcut_hint")}
+          </span>
+          <div className="flex items-center gap-5">
+            <Button variant="link" type="button" onClick={onClose}>
+              {t("common.cancel")}
+            </Button>
+            <Button variant="primary" type="submit" disabled={m.isPending}>
+              {m.isPending
+                ? t("admin.form_saving")
+                : t("debt.drawer.save_contact")}
+            </Button>
+          </div>
         </div>
       </form>
     </Modal>

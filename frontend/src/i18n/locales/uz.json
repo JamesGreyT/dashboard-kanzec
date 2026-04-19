@@ -230,10 +230,18 @@
     "overdue_promise": "muddati o'tgan va'da",
     "days": "kun to'lovsiz",
     "not_found": "Mijoz topilmadi yoki siz biriktirilgan sotuvchilar tarkibida emas.",
+    "empty_title": "Undiradigan narsa yo'q",
+    "empty_prepayments_title": "Daftar muvozanatda",
     "empty_worklist": "Hozir hech kim qarzdor emas. Zo'r.",
     "empty_prepayments": "Hozir oldindan to'lov yo'q.",
     "empty_contact_log": "Hozircha qo'ng'iroqlar ro'yxatga olinmagan.",
+    "empty_orders": "Buyurtmalar yo'q.",
+    "empty_payments": "To'lovlar yo'q.",
+    "updated_ago": "{{s}} soniya oldin yangilandi",
+    "of_n_invoiced": "{{amount}} dan hisoblandi",
     "by_collector": "Sotuvchilar bo'yicha",
+    "by_collector_title": "Bugungi reestr",
+    "clear_filter": "tozalash",
     "tab": {
       "worklist": "Ishchi ro'yxat",
       "prepayments": "Oldindan to'lovlar"
@@ -244,7 +252,8 @@
       "debtors": "Qarzdorlar",
       "over_90_count": "90+ kunlik qarzdorlar",
       "gross_paid": "to'langan",
-      "gross_invoiced": "hisob-kitob"
+      "gross_invoiced": "hisob-kitob",
+      "overdue_promises": "Muddati o'tgan va'dalar"
     },
     "col": {
       "client": "Mijoz",
@@ -263,11 +272,15 @@
       "last_payment": "Oxirgi to'lov"
     },
     "filter": {
+      "title": "Filtrlar",
       "search_placeholder": "ism / INN / telefon bo'yicha qidirish…",
-      "all_sales": "Barcha sotuvchilar",
-      "all_aging": "Barcha eskirish",
-      "all_outcomes": "Har qanday natija",
-      "overdue_only": "Faqat muddati o'tgan va'dalar"
+      "sales_manager": "Sotuvchi",
+      "aging": "Eskirish",
+      "outcome": "Natija",
+      "all_sales": "Barchasi",
+      "all_aging": "Hammasi",
+      "all_outcomes": "Hammasi",
+      "overdue_only": "Faqat muddati o'tgan"
     },
     "aging": {
       "0_30": "0–30 kun",
@@ -298,7 +311,10 @@
       "orders": "Buyurtmalar",
       "payments": "To'lovlar",
       "calls": "Qo'ng'iroqlar",
+      "calls_count": "{{n}} ta qo'ng'iroq yozilgan",
       "add_contact": "Aloqani yozish",
+      "shortcut_hint": "Maslahat — Q / N / P / R tugmalari natija uchun",
+      "note_placeholder": "Mijoz nima dedi? Keyingi qo'ng'iroq uchun esda tutish kerak…",
       "outcome": "Natija",
       "promised_amount": "Va'da summasi",
       "promised_by": "Sanaga",
