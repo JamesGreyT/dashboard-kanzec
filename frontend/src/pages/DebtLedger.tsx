@@ -239,9 +239,14 @@ export default function DebtLedger() {
                     className={[
                       "h-10 px-3 border-b border-rule sticky top-0 bg-card eyebrow font-semibold text-ink-3 whitespace-nowrap",
                       c.align === "right" ? "text-right" : "text-left",
-                      i === 0 ? "z-10" : "",
+                      // i===0: the top-left corner is sticky in BOTH axes and
+                      // must sit above every other sticky cell so rows sliding
+                      // past are fully occluded. z-20 > body sticky (z-5) > row
+                      // sticky headers (z-10) > body cells (default).
+                      i === 0
+                        ? "sticky left-0 z-20 min-w-[220px]"
+                        : "z-10",
                     ].join(" ")}
-                    style={i === 0 ? { position: "sticky", left: 0 } : undefined}
                   >
                     {t(c.labelKey)}
                   </th>
@@ -267,7 +272,7 @@ export default function DebtLedger() {
                 <tr
                   key={r.person_id}
                   onClick={() => nav(`/collection/debt/client/${r.person_id}`)}
-                  className="cursor-pointer transition-colors hover:bg-paper-2"
+                  className="group cursor-pointer transition-colors hover:bg-paper-2"
                 >
                   {LEDGER_COLUMNS.map((c, i) => (
                     <td
@@ -278,25 +283,33 @@ export default function DebtLedger() {
                         c.mono ? "mono text-mono-sm text-ink-2" : "",
                         c.emphasis === "mark" ? "serif text-mark" : "",
                         c.emphasis === "risk" && (r as any)[c.key] > 0 ? "text-risk" : "",
+                        // Sticky first column needs an opaque background of its
+                        // own (tr hover:bg on its own wouldn't cover — td paints
+                        // above tr — so we mirror the row state via group-hover).
+                        i === 0
+                          ? "sticky left-0 z-[5] bg-card group-hover:bg-paper-2 min-w-[220px]"
+                          : "",
                       ].join(" ")}
-                      style={i === 0 ? { position: "sticky", left: 0, background: "inherit", minWidth: 220 } : undefined}
                     >
                       {renderCell(r, c)}
                     </td>
                   ))}
                 </tr>
               ))}
-              {/* Totals row */}
+              {/* Totals row — `position: sticky` goes on every td, not the tr
+                  (sticky rows are inconsistently supported). The left-bottom
+                  corner is sticky in both axes; z-[15] beats the body-sticky
+                  first column (z-5) so it sits above while scrolling. */}
               {summary && rows.length > 0 && (
-                <tr className="bg-paper-2 sticky bottom-0">
+                <tr>
                   {LEDGER_COLUMNS.map((c, i) => (
                     <td
                       key={c.key}
                       className={[
-                        "h-11 px-3 border-t-2 border-mark whitespace-nowrap font-medium",
+                        "h-11 px-3 border-t-2 border-mark whitespace-nowrap font-medium bg-paper-2 sticky bottom-0",
                         c.align === "right" ? "text-right" : "text-left",
+                        i === 0 ? "left-0 z-[15] min-w-[220px]" : "z-[4]",
                       ].join(" ")}
-                      style={i === 0 ? { position: "sticky", left: 0, background: "var(--paper-2)", minWidth: 220 } : undefined}
                     >
                       {i === 0
                         ? t("ledger.totals_row")
