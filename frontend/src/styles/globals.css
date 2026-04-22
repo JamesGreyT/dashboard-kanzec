@@ -3,38 +3,40 @@
 @tailwind utilities;
 
 /* ============================================================
-   The Almanac — palette + type + utilities
+   Folio Amber (lighter) — palette + type + utilities
    ------------------------------------------------------------
-   Warm paper, one vermilion mark, herbarium status tones.
-   Every colour flows from CSS variables so we can theme later.
+   Pale warm cream paper, crisp white cards, navy ink, burnt-
+   orange accent. Fraunces italic display + Inter body + JBM
+   data. Every colour flows from CSS variables; components use
+   Tailwind utilities that resolve to these at runtime.
    ============================================================ */
 
 :root {
-  --paper:      #f5f1ea;
-  --paper-2:    #efe9df;
-  --card:       #faf7f0;
-  --ink:        #1a1713;
-  --ink-2:      #5a5147;
-  --ink-3:      #8f8678;
-  --rule:       #d9d1c1;
-  --rule-2:     #bcb19e;
+  --paper:      #fcf8ef;   /* pale warm cream — page bg */
+  --paper-2:    #f5efdf;   /* subtle zones / zebra / hover */
+  --card:       #ffffff;   /* crisp white card fill */
+  --ink:        #0e1b3a;   /* deep navy primary text */
+  --ink-2:      #384368;   /* secondary */
+  --ink-3:      #6b7385;   /* tertiary */
+  --rule:       #e5ddca;   /* hairline */
+  --rule-2:     #cec3a8;   /* secondary hairline / input borders */
 
-  --mark:       #b33522;
-  --mark-2:     #e6a99d;
-  --mark-bg:    #f6dfd8;
+  --mark:       #c2541b;   /* burnt-orange accent */
+  --mark-2:     #e0845a;
+  --mark-bg:    #f9ead8;
 
-  --good:       #4c6a47;
-  --good-bg:    #dfe6d5;
-  --warn:       #8e6a2c;
-  --warn-bg:    #ece2c9;
-  --risk:       #8e3a32;
-  --risk-bg:    #ebd4cf;
+  --good:       #2f6e4a;
+  --good-bg:    #e2eee4;
+  --warn:       #b37012;
+  --warn-bg:    #f5e8cf;
+  --risk:       #b03a2c;
+  --risk-bg:    #f3ddd6;
   --quiet:      #6b6556;
-  --quiet-bg:   #e4ddce;
+  --quiet-bg:   #e7dfd0;
 
-  --font-serif: "Newsreader", ui-serif, Georgia, serif;
-  --font-sans:  "Fustat", ui-sans-serif, system-ui, sans-serif;
-  --font-mono:  "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --font-serif: "Fraunces", ui-serif, Georgia, serif;
+  --font-sans:  "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono:  "JetBrains Mono", ui-monospace, Menlo, monospace;
 }
 
 html,
@@ -61,7 +63,13 @@ table th.num {
   font-variant-numeric: tabular-nums lining-nums;
 }
 
-/* The serif is used specifically; apply with class rather than globally. */
+/* Fraunces ss01 stylistic set — single-story "a" that pairs better
+   with the italic display variant. Applies wherever .serif sets. */
+.serif,
+.serif-italic {
+  font-feature-settings: "ss01" on;
+}
+
 .serif {
   font-family: var(--font-serif);
   font-weight: 400;
@@ -69,8 +77,9 @@ table th.num {
 
 .serif-italic {
   font-family: var(--font-serif);
-  font-weight: 400;
+  font-weight: 500;
   font-style: italic;
+  letter-spacing: -0.015em;
 }
 
 .mono {
@@ -82,12 +91,24 @@ table th.num {
   font-family: var(--font-sans);
   font-weight: 600;
   font-size: 0.6875rem;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-3);
 }
 
-/* Underlines only ever render in vermilion. */
+/* Mono variant used where Folio calls for mono uppercase labels —
+   sidebar nav group headers, StatCard labels, filter chip labels. */
+.eyebrow-mono {
+  font-family: var(--font-mono);
+  font-size: 0.656rem;     /* 10.5px */
+  line-height: 1;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* Underlines only ever render in accent. */
 a,
 a:link {
   color: var(--ink);
@@ -101,7 +122,7 @@ a:hover {
   text-underline-offset: 3px;
 }
 
-/* Focus ring — vermilion, never blue. */
+/* Focus ring — accent, never blue. */
 *:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--mark) 35%, transparent);
   outline-offset: 2px;
@@ -116,10 +137,7 @@ a:hover {
 
 /* ============================================================
    Editorial rhythm — the dotted-end hairline "leader"
-   A 1px rule with two tiny dots at each end, used between
-   type blocks the way a printer would set a chapter ornament.
-   Used sparingly: once per card header, between page heading
-   and content, between popover sections.
+   A 1px rule with two tiny dots at each end.
    ============================================================ */
 .leader {
   position: relative;
@@ -140,18 +158,18 @@ a:hover {
 .leader::before { left: 0; }
 .leader::after  { right: 0; }
 
-/* A serif-set vermilion full-stop used as the terminator after
+/* A serif-set accent full-stop used as the terminator after
    page headings. Reads as "printed" rather than "typed". */
 .mark-stop {
   font-family: var(--font-serif);
-  font-weight: 400;
-  font-style: normal;
+  font-weight: 500;
+  font-style: italic;
   color: var(--mark);
+  margin-left: -2px;
 }
 
 /* Dotted leader between a label and a right-aligned value —
-   table-of-contents style. Used in ColumnFilter values and
-   drawer field rows. */
+   table-of-contents style. */
 .dotted-leader {
   flex: 1;
   align-self: stretch;
@@ -161,76 +179,25 @@ a:hover {
   margin: 0 6px;
 }
 
-/* Corner brackets — shown on `.card-interactive:hover`.
-   Four 14px × 1px vermilion L-brackets in the outer corners.
-   The editorial tell for "this is a pull-quote / clickable block." */
+/* Card hover-lift. The clickable-card tell for Folio: no corner
+   brackets — a soft translate + deeper shadow. */
 .card-interactive {
-  transition: background-color 150ms ease-out;
+  transition:
+    transform 240ms cubic-bezier(0.2, 0.85, 0.25, 1),
+    box-shadow 240ms cubic-bezier(0.2, 0.85, 0.25, 1),
+    background-color 180ms ease-out;
+  cursor: pointer;
 }
 .card-interactive:hover {
-  background-image:
-    linear-gradient(var(--mark), var(--mark)),
-    linear-gradient(var(--mark), var(--mark)),
-    linear-gradient(var(--mark), var(--mark)),
-    linear-gradient(var(--mark), var(--mark)),
-    linear-gradient(var(--mark), var(--mark)),
-    linear-gradient(var(--mark), var(--mark)),
-    linear-gradient(var(--mark), var(--mark)),
-    linear-gradient(var(--mark), var(--mark));
-  background-size:
-    14px 1px, 1px 14px,
-    14px 1px, 1px 14px,
-    14px 1px, 1px 14px,
-    14px 1px, 1px 14px;
-  background-position:
-    top left, top left,
-    top right, top right,
-    bottom left, bottom left,
-    bottom right, bottom right;
-  background-repeat: no-repeat;
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 14px rgba(14, 27, 58, 0.07),
+    0 0 0 1px rgba(14, 27, 58, 0.08);
 }
-
-/* Primary button: an underline sweep under the label on hover.
-   The label is wrapped in <span class="primary-underline-sweep">. */
-.primary-underline-sweep {
-  position: relative;
-  display: inline-block;
-}
-.primary-underline-sweep::after {
-  content: "";
-  position: absolute;
-  left: 0; right: 0; bottom: -3px;
-  height: 2px;
-  background: currentColor;
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-button:hover > .primary-underline-sweep::after,
-button:focus-visible > .primary-underline-sweep::after {
-  transform: scaleX(1);
-}
-/* A 200ms compositional settle on the button itself — reads as "the type
-   is set" when the underline lands. Not a bounce. */
-@keyframes btn-settle {
-  0%   { transform: scale(1); }
-  60%  { transform: scale(1.015); }
-  100% { transform: scale(1); }
-}
-button:hover > .primary-underline-sweep,
-button:focus-visible > .primary-underline-sweep {
-  animation: btn-settle 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-/* (removed .nav-sweep: on narrow labels the absolute 2px bar rendered
-   inside the text baseline and looked like a strikethrough. The active
-   nav state still reads clearly from the --mark-bg wash + --mark text.) */
 
 /* ============================================================
    Staggered page entrance — the editorial unfold.
-   `animate-enter-up` already exists as a 260ms opacity + 6px Y ease.
-   `.stagger-N` applies the same motion with an N × 40ms delay, so the
-   heading lands first and cards fall in sequence.
+   Retuned easing for Folio: gentler landing.
    ============================================================ */
 .stagger-0,
 .stagger-1,
@@ -239,7 +206,7 @@ button:focus-visible > .primary-underline-sweep {
 .stagger-4,
 .stagger-5 {
   opacity: 0;
-  animation: enter-up 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: enter-up 260ms cubic-bezier(0.2, 0.85, 0.25, 1) both;
 }
 .stagger-0 { animation-delay:   0ms; }
 .stagger-1 { animation-delay:  40ms; }
@@ -255,8 +222,6 @@ button:focus-visible > .primary-underline-sweep {
 
 /* ============================================================
    RuledLoader — seven 1px hairlines that redraw left-to-right.
-   Set by the Loader component; each row carries .rule-wave with an
-   inline --d delay (ms).
    ============================================================ */
 .rule-wave {
   animation: rule-wave 1.2s ease-in-out infinite;
@@ -268,8 +233,7 @@ button:focus-visible > .primary-underline-sweep {
   50%      { opacity: 1;   transform: scaleX(1);    }
 }
 
-/* Respect the user's reduced-motion preference across every decorative
-   animation we emit. Functional fades (drawer, popover) stay. */
+/* Respect reduced-motion across every decorative animation. */
 @media (prefers-reduced-motion: reduce) {
   .stagger-0,
   .stagger-1,
@@ -281,12 +245,13 @@ button:focus-visible > .primary-underline-sweep {
     opacity: 1;
   }
   .rule-wave,
-  .primary-underline-sweep,
   .animate-live-pulse {
     animation: none !important;
   }
-  button:hover > .primary-underline-sweep,
-  button:focus-visible > .primary-underline-sweep {
-    animation: none;
+  .card-interactive {
+    transition: none;
+  }
+  .card-interactive:hover {
+    transform: none;
   }
 }
