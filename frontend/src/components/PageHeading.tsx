@@ -19,7 +19,7 @@ export default function PageHeading({
           </span>
         ))}
       </div>
-      <h1 className="serif text-heading-lg text-ink mt-2 leading-none">
+      <h1 className="serif-italic text-heading-lg text-ink mt-2 leading-none">
         {title}
         <span className="mark-stop">.</span>
       </h1>
