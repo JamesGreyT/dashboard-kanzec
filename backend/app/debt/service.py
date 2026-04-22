@@ -481,6 +481,10 @@ async def get_client_detail(
     *,
     scope: UserScope | None,
     person_id: int,
+    orders_offset: int = 0,
+    orders_limit: int = 50,
+    payments_offset: int = 0,
+    payments_limit: int = 50,
 ) -> dict[str, Any]:
     person_f, scope_params = _scope_fragments(scope)
     params: dict[str, Any] = {**scope_params, "pid": person_id, "pid_text": str(person_id)}
@@ -512,7 +516,21 @@ async def get_client_detail(
 
     # Orders timeline — scope already asserted via contact fetch; show every
     # order for this client (cross-room context is intentional, see
-    # _scope_fragments docstring).
+    # _scope_fragments docstring). Returns paged + totals so the FE can
+    # render a count chip, a sum strip, and pagination when > limit.
+    orders_meta = (
+        await session.execute(
+            text(
+                """
+                SELECT COUNT(*)                            AS n,
+                       COALESCE(SUM(product_amount), 0)    AS sum_amount
+                  FROM smartup_rep.deal_order
+                 WHERE person_id::text = :pid_text
+                """
+            ),
+            {"pid_text": str(person_id)},
+        )
+    ).mappings().one()
     orders = (
         await session.execute(
             text(
@@ -522,14 +540,27 @@ async def get_client_detail(
                   FROM smartup_rep.deal_order
                  WHERE person_id::text = :pid_text
                  ORDER BY delivery_date DESC, deal_id
-                 LIMIT 50
+                 LIMIT :lim OFFSET :off
                 """
             ),
-            {"pid_text": str(person_id)},
+            {"pid_text": str(person_id), "lim": orders_limit, "off": orders_offset},
         )
     ).mappings().all()
 
-    # Payments timeline
+    # Payments timeline + totals
+    payments_meta = (
+        await session.execute(
+            text(
+                """
+                SELECT COUNT(*)                    AS n,
+                       COALESCE(SUM(amount), 0)    AS sum_amount
+                  FROM smartup_rep.payment
+                 WHERE person_id = :pid
+                """
+            ),
+            {"pid": person_id},
+        )
+    ).mappings().one()
     payments = (
         await session.execute(
             text(
@@ -538,10 +569,10 @@ async def get_client_detail(
                   FROM smartup_rep.payment
                  WHERE person_id = :pid
                  ORDER BY payment_date DESC
-                 LIMIT 50
+                 LIMIT :lim OFFSET :off
                 """
             ),
-            {"pid": person_id},
+            {"pid": person_id, "lim": payments_limit, "off": payments_offset},
         )
     ).mappings().all()
 
@@ -629,7 +660,11 @@ async def get_client_detail(
         "contact": _jsonify_mapping(contact),
         "aging": _jsonify_mapping(aging),
         "orders": [_jsonify_mapping(r) for r in orders],
+        "orders_total": int(orders_meta["n"]),
+        "orders_sum": float(orders_meta["sum_amount"]),
         "payments": [_jsonify_mapping(r) for r in payments],
+        "payments_total": int(payments_meta["n"]),
+        "payments_sum": float(payments_meta["sum_amount"]),
         "contact_log": [_jsonify_mapping(r) for r in log_rows],
     }
 

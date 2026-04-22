@@ -323,14 +323,14 @@
       "90_plus": "90+ дн"
     },
     "outcome": {
-      "none": "не контактировали",
-      "called": "позвонили",
-      "no_answer": "не ответил",
-      "promised": "обещал",
-      "rescheduled": "перенесено",
-      "refused": "отказ",
-      "paid": "оплатил",
-      "note": "заметка"
+      "none": "Без контакта",
+      "called": "Звонил",
+      "no_answer": "Не ответил",
+      "promised": "Обещал",
+      "rescheduled": "Перенесено",
+      "refused": "Отказ",
+      "paid": "Оплатил",
+      "note": "Заметка"
     },
     "contact": {
       "phone": "Телефон",
@@ -354,15 +354,22 @@
       "promised_by": "К дате",
       "follow_up": "Связаться",
       "note": "Заметка",
-      "save_contact": "Сохранить.",
+      "save_contact": "Сохранить",
       "delete_confirm": "Удалить запись?",
       "promised": "Обещал {{amount}} к {{date}}"
     },
     "orders_col": {
       "delivery_date": "Дата",
       "product_name": "Товар",
+      "sales_manager": "Продавец",
       "sold_quant": "Кол-во",
       "product_amount": "Сумма"
+    },
+    "tab_totals": {
+      "orders_count": "Всего записей",
+      "orders_sum": "Сумма продаж",
+      "payments_count": "Всего записей",
+      "payments_sum": "Сумма платежей"
     },
     "pay_col": {
       "payment_date": "Дата",

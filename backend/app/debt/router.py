@@ -115,8 +115,20 @@ async def client_detail(
     person_id: int,
     scope: ScopedUser,
     session: Annotated[AsyncSession, Depends(get_session)],
+    orders_offset: int = Query(0, ge=0),
+    orders_limit: int = Query(50, ge=1, le=500),
+    payments_offset: int = Query(0, ge=0),
+    payments_limit: int = Query(50, ge=1, le=500),
 ) -> dict:
-    result = await service.get_client_detail(session, scope=scope, person_id=person_id)
+    result = await service.get_client_detail(
+        session,
+        scope=scope,
+        person_id=person_id,
+        orders_offset=orders_offset,
+        orders_limit=orders_limit,
+        payments_offset=payments_offset,
+        payments_limit=payments_limit,
+    )
     if not result:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "client not found or outside scope")
     return result

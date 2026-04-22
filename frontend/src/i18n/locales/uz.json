@@ -323,14 +323,14 @@
       "90_plus": "90+ kun"
     },
     "outcome": {
-      "none": "aloqaga kiritilmagan",
-      "called": "qo'ng'iroq qilindi",
-      "no_answer": "javob bermadi",
-      "promised": "va'da berdi",
-      "rescheduled": "ko'chirildi",
-      "refused": "rad etdi",
-      "paid": "to'ladi",
-      "note": "izoh"
+      "none": "Aloqaga kiritilmagan",
+      "called": "Qo'ng'iroq qilindi",
+      "no_answer": "Javob bermadi",
+      "promised": "Va'da berdi",
+      "rescheduled": "Ko'chirildi",
+      "refused": "Rad etdi",
+      "paid": "To'ladi",
+      "note": "Izoh"
     },
     "contact": {
       "phone": "Telefon",
@@ -354,15 +354,22 @@
       "promised_by": "Sanaga",
       "follow_up": "Keyingi aloqa",
       "note": "Izoh",
-      "save_contact": "Saqlash.",
+      "save_contact": "Saqlash",
       "delete_confirm": "Yozuvni o'chirish?",
       "promised": "{{amount}} ni {{date}} ga va'da berdi"
     },
     "orders_col": {
       "delivery_date": "Sana",
       "product_name": "Mahsulot",
+      "sales_manager": "Sotuvchi",
       "sold_quant": "Miqdor",
       "product_amount": "Summa"
+    },
+    "tab_totals": {
+      "orders_count": "Jami yozuvlar",
+      "orders_sum": "Jami savdo",
+      "payments_count": "Jami yozuvlar",
+      "payments_sum": "Jami to'lov"
     },
     "pay_col": {
       "payment_date": "Sana",

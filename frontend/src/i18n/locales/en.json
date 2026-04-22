@@ -323,14 +323,14 @@
       "90_plus": "90 d+"
     },
     "outcome": {
-      "none": "never contacted",
-      "called": "called",
-      "no_answer": "no answer",
-      "promised": "promised",
-      "rescheduled": "rescheduled",
-      "refused": "refused",
-      "paid": "paid",
-      "note": "note"
+      "none": "Never contacted",
+      "called": "Called",
+      "no_answer": "No answer",
+      "promised": "Promised",
+      "rescheduled": "Rescheduled",
+      "refused": "Refused",
+      "paid": "Paid",
+      "note": "Note"
     },
     "contact": {
       "phone": "Phone",
@@ -354,15 +354,22 @@
       "promised_by": "By date",
       "follow_up": "Follow-up",
       "note": "Note",
-      "save_contact": "Save.",
+      "save_contact": "Save",
       "delete_confirm": "Delete this entry?",
       "promised": "Promised {{amount}} by {{date}}"
     },
     "orders_col": {
       "delivery_date": "Date",
       "product_name": "Product",
+      "sales_manager": "Sales",
       "sold_quant": "Qty",
       "product_amount": "Amount"
+    },
+    "tab_totals": {
+      "orders_count": "Entries",
+      "orders_sum": "Invoiced total",
+      "payments_count": "Entries",
+      "payments_sum": "Paid total"
     },
     "pay_col": {
       "payment_date": "Date",
