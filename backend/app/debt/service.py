@@ -82,6 +82,7 @@ class WorklistFilters:
     sales_manager_room_id: str | None = None
     region: str | None = None
     category: str | None = None
+    direction: str | None = None           # exact match against legal_person.direction
     aging_bucket: str | None = None        # "0_30" | "30_60" | "60_90" | "90_plus"
     outcome: str | None = None             # any OUTCOMES value, or "none" for untouched
     overdue_promises_only: bool = False
@@ -222,6 +223,7 @@ async def compute_worklist(
            lp.name, lp.tin,
            lp.main_phone, lp.telegram, lp.address, lp.region_name,
            lp.group_name2         AS category,
+           lp.direction           AS direction,
            lp.owner_name,
            a.gross_invoiced,
            COALESCE(pp.gross_paid, 0) AS gross_paid,
@@ -273,6 +275,9 @@ async def compute_worklist(
     if filters.category:
         outer_where.append("category ILIKE :f_category")
         outer_params["f_category"] = f"%{filters.category}%"
+    if filters.direction:
+        outer_where.append("direction = :f_direction")
+        outer_params["f_direction"] = filters.direction
     if filters.aging_bucket:
         col = {
             "0_30": "aging_0_30",
@@ -796,6 +801,7 @@ class LedgerFilters:
     sales_manager_room_id: str | None = None
     region: str | None = None
     category: str | None = None
+    direction: str | None = None           # exact match against legal_person.direction
     overdue_only: bool = False
     search: str | None = None
 
@@ -841,6 +847,9 @@ async def compute_ledger(
     if filters.category:
         filter_sqls.append("category ILIKE :f_category")
         params["f_category"] = f"%{filters.category}%"
+    if filters.direction:
+        filter_sqls.append("direction = :f_direction")
+        params["f_direction"] = filters.direction
     if filters.overdue_only:
         filter_sqls.append("overdue > 0")
     if filters.search:
@@ -976,6 +985,7 @@ async def compute_ledger(
            lp.tin,
            lp.region_name,
            lp.group_name2                         AS category,
+           lp.direction                           AS direction,
            :term                                  AS term_days,
            COALESCE(ob.opening_debt, 0)           AS opening_debt,
            COALESCE(ob.opening_credit, 0)         AS opening_credit,

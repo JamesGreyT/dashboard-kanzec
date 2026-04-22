@@ -4,14 +4,27 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..auth.deps import CurrentUser
+from .. import audit
+from ..auth.deps import CurrentUser, require_role
 from ..db import get_session
-from ..scope import ScopedUser
+from ..scope import ScopedUser, clause_for_table
 from . import catalog, service
 
 router = APIRouter(prefix="/api/data", tags=["data"])
+
+
+# Every value that appears in the Excel Clients.Yoʻnalish column. Writes from
+# the dashboard must pick from this set — new categories must be added here
+# (and usually to the frontend dropdown) deliberately.
+ALLOWED_DIRECTIONS: frozenset[str] = frozenset({
+    "B2B", "Yangi", "MATERIAL", "Export", "Цех",
+    "Marketplace", "Online", "Doʻkon", "BAZA",
+    "Sergeli 6/4/1 D", "Farxod bozori D", "Sergeli 3/3/13 D",
+})
 
 
 @router.get("/tables")
@@ -78,6 +91,77 @@ async def get_row(
     # pk is "~"-joined — e.g. "2026-04-17~44923~240568035~941232" for a 4-part PK
     parts = pk.split("~")
     return await service.get_row(session, key, parts, scope=scope)
+
+
+class DirectionBody(BaseModel):
+    direction: str = Field(..., min_length=1, max_length=64)
+
+
+@router.get("/legal-persons/directions")
+async def list_directions(_: CurrentUser) -> dict:
+    """Allowed Yoʻnalish values for the inline editor."""
+    return {"directions": sorted(ALLOWED_DIRECTIONS)}
+
+
+@router.patch("/legal-persons/{person_id}/direction")
+async def set_legal_person_direction(
+    person_id: int,
+    body: DirectionBody,
+    scope: ScopedUser,
+    request: Request,
+    _: Annotated[object, Depends(require_role("admin", "operator"))],
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict:
+    """Set the Yoʻnalish (direction) on a legal_person row.
+
+    Writes direction_source='manual' so the Excel loader will refuse to
+    overwrite it. Scope-enforced: non-admin users can only edit clients
+    inside their assigned rooms.
+    """
+    if body.direction not in ALLOWED_DIRECTIONS:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"direction must be one of {sorted(ALLOWED_DIRECTIONS)}",
+        )
+    scope_frag, scope_params = clause_for_table(scope, "smartup_rep.legal_person")
+    scope_where = f" AND {scope_frag}" if scope_frag else ""
+    row = (
+        await session.execute(
+            text(
+                f"""
+                UPDATE smartup_rep.legal_person
+                   SET direction = :d,
+                       direction_source = 'manual',
+                       direction_updated_at = now()
+                 WHERE person_id = :pid
+                   {scope_where}
+                RETURNING person_id, name, direction, direction_source, direction_updated_at
+                """
+            ),
+            {"d": body.direction, "pid": person_id, **scope_params},
+        )
+    ).mappings().first()
+    if row is None:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, "legal person not found or outside scope"
+        )
+    await audit.write(
+        session,
+        user_id=scope.user_id,
+        action="legal_person.direction.update",
+        target=f"person:{person_id}",
+        details={"direction": body.direction},
+        ip_address=request.client.host if request.client else None,
+    )
+    await session.commit()
+    return {
+        "person_id": row["person_id"],
+        "name": row["name"],
+        "direction": row["direction"],
+        "direction_source": row["direction_source"],
+        "direction_updated_at": row["direction_updated_at"].isoformat()
+            if row["direction_updated_at"] else None,
+    }
 
 
 @router.get("/{key}/export")

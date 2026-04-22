@@ -375,6 +375,7 @@
     },
     "col": {
       "client": "Клиент",
+      "direction": "Yoʻnalish",
       "term_days": "Срок (дн.)",
       "opening_debt": "Нач. долг",
       "opening_credit": "Нач. кредит",

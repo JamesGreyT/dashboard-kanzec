@@ -42,6 +42,7 @@ interface WorklistRow {
   address: string | null;
   region_name: string | null;
   category: string | null;
+  direction: string | null;
   owner_name: string | null;
   gross_invoiced: number;
   gross_paid: number;
@@ -114,6 +115,23 @@ const OUTCOMES: Outcome[] = [
   "refused",
   "paid",
   "note",
+];
+
+// Yoʻnalish dropdown — every value that appears on legal_person.direction.
+// Must stay in sync with ALLOWED_DIRECTIONS in backend/app/data/router.py.
+const DIRECTIONS: string[] = [
+  "B2B",
+  "Yangi",
+  "MATERIAL",
+  "Export",
+  "Цех",
+  "Marketplace",
+  "Online",
+  "Doʻkon",
+  "BAZA",
+  "Sergeli 6/4/1 D",
+  "Farxod bozori D",
+  "Sergeli 3/3/13 D",
 ];
 
 // ---- Formatting helpers ---------------------------------------------------
@@ -326,6 +344,7 @@ export default function Debt() {
 
   const [search, setSearch] = useState("");
   const [salesRoomId, setSalesRoomId] = useState<string>("");
+  const [direction, setDirection] = useState<string>("");
   const [agingBucket, setAgingBucket] = useState<string>("");
   const [outcome, setOutcome] = useState<string>("");
   const [overdueOnly, setOverdueOnly] = useState(false);
@@ -343,11 +362,12 @@ export default function Debt() {
     p.set("offset", String(offset));
     if (search) p.set("search", search);
     if (salesRoomId) p.set("sales_manager_room_id", salesRoomId);
+    if (direction) p.set("direction", direction);
     if (agingBucket) p.set("aging_bucket", agingBucket);
     if (outcome) p.set("outcome", outcome);
     if (overdueOnly) p.set("overdue_promises_only", "true");
     return p.toString();
-  }, [offset, search, salesRoomId, agingBucket, outcome, overdueOnly]);
+  }, [offset, search, salesRoomId, direction, agingBucket, outcome, overdueOnly]);
 
   const worklist = useQuery({
     queryKey: ["debt.worklist", worklistQs],
@@ -643,6 +663,18 @@ export default function Debt() {
                   ]}
                 />
               )}
+              <ChipSelect
+                label="Yoʻnalish"
+                value={direction}
+                onChange={(v) => {
+                  setDirection(v);
+                  setOffset(0);
+                }}
+                options={[
+                  { value: "", label: "Barchasi" },
+                  ...DIRECTIONS.map((d) => ({ value: d, label: d })),
+                ]}
+              />
               <ChipSelect
                 label={t("debt.filter.aging")}
                 value={agingBucket}
@@ -940,6 +972,12 @@ function DossierCard({
                   </span>{" "}
                   <span className="text-ink-2">{row.primary_room_name}</span>
                 </span>
+              )}
+              {row.direction && (
+                <>
+                  <span className="text-ink-3/50">·</span>
+                  <span className="text-mark">{row.direction}</span>
+                </>
               )}
               {row.category && (
                 <>

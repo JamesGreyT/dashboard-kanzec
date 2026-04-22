@@ -1,9 +1,10 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { useTranslation } from "react-i18next";
-import { api, getAccessToken } from "../lib/api";
+import { api, ApiError, getAccessToken } from "../lib/api";
+import { useAuth } from "../lib/auth";
 import PageHeading from "../components/PageHeading";
 import { GlyphSvg } from "../components/Sidebar";
 import Card from "../components/Card";
@@ -45,6 +46,22 @@ type SortState = { field: string; dir: "asc" | "desc" } | null;
 
 const DENSITY_KEY = "kanzec.density";
 
+// Keep in sync with ALLOWED_DIRECTIONS in backend/app/data/router.py.
+const LEGAL_PERSON_DIRECTIONS: string[] = [
+  "B2B",
+  "Yangi",
+  "MATERIAL",
+  "Export",
+  "Цех",
+  "Marketplace",
+  "Online",
+  "Doʻkon",
+  "BAZA",
+  "Sergeli 6/4/1 D",
+  "Farxod bozori D",
+  "Sergeli 3/3/13 D",
+];
+
 function readDensity(): Density {
   if (typeof localStorage === "undefined") return "compact";
   const v = localStorage.getItem(DENSITY_KEY);
@@ -78,6 +95,10 @@ const TABLE_SUBTITLE_KEYS: Record<string, string> = {
  */
 export default function DataViewer({ lockedTable }: { lockedTable?: string } = {}) {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const canEditDirection =
+    user?.role === "admin" || user?.role === "operator";
   const tables = useQuery({
     queryKey: ["data.tables"],
     queryFn: () => api<{ tables: TableMeta[] }>("/api/data/tables"),
@@ -213,6 +234,22 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
         width: widthFor(c),
         sort: sort?.field === c.name ? sort.dir : null,
         hasActiveFilter: hasActive(filters[c.name]),
+        render:
+          activeKey === "legal_person" && c.name === "direction"
+            ? (r: Row) => (
+                <DirectionCell
+                  personId={Number(r.person_id)}
+                  current={(r.direction as string) ?? null}
+                  source={(r.direction_source as string) ?? null}
+                  editable={canEditDirection}
+                  onSaved={() => {
+                    queryClient.invalidateQueries({
+                      queryKey: ["data.rows", "legal_person"],
+                    });
+                  }}
+                />
+              )
+            : undefined,
         filter: (
           <>
             <button
@@ -247,7 +284,7 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
         ),
       }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTable, filters, openFilterCol, activeKey, sort]);
+  }, [activeTable, filters, openFilterCol, activeKey, sort, canEditDirection]);
 
   function exportCsv() {
     const token = getAccessToken();
@@ -654,6 +691,116 @@ function formatDetail(v: unknown, currency: string | null) {
     }
   }
   return String(v);
+}
+
+/**
+ * Inline editor for legal_person.direction. Renders a narrow <select>; on
+ * change, PATCHes the row and invalidates the table query. Click + change
+ * events are isolated from the surrounding row so the drawer doesn't open.
+ * Non-editors see the value as plain text.
+ */
+function DirectionCell({
+  personId,
+  current,
+  source,
+  editable,
+  onSaved,
+}: {
+  personId: number;
+  current: string | null;
+  source: string | null;
+  editable: boolean;
+  onSaved: () => void;
+}) {
+  const [value, setValue] = useState<string>(current ?? "");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setValue(current ?? "");
+  }, [current]);
+
+  const mutation = useMutation({
+    mutationFn: (d: string) =>
+      api<{ direction: string; direction_source: string }>(
+        `/api/data/legal-persons/${personId}/direction`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ direction: d }),
+        },
+      ),
+    onMutate: (d) => {
+      setPending(true);
+      setError(null);
+      setValue(d);
+    },
+    onError: (err) => {
+      setValue(current ?? "");
+      const msg =
+        err instanceof ApiError
+          ? (typeof err.body === "object" && err.body && "detail" in err.body
+              ? String((err.body as { detail: unknown }).detail)
+              : err.message)
+          : (err as Error).message;
+      setError(msg);
+      setTimeout(() => setError(null), 3000);
+    },
+    onSuccess: () => {
+      onSaved();
+    },
+    onSettled: () => setPending(false),
+  });
+
+  if (!editable) {
+    return (
+      <span
+        className={source === "manual" ? "text-mark" : "text-ink"}
+        title={source ? `source: ${source}` : undefined}
+      >
+        {current ?? "—"}
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className="inline-flex items-center gap-1"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <select
+        value={value}
+        disabled={pending}
+        onClick={(e) => e.stopPropagation()}
+        onChange={(e) => {
+          const next = e.target.value;
+          if (next && next !== current) mutation.mutate(next);
+          else setValue(next);
+        }}
+        className={[
+          "h-6 max-w-[120px] rounded-sm px-1 caption bg-transparent",
+          "border border-transparent hover:border-rule focus:border-mark focus:outline-none",
+          source === "manual" ? "text-mark" : "text-ink",
+        ].join(" ")}
+        title={source ? `source: ${source}` : undefined}
+      >
+        {LEGAL_PERSON_DIRECTIONS.map((d) => (
+          <option key={d} value={d}>
+            {d}
+          </option>
+        ))}
+      </select>
+      {pending && (
+        <span className="caption text-ink-3" aria-hidden>
+          …
+        </span>
+      )}
+      {error && (
+        <span className="caption text-risk" title={error}>
+          !
+        </span>
+      )}
+    </span>
+  );
 }
 
 function FilterIcon() {

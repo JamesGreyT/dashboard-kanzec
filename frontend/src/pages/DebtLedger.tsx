@@ -27,6 +27,7 @@ interface LedgerRow {
   tin: string | null;
   region_name: string | null;
   category: string | null;
+  direction: string | null;
   term_days: number;
   opening_debt: number;
   opening_credit: number;
@@ -76,6 +77,22 @@ interface Room {
 
 const PAGE = 100;
 
+// Keep in sync with ALLOWED_DIRECTIONS in backend/app/data/router.py.
+const DIRECTIONS: string[] = [
+  "B2B",
+  "Yangi",
+  "MATERIAL",
+  "Export",
+  "Цех",
+  "Marketplace",
+  "Online",
+  "Doʻkon",
+  "BAZA",
+  "Sergeli 6/4/1 D",
+  "Farxod bozori D",
+  "Sergeli 3/3/13 D",
+];
+
 function fmtMoney(n: number | null | undefined): string {
   if (n == null || n === 0) return "—";
   return n.toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
@@ -91,6 +108,7 @@ export default function DebtLedger() {
 
   const [search, setSearch] = useState("");
   const [roomId, setRoomId] = useState<string>("");
+  const [direction, setDirection] = useState<string>("");
   const [termDays, setTermDays] = useState<number>(30);
   const [overdueOnly, setOverdueOnly] = useState(false);
   const [offset, setOffset] = useState(0);
@@ -107,9 +125,10 @@ export default function DebtLedger() {
     p.set("term_days", String(termDays));
     if (search) p.set("search", search);
     if (roomId) p.set("sales_manager_room_id", roomId);
+    if (direction) p.set("direction", direction);
     if (overdueOnly) p.set("overdue_only", "true");
     return p.toString();
-  }, [search, roomId, termDays, overdueOnly, offset]);
+  }, [search, roomId, direction, termDays, overdueOnly, offset]);
 
   const ledger = useQuery({
     queryKey: ["debt.ledger", qs],
@@ -195,6 +214,22 @@ export default function DebtLedger() {
           {(rooms.data?.rooms ?? []).map((r) => (
             <option key={r.room_id} value={r.room_id}>
               {r.room_name}
+            </option>
+          ))}
+        </select>
+        <select
+          value={direction}
+          onChange={(e) => {
+            setDirection(e.target.value);
+            setOffset(0);
+          }}
+          className="h-11 px-3 rounded-[10px] bg-paper-2 border-0 caption text-ink focus:outline-none focus:ring-2 focus:ring-mark/35"
+          title="Yoʻnalish"
+        >
+          <option value="">Barcha yoʻnalishlar</option>
+          {DIRECTIONS.map((d) => (
+            <option key={d} value={d}>
+              {d}
             </option>
           ))}
         </select>
@@ -347,6 +382,7 @@ type ColumnDef = {
 
 const LEDGER_COLUMNS: ColumnDef[] = [
   { key: "client_name",     labelKey: "ledger.col.client",         align: "left",  kind: "text" },
+  { key: "direction",       labelKey: "ledger.col.direction",      align: "left",  kind: "text" },
   { key: "term_days",       labelKey: "ledger.col.term_days",      align: "right", kind: "int" },
   { key: "opening_debt",    labelKey: "ledger.col.opening_debt",   align: "right", kind: "money" },
   { key: "opening_credit",  labelKey: "ledger.col.opening_credit", align: "right", kind: "money" },
