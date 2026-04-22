@@ -104,6 +104,7 @@ CATALOG: dict[str, TableDef] = {
             "name":                 ColumnDef("Name", "text",        ("=", "ilike", "in"), True),
             "direction":            ColumnDef("Yoʻnalish", "text",   ("=", "in"), True),
             "direction_source":     ColumnDef("Yoʻnalish source", "text", ("=", "in"), False),
+            "direction_updated_at": ColumnDef("Yoʻnalish updated", "timestamp", ("=", ">=", "<=", ">", "<"), False),
             "short_name":           ColumnDef("Short name", "text",  ("=", "ilike", "in"), False),
             "state_name":           ColumnDef("State", "text",       ("=", "in"), False),
             "person_as_name":       ColumnDef("Counterparty type", "text", ("=", "ilike", "in"), True),

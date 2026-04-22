@@ -1,4 +1,11 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
@@ -241,6 +248,7 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
                   personId={Number(r.person_id)}
                   current={(r.direction as string) ?? null}
                   source={(r.direction_source as string) ?? null}
+                  updatedAt={(r.direction_updated_at as string) ?? null}
                   editable={canEditDirection}
                   onSaved={() => {
                     queryClient.invalidateQueries({
@@ -694,48 +702,64 @@ function formatDetail(v: unknown, currency: string | null) {
 }
 
 /**
- * Inline editor for legal_person.direction. Renders a narrow <select>; on
- * change, PATCHes the row and invalidates the table query. Click + change
- * events are isolated from the surrounding row so the drawer doesn't open.
- * Non-editors see the value as plain text.
+ * Legal-page Yoʻnalish cell. Renders the direction as a sectional-label
+ * tag (uppercase, letter-spaced, baseline rule) and — for admins/operators
+ * — opens an editorial popover on click. The popover mirrors the
+ * ColumnFilter architecture: portal-into-body, fixed positioning, auto-flip,
+ * dismiss on click-outside/Escape. Keyboard support (↑/↓/Enter).
+ *
+ * Source taxonomy drives subtle typographic tells:
+ *   · "default" — italic muted, dotted underline (provisional / not yet set)
+ *   · "excel"   — uppercase ink, solid thin underline
+ *   · "manual"  — uppercase mark color, solid underline + leading "●" bullet
+ *                 (an editorial footnote mark signalling hand-edited)
  */
 function DirectionCell({
   personId,
   current,
   source,
+  updatedAt,
   editable,
   onSaved,
 }: {
   personId: number;
   current: string | null;
   source: string | null;
+  updatedAt: string | null;
   editable: boolean;
   onSaved: () => void;
 }) {
-  const [value, setValue] = useState<string>(current ?? "");
-  const [pending, setPending] = useState(false);
+  const { i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage || "en-GB";
+  const [optimistic, setOptimistic] = useState<string | null>(null);
+  const [optimisticSource, setOptimisticSource] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [flash, setFlash] = useState<"saved" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const btnRef = useRef<HTMLButtonElement | null>(null);
+
+  const displayed = optimistic ?? current;
+  const displayedSource = optimisticSource ?? source;
 
   useEffect(() => {
-    setValue(current ?? "");
-  }, [current]);
+    setOptimistic(null);
+    setOptimisticSource(null);
+  }, [current, source]);
 
   const mutation = useMutation({
     mutationFn: (d: string) =>
-      api<{ direction: string; direction_source: string }>(
+      api<{ direction: string; direction_source: string; direction_updated_at: string }>(
         `/api/data/legal-persons/${personId}/direction`,
-        {
-          method: "PATCH",
-          body: JSON.stringify({ direction: d }),
-        },
+        { method: "PATCH", body: JSON.stringify({ direction: d }) },
       ),
     onMutate: (d) => {
-      setPending(true);
       setError(null);
-      setValue(d);
+      setOptimistic(d);
+      setOptimisticSource("manual");
     },
     onError: (err) => {
-      setValue(current ?? "");
+      setOptimistic(null);
+      setOptimisticSource(null);
       const msg =
         err instanceof ApiError
           ? (typeof err.body === "object" && err.body && "detail" in err.body
@@ -743,63 +767,384 @@ function DirectionCell({
               : err.message)
           : (err as Error).message;
       setError(msg);
-      setTimeout(() => setError(null), 3000);
+      setTimeout(() => setError(null), 4000);
     },
     onSuccess: () => {
+      setFlash("saved");
+      setTimeout(() => setFlash(null), 1400);
       onSaved();
     },
-    onSettled: () => setPending(false),
   });
+
+  const pending = mutation.isPending;
+
+  return (
+    <span
+      className="relative inline-flex items-center gap-1.5"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <DirectionTag
+        ref={btnRef}
+        value={displayed}
+        source={displayedSource}
+        editable={editable}
+        pending={pending}
+        active={open}
+        onClick={(e) => {
+          if (!editable) return;
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+      />
+      <AnimatePresence>
+        {flash === "saved" && (
+          <motion.span
+            key="saved"
+            initial={{ opacity: 0, y: 2 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -2 }}
+            transition={{ duration: 0.18 }}
+            className="serif-italic caption text-good pointer-events-none"
+          >
+            ✓
+          </motion.span>
+        )}
+        {error && (
+          <motion.span
+            key="err"
+            initial={{ opacity: 0, y: 2 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="serif-italic caption text-risk pointer-events-none max-w-[200px] truncate"
+            title={error}
+          >
+            ! {error}
+          </motion.span>
+        )}
+      </AnimatePresence>
+      {open && editable && (
+        <DirectionMenu
+          anchorEl={btnRef.current}
+          current={displayed}
+          source={displayedSource}
+          updatedAt={updatedAt}
+          locale={locale}
+          pending={pending}
+          onPick={(d) => {
+            setOpen(false);
+            if (d !== displayed) mutation.mutate(d);
+          }}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </span>
+  );
+}
+
+/**
+ * The visible classification-tag element. Forwarded ref so the popover can
+ * anchor off it. Buttonized when editable, static <span> when not.
+ */
+const DirectionTag = ({
+  ref,
+  value,
+  source,
+  editable,
+  pending,
+  active,
+  onClick,
+}: {
+  ref?: React.Ref<HTMLButtonElement>;
+  value: string | null;
+  source: string | null;
+  editable: boolean;
+  pending: boolean;
+  active: boolean;
+  onClick: (e: React.MouseEvent) => void;
+}) => {
+  const isDefault = source === "default" || !source;
+  const isManual = source === "manual";
+
+  const label = value ?? "—";
+  const text =
+    pending ? "…" : isDefault ? label : label.toUpperCase();
+
+  const tone = isManual
+    ? "text-mark"
+    : isDefault
+      ? "text-ink-3"
+      : "text-ink";
+  const underline = isDefault ? "border-dotted" : "border-solid";
+  const emphasis = isDefault ? "serif-italic" : "mono";
+  const letterspacing = isDefault
+    ? undefined
+    : { letterSpacing: "0.14em" };
+
+  const content = (
+    <>
+      {isManual && (
+        <span
+          aria-hidden
+          className="serif text-[9px] leading-none text-mark -mt-0.5"
+          title="manually set"
+        >
+          ●
+        </span>
+      )}
+      <span
+        className={[
+          emphasis,
+          "text-[11px] leading-none",
+          pending ? "opacity-60" : "",
+        ].join(" ")}
+        style={letterspacing}
+      >
+        {text}
+      </span>
+    </>
+  );
 
   if (!editable) {
     return (
       <span
-        className={source === "manual" ? "text-mark" : "text-ink"}
-        title={source ? `source: ${source}` : undefined}
+        className={[
+          "inline-flex items-baseline gap-1 pb-0.5 border-b",
+          tone,
+          underline,
+          "border-current/40",
+        ].join(" ")}
       >
-        {current ?? "—"}
+        {content}
       </span>
     );
   }
 
   return (
-    <span
-      className="inline-flex items-center gap-1"
-      onClick={(e) => e.stopPropagation()}
+    <button
+      ref={ref}
+      type="button"
+      onClick={onClick}
+      className={[
+        "inline-flex items-baseline gap-1 pb-0.5 border-b transition-colors",
+        tone,
+        underline,
+        "border-current/30 hover:border-current/80",
+        active ? "bg-mark-bg/40" : "hover:bg-paper-2",
+        "px-1 -mx-1 rounded-[2px]",
+      ].join(" ")}
+      title={
+        source === "excel"
+          ? "set from Excel Clients sheet"
+          : source === "manual"
+            ? "manually set — Excel loader will not overwrite"
+            : "not classified yet"
+      }
     >
-      <select
-        value={value}
-        disabled={pending}
-        onClick={(e) => e.stopPropagation()}
-        onChange={(e) => {
-          const next = e.target.value;
-          if (next && next !== current) mutation.mutate(next);
-          else setValue(next);
+      {content}
+    </button>
+  );
+};
+
+function DirectionMenu({
+  anchorEl,
+  current,
+  source,
+  updatedAt,
+  locale,
+  pending,
+  onPick,
+  onClose,
+}: {
+  anchorEl: HTMLElement | null;
+  current: string | null;
+  source: string | null;
+  updatedAt: string | null;
+  locale: string;
+  pending: boolean;
+  onPick: (d: string) => void;
+  onClose: () => void;
+}) {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const [focusIdx, setFocusIdx] = useState<number>(() => {
+    const i = LEGAL_PERSON_DIRECTIONS.indexOf(current ?? "");
+    return i >= 0 ? i : 0;
+  });
+
+  // Portal-pin in viewport coordinates, auto-flip when near edges.
+  useLayoutEffect(() => {
+    if (!anchorEl || !menuRef.current) return;
+    const place = () => {
+      if (!anchorEl || !menuRef.current) return;
+      const btn = anchorEl.getBoundingClientRect();
+      const pop = menuRef.current.getBoundingClientRect();
+      const margin = 12;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      let left = btn.left;
+      if (left + pop.width > vw - margin) left = btn.right - pop.width;
+      if (left < margin) left = margin;
+      let top = btn.bottom + 4;
+      if (top + pop.height > vh - margin) {
+        top = Math.max(margin, btn.top - pop.height - 4);
+      }
+      setPos({ top, left });
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [anchorEl]);
+
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      if (!menuRef.current) return;
+      if (menuRef.current.contains(e.target as Node)) return;
+      if (anchorEl && anchorEl.contains(e.target as Node)) return;
+      onClose();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") return onClose();
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setFocusIdx((i) => (i + 1) % LEGAL_PERSON_DIRECTIONS.length);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setFocusIdx((i) =>
+          (i - 1 + LEGAL_PERSON_DIRECTIONS.length) % LEGAL_PERSON_DIRECTIONS.length,
+        );
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        onPick(LEGAL_PERSON_DIRECTIONS[focusIdx]);
+      }
+    };
+    window.addEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [anchorEl, onClose, onPick, focusIdx]);
+
+  const renderUpdated = useCallback(() => {
+    if (!updatedAt) return null;
+    try {
+      const d = new Date(updatedAt);
+      return d.toLocaleDateString(locale || "en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+    } catch {
+      return null;
+    }
+  }, [updatedAt, locale]);
+
+  const sourceCopy =
+    source === "excel"
+      ? "Excel · Clients sheet"
+      : source === "manual"
+        ? "manual · dashboard edit"
+        : "not yet set";
+
+  return createPortal(
+    <motion.div
+      ref={menuRef}
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.14, ease: [0.2, 0.8, 0.2, 1] }}
+      style={{
+        position: "fixed",
+        top: pos?.top ?? -9999,
+        left: pos?.left ?? -9999,
+        width: 232,
+        visibility: pos ? "visible" : "hidden",
+        zIndex: 60,
+      }}
+      role="menu"
+      className="rounded-[8px] border border-rule bg-paper shadow-[0_20px_60px_-20px_rgba(0,0,0,0.25)] overflow-hidden"
+    >
+      <div className="px-4 pt-3 pb-2 border-b border-rule">
+        <div
+          className="eyebrow text-ink-3"
+          style={{ letterSpacing: "0.18em" }}
+        >
+          Yoʻnalish
+        </div>
+        <div className="mt-1 serif-italic text-[15px] leading-tight text-ink">
+          {current ?? <span className="text-ink-3">— tanlanmagan —</span>}
+          {pending && (
+            <span className="ml-1.5 caption text-ink-3">saqlanmoqda…</span>
+          )}
+        </div>
+      </div>
+      <ul
+        className="py-1 max-h-[300px] overflow-y-auto"
+        onMouseLeave={() => {
+          /* keep focusIdx so keyboard nav still works */
         }}
-        className={[
-          "h-6 max-w-[120px] rounded-sm px-1 caption bg-transparent",
-          "border border-transparent hover:border-rule focus:border-mark focus:outline-none",
-          source === "manual" ? "text-mark" : "text-ink",
-        ].join(" ")}
-        title={source ? `source: ${source}` : undefined}
       >
-        {LEGAL_PERSON_DIRECTIONS.map((d) => (
-          <option key={d} value={d}>
-            {d}
-          </option>
-        ))}
-      </select>
-      {pending && (
-        <span className="caption text-ink-3" aria-hidden>
-          …
+        {LEGAL_PERSON_DIRECTIONS.map((d, i) => {
+          const isCurrent = d === current;
+          const isFocused = i === focusIdx;
+          return (
+            <li key={d}>
+              <button
+                type="button"
+                role="menuitem"
+                disabled={pending}
+                onMouseEnter={() => setFocusIdx(i)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPick(d);
+                }}
+                className={[
+                  "w-full text-left px-4 py-1.5 flex items-center gap-2 transition-colors",
+                  isFocused ? "bg-mark-bg/50" : "",
+                  pending ? "cursor-wait opacity-60" : "cursor-pointer",
+                ].join(" ")}
+              >
+                <span
+                  aria-hidden
+                  className={[
+                    "w-2 text-[12px] leading-none",
+                    isCurrent ? "text-mark" : "text-transparent",
+                  ].join(" ")}
+                >
+                  •
+                </span>
+                <span
+                  className={[
+                    "mono text-[11px] leading-none",
+                    isCurrent ? "text-mark" : "text-ink",
+                  ].join(" ")}
+                  style={{ letterSpacing: "0.14em" }}
+                >
+                  {d.toUpperCase()}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="px-4 py-2 border-t border-rule flex items-baseline justify-between gap-2">
+        <span
+          className="eyebrow text-ink-3"
+          style={{ letterSpacing: "0.18em" }}
+        >
+          {sourceCopy}
         </span>
-      )}
-      {error && (
-        <span className="caption text-risk" title={error}>
-          !
-        </span>
-      )}
-    </span>
+        {renderUpdated() && (
+          <span className="serif-italic caption text-ink-3">
+            {renderUpdated()}
+          </span>
+        )}
+      </div>
+    </motion.div>,
+    document.body,
   );
 }
 
