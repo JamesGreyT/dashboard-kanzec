@@ -866,57 +866,36 @@ const DirectionTag = ({
   const isManual = source === "manual";
 
   const label = value ?? "—";
-  const text =
-    pending ? "…" : isDefault ? label : label.toUpperCase();
+  const text = pending ? "…" : isDefault ? label : label.toUpperCase();
 
-  const tone = isManual
-    ? "text-mark"
-    : isDefault
-      ? "text-ink-3"
-      : "text-ink";
-  const underline = isDefault ? "border-dotted" : "border-solid";
-  const emphasis = isDefault ? "serif-italic" : "mono";
-  const letterspacing = isDefault
-    ? undefined
-    : { letterSpacing: "0.14em" };
+  // Folio tag vocabulary: default = italic serif muted (no fill);
+  // excel = filled amber wash with uppercase mono; manual = same amber
+  // wash tinted to mark with a subtle ring + leading bullet.
+  const base =
+    "inline-flex items-center gap-1 rounded-chip transition-colors whitespace-nowrap";
+  const toneClass = isDefault
+    ? "text-ink-3 font-serif italic text-[12px] px-0"
+    : isManual
+      ? "bg-mark-bg text-mark font-mono text-[10.5px] tracking-[0.08em] font-semibold px-2 py-[3px] ring-1 ring-mark/25"
+      : "bg-mark-bg text-ink font-mono text-[10.5px] tracking-[0.08em] font-semibold px-2 py-[3px]";
 
   const content = (
     <>
       {isManual && (
         <span
           aria-hidden
-          className="serif text-[9px] leading-none text-mark -mt-0.5"
+          className="text-[7px] leading-none text-mark -translate-y-[1px]"
           title="manually set"
         >
           ●
         </span>
       )}
-      <span
-        className={[
-          emphasis,
-          "text-[11px] leading-none",
-          pending ? "opacity-60" : "",
-        ].join(" ")}
-        style={letterspacing}
-      >
-        {text}
-      </span>
+      <span className={pending ? "opacity-60" : ""}>{text}</span>
     </>
   );
 
   if (!editable) {
-    return (
-      <span
-        className={[
-          "inline-flex items-baseline gap-1 pb-0.5 border-b",
-          tone,
-          underline,
-          "border-current/40",
-        ].join(" ")}
-      >
-        {content}
-      </span>
-    );
+    return <span className={[base, toneClass].join(" ")}>{content}</span>;
   }
 
   return (
@@ -925,12 +904,11 @@ const DirectionTag = ({
       type="button"
       onClick={onClick}
       className={[
-        "inline-flex items-baseline gap-1 pb-0.5 border-b transition-colors",
-        tone,
-        underline,
-        "border-current/30 hover:border-current/80",
-        active ? "bg-mark-bg/40" : "hover:bg-paper-2",
-        "px-1 -mx-1 rounded-[2px]",
+        base,
+        toneClass,
+        "hover:brightness-95",
+        active ? "ring-2 ring-mark/40" : "",
+        isDefault ? "hover:text-ink underline decoration-dotted underline-offset-4" : "",
       ].join(" ")}
       title={
         source === "excel"
