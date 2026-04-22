@@ -20,18 +20,29 @@ export default function Card({
     <div
       className={[
         "bg-card rounded-card shadow-card p-5 md:p-7 relative",
-        accent ? "pl-8" : "",
         interactive ? "card-interactive" : "",
         className,
       ].join(" ")}
     >
       {accent && (
-        <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-mark rounded-l-card" />
+        // Top-left corner wedge — two 14px × 2px orange bars anchored into
+        // the card radius. Replaces the old full-height 3px left accent bar;
+        // subtler, still legible as "this card has emphasis".
+        <>
+          <span
+            aria-hidden
+            className="absolute top-0 left-0 w-[14px] h-[2px] bg-mark rounded-tl-card"
+          />
+          <span
+            aria-hidden
+            className="absolute top-0 left-0 w-[2px] h-[14px] bg-mark rounded-tl-card"
+          />
+        </>
       )}
       {hasHeader && (
         <>
           <div>
-            {eyebrow && <div className="eyebrow mb-1.5">{eyebrow}</div>}
+            {eyebrow && <div className="eyebrow-mono mb-2">{eyebrow}</div>}
             {title && (
               <div className="serif-italic text-heading-sm text-ink">{title}</div>
             )}

@@ -73,8 +73,8 @@ export default function DataTable<R extends Record<string, unknown>>({
               <th
                 key={c.name}
                 className={[
-                  "h-11 px-4 border-b border-rule sticky top-0 bg-card z-10 whitespace-nowrap",
-                  "text-eyebrow font-semibold uppercase tracking-[0.16em] text-ink-3",
+                  "h-11 px-4 border-b-[1.5px] border-ink sticky top-0 bg-card z-10 whitespace-nowrap",
+                  "font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-ink",
                   c.numeric ? "text-right" : "text-left",
                 ].join(" ")}
                 style={c.width ? { width: c.width, minWidth: c.width } : undefined}
@@ -145,8 +145,8 @@ export default function DataTable<R extends Record<string, unknown>>({
                   onClick={() => onRowClick?.(r)}
                   className={[
                     "group transition-colors relative",
-                    onRowClick ? "cursor-pointer hover:bg-paper-2" : "",
-                    isActive ? "bg-paper-2" : "",
+                    onRowClick ? "cursor-pointer hover:bg-mark-bg/40" : "",
+                    isActive ? "bg-mark-bg/60" : "",
                   ].join(" ")}
                   style={{ height: rowH }}
                 >

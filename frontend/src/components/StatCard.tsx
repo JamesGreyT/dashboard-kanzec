@@ -23,19 +23,22 @@ export default function StatCard({
   trend?: { tone: "good" | "risk" | "quiet"; arrow?: string; text: string };
   children?: ReactNode;
 }) {
-  const toneClass = trend
+  const chipClass = trend
     ? {
-        good: "text-good",
-        risk: "text-risk",
-        quiet: "text-ink-3",
+        good: "bg-good-bg text-good",
+        risk: "bg-risk-bg text-risk",
+        quiet: "bg-quiet-bg text-quiet",
       }[trend.tone]
     : "";
   return (
     <Card className="min-h-[168px] flex flex-col">
-      <div className="eyebrow">{label}</div>
+      {/* .eyebrow-mono + leading 5px orange dot — Folio's KPI label voice. */}
+      <div className="eyebrow-mono flex items-center gap-2 before:content-[''] before:w-[5px] before:h-[5px] before:bg-mark before:rounded-full">
+        {label}
+      </div>
       <div className="flex-1 flex flex-col justify-end items-end">
         <div
-          className="serif nums text-stat-xl text-ink leading-none"
+          className="serif nums text-stat-xl text-ink leading-none font-medium"
           style={{ fontVariantNumeric: "tabular-nums lining-nums" }}
         >
           <AnimatePresence mode="wait" initial={false}>
@@ -44,33 +47,23 @@ export default function StatCard({
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 4 }}
-              transition={{ duration: 0.26, ease: [0.2, 0.8, 0.2, 1] }}
+              transition={{ duration: 0.26, ease: [0.2, 0.85, 0.25, 1] }}
               className="inline-block"
             >
               {value}
             </motion.span>
           </AnimatePresence>
         </div>
-        {unit && <div className="caption text-ink-3 mt-1">{unit}</div>}
+        {unit && <div className="caption text-ink-3 mt-1 font-serif italic">{unit}</div>}
         {trend && (
-          <>
-            {/* Short right-aligned marker rather than a full leader — the
-                trend is the number's footnote, not a new section. */}
-            <div
-              className="h-px bg-rule self-end mt-4"
-              style={{ width: 40 }}
-            />
-            <div className="caption italic text-ink-2 self-end mt-2 inline-flex items-baseline gap-1.5">
-              {trend.arrow && (
-                <span
-                  className={`not-italic text-[15px] leading-none font-semibold ${toneClass}`}
-                >
-                  {trend.arrow}
-                </span>
-              )}
-              <span>{trend.text}</span>
-            </div>
-          </>
+          <div
+            className={`mt-3 inline-flex items-center gap-1.5 px-[11px] py-1 rounded-chip font-semibold text-caption tabular-nums ${chipClass}`}
+          >
+            {trend.arrow && (
+              <span className="text-[13px] leading-none">{trend.arrow}</span>
+            )}
+            <span>{trend.text}</span>
+          </div>
         )}
         {children}
       </div>

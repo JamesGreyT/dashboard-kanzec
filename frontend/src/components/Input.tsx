@@ -24,7 +24,7 @@ export default function Input({
   const effectiveType = isPassword && revealed ? "text" : type;
 
   const field = (
-    <div className="flex items-center gap-2 h-10 bg-paper-2 px-3 rounded-[10px] border border-rule transition-colors focus-within:border-mark focus-within:ring-2 focus-within:ring-mark/35 hover:border-ink-3">
+    <div className="flex items-center gap-2 h-10 bg-card px-3 rounded-[10px] border border-rule-2 transition-colors focus-within:border-mark focus-within:ring-2 focus-within:ring-mark/30 hover:border-ink-3">
       {leading && <span className="text-ink-3">{leading}</span>}
       <input
         {...rest}
@@ -48,7 +48,7 @@ export default function Input({
   if (layout === "inline" && label) {
     return (
       <label className="grid grid-cols-[100px_1fr] items-center gap-x-4">
-        <span className="eyebrow text-right">{label}</span>
+        <span className="eyebrow-mono text-right">{label}</span>
         {field}
       </label>
     );
@@ -56,7 +56,7 @@ export default function Input({
 
   return (
     <label className="flex flex-col gap-2">
-      {label && <span className="eyebrow">{label}</span>}
+      {label && <span className="eyebrow-mono">{label}</span>}
       {field}
     </label>
   );

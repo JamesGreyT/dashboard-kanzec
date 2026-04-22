@@ -113,15 +113,13 @@ export default function Login() {
             <button
               type="submit"
               disabled={busy || !username || !password}
-              className="mt-2 h-11 bg-mark text-[var(--paper)] text-label font-medium
-                         rounded-[10px] transition-colors
-                         hover:bg-[color-mix(in_srgb,var(--mark)_94%,#000_6%)]
+              className="mt-2 h-11 bg-mark text-white text-label font-semibold
+                         rounded-[10px] shadow-btn transition-all duration-200
+                         hover:shadow-btn-hover hover:brightness-[0.95]
                          active:scale-[0.98]
                          disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <span className="primary-underline-sweep">
-                {busy ? t("login.submitting") : t("login.submit")}
-              </span>
+              {busy ? t("login.submitting") : t("login.submit")}
             </button>
           </form>
         </div>

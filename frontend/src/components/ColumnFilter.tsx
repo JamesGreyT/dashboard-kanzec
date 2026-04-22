@@ -185,10 +185,10 @@ export default function ColumnFilter({
         width: POP_WIDTH,
         visibility: pos ? "visible" : "hidden",
       }}
-      className="z-50 bg-card rounded-[10px] shadow-card border border-rule p-4 animate-enter-up"
+      className="z-50 bg-card rounded-[10px] shadow-popover border border-rule p-4 animate-enter-up"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="eyebrow">{t("data.filter", { label: col.label })}</div>
+      <div className="serif-italic text-[14px] text-ink">{t("data.filter", { label: col.label })}</div>
       <div className="leader" />
 
       {showRange && (
@@ -200,7 +200,7 @@ export default function ColumnFilter({
               value={draft.from ?? ""}
               onChange={(e) => setDraft({ ...draft, from: e.target.value || undefined })}
               onKeyDown={(e) => e.key === "Enter" && apply()}
-              className="h-9 bg-paper-2 px-3 rounded-[8px] text-body text-ink border-0 focus:outline-none focus:ring-2 focus:ring-mark/35 tabular-nums"
+              className="h-9 bg-paper-2 px-3 rounded-[8px] text-body text-ink border border-rule-2 focus:outline-none focus:border-mark focus:ring-2 focus:ring-mark/30 tabular-nums"
             />
           </label>
           <label className="flex flex-col gap-1.5">
@@ -210,7 +210,7 @@ export default function ColumnFilter({
               value={draft.to ?? ""}
               onChange={(e) => setDraft({ ...draft, to: e.target.value || undefined })}
               onKeyDown={(e) => e.key === "Enter" && apply()}
-              className="h-9 bg-paper-2 px-3 rounded-[8px] text-body text-ink border-0 focus:outline-none focus:ring-2 focus:ring-mark/35 tabular-nums"
+              className="h-9 bg-paper-2 px-3 rounded-[8px] text-body text-ink border border-rule-2 focus:outline-none focus:border-mark focus:ring-2 focus:ring-mark/30 tabular-nums"
             />
           </label>
         </div>
@@ -225,7 +225,7 @@ export default function ColumnFilter({
             value={draft.contains ?? ""}
             onChange={(e) => setDraft({ ...draft, contains: e.target.value || undefined })}
             onKeyDown={(e) => e.key === "Enter" && apply()}
-            className="h-9 bg-paper-2 px-3 rounded-[8px] text-body text-ink border-0 focus:outline-none focus:ring-2 focus:ring-mark/35"
+            className="h-9 bg-paper-2 px-3 rounded-[8px] text-body text-ink border border-rule-2 focus:outline-none focus:border-mark focus:ring-2 focus:ring-mark/30"
           />
         </label>
       )}
@@ -315,7 +315,7 @@ export default function ColumnFilter({
             value={draft.equals ?? ""}
             onChange={(e) => setDraft({ ...draft, equals: e.target.value || undefined })}
             onKeyDown={(e) => e.key === "Enter" && apply()}
-            className="h-9 bg-paper-2 px-3 rounded-[8px] text-body text-ink border-0 focus:outline-none focus:ring-2 focus:ring-mark/35"
+            className="h-9 bg-paper-2 px-3 rounded-[8px] text-body text-ink border border-rule-2 focus:outline-none focus:border-mark focus:ring-2 focus:ring-mark/30"
           />
         </label>
       )}

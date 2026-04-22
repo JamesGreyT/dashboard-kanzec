@@ -72,10 +72,10 @@ export default function Sidebar({
       >
         <div className="flex items-center gap-3">
           <div
-            className="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
-            style={{ background: "var(--mark-bg)", color: "var(--mark)" }}
+            className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 bg-ink"
+            style={{ color: "var(--paper)" }}
           >
-            <span className="serif-italic text-[17px]">
+            <span className="serif-italic text-[17px] font-semibold">
               {user.username.slice(0, 2).toUpperCase()}
             </span>
           </div>
@@ -83,7 +83,7 @@ export default function Sidebar({
             <div className="serif-italic text-[17px] leading-tight text-ink truncate">
               {user.username}
             </div>
-            <div className="eyebrow mt-1">{t(`roles.${user.role}`)}</div>
+            <div className="eyebrow-mono mt-1">{t(`roles.${user.role}`)}</div>
             {user.scope_rooms.length > 0 && (
               <div
                 className="caption mt-1 text-ink-3 truncate"
@@ -159,7 +159,7 @@ function NavGroup({
   if (!visible.length) return null;
   return (
     <div>
-      <div className="eyebrow mb-3">{t(titleKey)}</div>
+      <div className="eyebrow-mono mb-3">{t(titleKey)}</div>
       <ul className="flex flex-col gap-0.5">
         {visible.map((i) => (
           <li key={i.to}>
@@ -168,9 +168,9 @@ function NavGroup({
               onClick={onNavigate}
               className={({ isActive }) =>
                 [
-                  "group relative flex items-center gap-3 h-9 pl-3 pr-3 rounded-md text-label transition-colors",
+                  "group relative flex items-center gap-3 h-9 pl-3 pr-3 rounded-md text-label transition-colors font-medium",
                   isActive
-                    ? "bg-mark-bg text-mark before:content-[''] before:absolute before:inset-y-[6px] before:left-0 before:w-[2px] before:bg-mark before:rounded-r"
+                    ? "bg-mark-bg text-mark font-semibold after:content-['·'] after:ml-auto after:text-mark after:text-[22px] after:leading-none after:-translate-y-0.5"
                     : "text-ink-2 hover:bg-paper-2 hover:text-ink",
                 ].join(" ")
               }
