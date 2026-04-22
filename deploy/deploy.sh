@@ -2,6 +2,18 @@
 # Runs on the VPS as smartup-etl, invoked by the GitHub Actions deploy workflow.
 set -euo pipefail
 
+# Serialize deploys. The script does `rm -rf node_modules && npm ci` which
+# does not survive being raced — a concurrent deploy will pull files out
+# from under tsc/vite mid-build and fail. Hold an exclusive flock for the
+# whole run; a second invocation waits (up to 10 min) or exits non-zero.
+LOCK_FD=9
+LOCK_PATH="/tmp/dashboard-kanzec-deploy.lock"
+exec 9>"$LOCK_PATH"
+if ! flock -x -w 600 "$LOCK_FD"; then
+    echo "[$(date -Is)] another deploy is holding $LOCK_PATH — giving up after 10 min" >&2
+    exit 1
+fi
+
 APP=/opt/dashboard-kanzec
 BRANCH="${BRANCH:-main}"
 cd "$APP"
