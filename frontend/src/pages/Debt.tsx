@@ -160,108 +160,9 @@ function renderDate(iso: string | null | undefined, locale: string): string {
   });
 }
 
-function renderDateTime(iso: string | null | undefined, locale: string): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString(locale || "en-GB", {
-    timeZone: "Asia/Tashkent",
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
 // ---- Typographic atoms ---------------------------------------------------
 
 
-/** 4-bucket aging column with captions beneath — magazine table style. */
-function AgingColumn({
-  row,
-  dense = false,
-}: {
-  row: Pick<WorklistRow, "aging_0_30" | "aging_30_60" | "aging_60_90" | "aging_90_plus">;
-  dense?: boolean;
-}) {
-  const { t } = useTranslation();
-  const total =
-    row.aging_0_30 + row.aging_30_60 + row.aging_60_90 + row.aging_90_plus;
-  const buckets: Array<{ key: "0_30" | "30_60" | "60_90" | "90_plus"; v: number; tone: string }> = [
-    { key: "0_30", v: row.aging_0_30, tone: "bg-good/70" },
-    { key: "30_60", v: row.aging_30_60, tone: "bg-warn/70" },
-    { key: "60_90", v: row.aging_60_90, tone: "bg-mark/60" },
-    { key: "90_plus", v: row.aging_90_plus, tone: "bg-risk" },
-  ];
-  if (total <= 0) {
-    return <span className="caption text-ink-3">—</span>;
-  }
-  const barHeight = dense ? "h-[3px]" : "h-[6px]";
-  return (
-    <div className={dense ? "flex flex-col gap-1 w-full" : "flex flex-col gap-2 w-full"}>
-      <div className="flex gap-[2px]">
-        {buckets.map((b) => {
-          const pct = total > 0 ? b.v / total : 0;
-          if (pct <= 0)
-            return (
-              <div
-                key={b.key}
-                className={`flex-none w-[2px] ${barHeight} bg-rule`}
-              />
-            );
-          return (
-            <div
-              key={b.key}
-              title={`${t(`debt.aging.${b.key}`)} · ${formatUsd(b.v)}`}
-              className={`${barHeight} ${b.tone}`}
-              style={{ flex: pct }}
-            />
-          );
-        })}
-      </div>
-      {!dense && (
-        <div className="grid grid-cols-4 gap-[2px]">
-          {buckets.map((b) => (
-            <div key={b.key} className="flex flex-col gap-0.5">
-              <span
-                className="font-mono text-[10px] uppercase text-ink-3"
-                style={{ letterSpacing: "0.08em" }}
-              >
-                {t(`debt.aging.${b.key}`)}
-              </span>
-              <span
-                className={`mono text-mono-xs tabular-nums ${
-                  b.v > 0 ? "text-ink-2" : "text-ink-3"
-                }`}
-              >
-                {b.v > 0 ? formatUsd(b.v) : "·"}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function OutcomeKicker({ outcome }: { outcome: Outcome }) {
-  const { t } = useTranslation();
-  const tone: Record<Outcome, string> = {
-    called: "text-ink-2",
-    no_answer: "text-ink-3",
-    promised: "text-mark",
-    rescheduled: "text-warn",
-    refused: "text-risk",
-    paid: "text-good",
-    note: "text-ink-3",
-  };
-  return (
-    <span
-      className={`eyebrow ${tone[outcome]}`}
-      style={{ letterSpacing: "0.14em" }}
-    >
-      {t(`debt.outcome.${outcome}`)}
-    </span>
-  );
-}
 
 function PhoneGlyph({ className = "" }: { className?: string }) {
   return (
@@ -276,63 +177,6 @@ function PhoneGlyph({ className = "" }: { className?: string }) {
   );
 }
 
-function TelegramGlyph({ className = "" }: { className?: string }) {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden className={className}>
-      <path
-        d="M3 11.5 20 5l-2.8 14.2L11 15.4 15.6 10 9 14l-4-1-2-1.5Z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function CopyableAction({
-  href,
-  onCopy,
-  children,
-  kind,
-}: {
-  href?: string;
-  onCopy?: string;
-  children: ReactNode;
-  kind: "phone" | "telegram";
-}) {
-  const [copied, setCopied] = useState(false);
-  if (!onCopy) return null;
-  const Glyph = kind === "phone" ? PhoneGlyph : TelegramGlyph;
-  return (
-    <a
-      href={href}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (!href) {
-          navigator.clipboard.writeText(onCopy).catch(() => {});
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1200);
-        }
-      }}
-      className="group inline-flex items-center gap-2 text-body text-ink-2 hover:text-mark transition-colors"
-    >
-      <Glyph className="shrink-0 text-ink-3 group-hover:text-mark transition-colors" />
-      <span className="mono text-mono-sm tabular-nums">{children}</span>
-      <AnimatePresence>
-        {copied && (
-          <motion.span
-            initial={{ opacity: 0, y: 2 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -2 }}
-            className="caption text-good"
-          >
-            ✓
-          </motion.span>
-        )}
-      </AnimatePresence>
-    </a>
-  );
-}
 
 // ---- Main page ------------------------------------------------------------
 
@@ -735,8 +579,8 @@ export default function Debt() {
             </div>
           </div>
 
-          {/* Dossier list */}
-          <div className="stagger-4 mt-6 flex flex-col gap-3">
+          {/* Ledger table — replaces the old dossier card stream */}
+          <div className="stagger-4 mt-6">
             {worklist.isLoading && (
               <Card className="p-8">
                 <div className="caption text-ink-3 text-center">
@@ -759,15 +603,12 @@ export default function Debt() {
               </Card>
             )}
 
-            {worklistRows.map((r, idx) => (
-              <DossierCard
-                key={r.person_id}
-                row={r}
-                rank={offset + idx + 1}
-                locale={locale}
-                onOpen={() => navigate(`/collection/debt/client/${r.person_id}`)}
+            {!worklist.isLoading && worklistRows.length > 0 && (
+              <LedgerTable
+                rows={worklistRows}
+                onOpen={(id) => navigate(`/collection/debt/client/${id}`)}
               />
-            ))}
+            )}
           </div>
 
           {worklist.data && worklist.data.total > limit && (
@@ -922,173 +763,6 @@ function ChipSelect({
   );
 }
 
-function DossierCard({
-  row,
-  rank,
-  locale,
-  onOpen,
-}: {
-  row: WorklistRow;
-  rank: number;
-  locale: string;
-  onOpen: () => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <Card
-      interactive
-      className="p-0 overflow-hidden cursor-pointer"
-      accent={row.aging_90_plus > 0}
-    >
-      <div
-        onClick={onOpen}
-        className="p-5 md:p-7 grid gap-5 md:grid-cols-[auto_minmax(0,1fr)_auto]"
-      >
-        <div className="flex md:flex-col md:items-end gap-2 md:gap-1 md:w-12 shrink-0 order-1 md:order-1">
-          <span
-            className="mono text-mono-xs text-ink-3 tabular-nums"
-            style={{ letterSpacing: "0.05em" }}
-          >
-            №{rank.toString().padStart(2, "0")}
-          </span>
-          {row.has_overdue_promise && (
-            <span
-              className="inline-block w-2 h-2 rounded-full bg-mark animate-live-pulse"
-              title={t("debt.overdue_promise")}
-            />
-          )}
-        </div>
-
-        <div className="order-3 md:order-2 flex flex-col gap-4 min-w-0">
-          <div>
-            <h3 className="serif-italic text-heading-sm text-ink leading-tight">
-              {row.name ?? "—"}
-            </h3>
-            <div className="mt-1 caption text-ink-3 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-              {row.primary_room_name && (
-                <span>
-                  <span className="text-ink-3">
-                    {t("debt.col.sales_person")}:
-                  </span>{" "}
-                  <span className="text-ink-2">{row.primary_room_name}</span>
-                </span>
-              )}
-              {row.direction && (
-                <>
-                  <span className="text-ink-3/50">·</span>
-                  <span className="text-mark">{row.direction}</span>
-                </>
-              )}
-              {row.category && (
-                <>
-                  <span className="text-ink-3/50">·</span>
-                  <span className="text-ink-2">{row.category}</span>
-                </>
-              )}
-              {row.region_name && (
-                <>
-                  <span className="text-ink-3/50">·</span>
-                  <span className="text-ink-2">{row.region_name}</span>
-                </>
-              )}
-              {row.tin && (
-                <>
-                  <span className="text-ink-3/50">·</span>
-                  <span className="mono text-mono-xs">{row.tin}</span>
-                </>
-              )}
-            </div>
-          </div>
-
-          {(row.main_phone || row.telegram) && (
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-              {row.main_phone && (
-                <CopyableAction
-                  kind="phone"
-                  href={`tel:${row.main_phone.replace(/[^+\d]/g, "")}`}
-                  onCopy={row.main_phone}
-                >
-                  {row.main_phone}
-                </CopyableAction>
-              )}
-              {row.telegram && (
-                <CopyableAction kind="telegram" onCopy={row.telegram}>
-                  {row.telegram}
-                </CopyableAction>
-              )}
-            </div>
-          )}
-
-          <AgingColumn row={row} />
-
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 caption text-ink-3">
-            {row.days_since_payment != null && (
-              <span className="serif-italic">
-                {row.days_since_payment} {t("debt.days")}
-              </span>
-            )}
-            {row.last_contact_at && row.last_contact_outcome && (
-              <>
-                <span className="text-ink-3/50">·</span>
-                <span className="flex items-center gap-1.5">
-                  <OutcomeKicker outcome={row.last_contact_outcome} />
-                  <span className="serif-italic">
-                    {renderDateTime(row.last_contact_at, locale)}
-                  </span>
-                  {row.last_contact_by && (
-                    <span className="text-ink-3">— {row.last_contact_by}</span>
-                  )}
-                </span>
-              </>
-            )}
-            {row.has_overdue_promise && row.last_promised_amount != null && (
-              <>
-                <span className="text-ink-3/50">·</span>
-                <span className="text-mark serif-italic">
-                  ⚠{" "}
-                  {t("debt.drawer.promised", {
-                    amount: formatUsd(row.last_promised_amount),
-                    date: renderDate(row.last_promised_by_date, locale),
-                  })}
-                </span>
-              </>
-            )}
-          </div>
-        </div>
-
-        <div className="order-2 md:order-3 flex flex-col md:items-end justify-start md:justify-start">
-          <div className="eyebrow text-ink-3" style={{ letterSpacing: "0.18em" }}>
-            {t("debt.col.outstanding")}
-          </div>
-          <div
-            className={[
-              "serif nums tabular-nums leading-none mt-2",
-              row.aging_90_plus > 0 ? "text-mark" : "text-ink",
-            ].join(" ")}
-            style={{ fontSize: "2.25rem" }}
-          >
-            {formatUsd(row.outstanding)}
-          </div>
-          <div className="caption text-ink-3 mt-2 tabular-nums">
-            {t("debt.of_n_invoiced", {
-              amount: formatUsd(row.gross_invoiced),
-            })}
-          </div>
-          {(row.opening_debt > 0 || row.opening_credit > 0) && (
-            <div
-              className="caption italic text-ink-3 mt-1 tabular-nums"
-              title={t("debt.opening_hint")}
-            >
-              {row.opening_debt > 0
-                ? t("debt.opening_ar", { amount: formatUsd(row.opening_debt) })
-                : t("debt.opening_ap", { amount: formatUsd(row.opening_credit) })}
-            </div>
-          )}
-        </div>
-      </div>
-    </Card>
-  );
-}
 
 function PrepaymentCard({ row, locale }: { row: PrepayRow; locale: string }) {
   const { t } = useTranslation();
@@ -1136,6 +810,311 @@ function PrepaymentCard({ row, locale }: { row: PrepayRow; locale: string }) {
         </div>
       </div>
     </Card>
+  );
+}
+
+// ========================================================================
+// Ledger table — replaces the old dossier-card stream.
+// 6 columns:  Mijoz · Qarz · Eskirish · Kun · Aloqa · (actions)
+// Row hover: orange-tinted bg + 2px mark left-stripe + action icons fade in.
+// Click row → client detail page.
+// ========================================================================
+
+// Map Yoʻnalish direction → tone class pair. Anything not in the map falls
+// back to a neutral stone tag.
+const DIRECTION_TONE: Record<string, string> = {
+  "B2B":         "bg-mark-bg text-mark",
+  "Yangi":       "bg-good-bg text-good",
+  "MATERIAL":    "bg-mark-bg text-mark",
+  "Export":      "bg-warn-bg text-warn",
+  "Цех":         "bg-[rgba(136,125,110,0.2)] text-ink-2",
+  "Marketplace": "bg-warn-bg text-warn",
+  "Online":      "bg-[rgba(107,115,133,0.15)] text-ink-2",
+  "Doʻkon":      "bg-mark-bg text-mark",
+  "BAZA":        "bg-warn-bg text-warn",
+};
+
+const OUTCOME_PILL: Record<Outcome, string> = {
+  called:      "bg-ink-2/10 text-ink-2",
+  no_answer:   "bg-ink-3/15 text-ink-3",
+  promised:    "bg-mark-bg text-mark",
+  refused:     "bg-risk-bg text-risk",
+  paid:        "bg-good-bg text-good",
+  rescheduled: "bg-warn-bg text-warn",
+  note:        "bg-ink-3/15 text-ink-3",
+};
+
+type BucketKey = "0_30" | "30_60" | "60_90" | "90_plus";
+
+function agingDominance(r: WorklistRow) {
+  const buckets: Array<{
+    key: BucketKey;
+    v: number;
+    tone: "ok" | "warn" | "hot";
+    className: string;
+  }> = [
+    { key: "0_30",    v: r.aging_0_30,    tone: "ok",   className: "bg-good" },
+    { key: "30_60",   v: r.aging_30_60,   tone: "warn", className: "bg-warn" },
+    { key: "60_90",   v: r.aging_60_90,   tone: "hot",  className: "bg-[#cc8027]" },
+    { key: "90_plus", v: r.aging_90_plus, tone: "hot",  className: "bg-risk" },
+  ];
+  const total = buckets.reduce((s, b) => s + b.v, 0);
+  if (total === 0) return { pct: 0, top: null, total: 0, buckets };
+  const top = [...buckets].sort((a, b) => b.v - a.v)[0];
+  return { pct: Math.round((top.v / total) * 100), top, total, buckets };
+}
+
+function relativeTime(
+  iso: string | null,
+  t: (k: string, opts?: Record<string, unknown>) => string,
+): string {
+  if (!iso) return "";
+  const d = new Date(iso).getTime();
+  if (Number.isNaN(d)) return "";
+  const diffMs = Date.now() - d;
+  if (diffMs < 0) return t("debt.time_ago.just");
+  const hours = Math.floor(diffMs / 3_600_000);
+  if (hours < 1)  return t("debt.time_ago.just");
+  if (hours < 24) return t("debt.time_ago.hours", { n: hours });
+  const days = Math.floor(diffMs / 86_400_000);
+  if (days < 30)  return t("debt.time_ago.days", { n: days });
+  const months = Math.floor(days / 30);
+  return t("debt.time_ago.months", { n: months });
+}
+
+function LedgerTable({
+  rows,
+  onOpen,
+}: {
+  rows: WorklistRow[];
+  onOpen: (personId: number) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Card className="p-0 overflow-hidden">
+      <div className="overflow-x-auto">
+        <table
+          className="w-full border-collapse text-[13px]"
+          style={{ tableLayout: "fixed", minWidth: 1060 }}
+        >
+          <colgroup>
+            <col style={{ width: "38%" }} />
+            <col style={{ width: "13%" }} />
+            <col style={{ width: "19%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "15%" }} />
+            <col style={{ width: "6%" }} />
+          </colgroup>
+          <thead>
+            <tr>
+              <LedgerTh>{t("debt.col.client")}</LedgerTh>
+              <LedgerTh align="right" sort="desc">{t("debt.col.outstanding")}</LedgerTh>
+              <LedgerTh>{t("debt.col.aging")}</LedgerTh>
+              <LedgerTh align="right">{t("debt.col.days_no_pay")}</LedgerTh>
+              <LedgerTh>{t("debt.col.contact")}</LedgerTh>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <LedgerRow key={r.person_id} row={r} onOpen={() => onOpen(r.person_id)} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  );
+}
+
+function LedgerTh({
+  children,
+  align = "left",
+  sort,
+}: {
+  children: ReactNode;
+  align?: "left" | "right";
+  sort?: "asc" | "desc";
+}) {
+  return (
+    <th
+      className={[
+        "font-mono text-[10.5px] tracking-[0.12em] uppercase text-ink font-semibold px-4 py-3",
+        "border-b-[1.5px] border-ink bg-card whitespace-nowrap",
+        align === "right" ? "text-right" : "text-left",
+      ].join(" ")}
+    >
+      {children}
+      <span
+        className={`ml-1.5 ${sort ? "text-mark" : "text-rule-2"}`}
+        aria-hidden
+      >
+        {sort === "asc" ? "▲" : sort === "desc" ? "▼" : "⇅"}
+      </span>
+    </th>
+  );
+}
+
+function LedgerRow({
+  row,
+  onOpen,
+}: {
+  row: WorklistRow;
+  onOpen: () => void;
+}) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage || "en-GB";
+  const aging = agingDominance(row);
+  const isHot = aging.top?.tone === "hot" && aging.pct >= 50;
+  const directionTone =
+    (row.direction && DIRECTION_TONE[row.direction]) || "bg-paper-2 text-ink-3";
+  const overdue = (row.days_since_payment ?? 0) > 30;
+
+  return (
+    <tr
+      onClick={onOpen}
+      className={[
+        "group border-b border-rule last:border-b-0 cursor-pointer",
+        "hover:bg-[color:color-mix(in_srgb,var(--mark)_4%,transparent)]",
+        "transition-colors",
+      ].join(" ")}
+    >
+      {/* Mijoz */}
+      <td className="px-4 py-3 align-middle group-hover:[box-shadow:inset_2px_0_0_var(--mark)]">
+        <div className="font-medium text-ink text-[14px] leading-tight truncate">
+          {row.name ?? "—"}
+        </div>
+        <div className="mt-1 text-[11.5px] text-ink-3 truncate">
+          {row.direction && (
+            <span
+              className={[
+                "inline-block font-mono text-[9.5px] font-semibold uppercase",
+                "tracking-[0.06em] px-1.5 py-[2px] rounded-[3px] mr-2 align-[1px]",
+                directionTone,
+              ].join(" ")}
+            >
+              {row.direction}
+            </span>
+          )}
+          {row.region_name && <span>{row.region_name}</span>}
+          {row.main_phone && (
+            <>
+              <span className="opacity-50 mx-1.5">·</span>
+              <span className="font-mono">{row.main_phone}</span>
+            </>
+          )}
+          {row.primary_room_name && (
+            <>
+              <span className="opacity-50 mx-1.5">·</span>
+              <span className="text-ink-2">{row.primary_room_name}</span>
+            </>
+          )}
+        </div>
+      </td>
+
+      {/* Qarz */}
+      <td className="px-4 py-3 text-right align-middle">
+        <div
+          className={[
+            "font-serif text-[17px] font-medium leading-none tabular-nums",
+            isHot ? "text-mark" : "text-ink",
+          ].join(" ")}
+        >
+          {formatUsd(row.outstanding)}
+        </div>
+        <div className="mt-1 font-mono text-[10.5px] text-ink-3 tabular-nums">
+          {t("debt.of_n_invoiced", { amount: formatUsd(row.gross_invoiced) })}
+        </div>
+      </td>
+
+      {/* Eskirish */}
+      <td className="px-4 py-3 align-middle">
+        <div className="flex gap-[1px] h-[7px] w-full max-w-[160px] rounded-[2.5px] overflow-hidden bg-rule">
+          {aging.buckets.map((b) =>
+            b.v > 0 ? (
+              <div key={b.key} className={b.className} style={{ flex: b.v }} />
+            ) : null,
+          )}
+        </div>
+        {aging.total > 0 && aging.top && (
+          <div
+            className={[
+              "mt-[5px] font-mono text-[10.5px] tabular-nums font-semibold",
+              aging.top.tone === "hot" ? "text-risk" :
+              aging.top.tone === "warn" ? "text-warn" : "text-good",
+            ].join(" ")}
+          >
+            {aging.pct}% · {t(`debt.aging.${aging.top.key}`)}
+          </div>
+        )}
+      </td>
+
+      {/* Kun */}
+      <td className="px-4 py-3 text-right align-middle">
+        <div
+          className={[
+            "font-mono text-[13px] font-medium tabular-nums",
+            overdue ? "text-risk" : "text-ink-2",
+          ].join(" ")}
+        >
+          {row.days_since_payment != null ? `${row.days_since_payment} d` : "—"}
+        </div>
+        <div className="mt-1 font-mono text-[10.5px] text-ink-3 tabular-nums">
+          {row.last_payment_date ? renderDate(row.last_payment_date, locale) : "—"}
+        </div>
+      </td>
+
+      {/* Aloqa */}
+      <td className="px-4 py-3 align-middle">
+        {row.last_contact_outcome ? (
+          <>
+            <span
+              className={[
+                "inline-flex items-center gap-[5px] font-mono text-[10px] tracking-[0.05em]",
+                "uppercase font-semibold px-2 py-[3px] rounded-[3px] whitespace-nowrap",
+                OUTCOME_PILL[row.last_contact_outcome],
+              ].join(" ")}
+            >
+              <span className="w-[5px] h-[5px] rounded-full bg-current" />
+              {t(`debt.outcome.${row.last_contact_outcome}`)}
+            </span>
+            {row.last_contact_outcome === "promised" && row.last_promised_amount != null ? (
+              <div className="mt-1 font-serif italic text-[12px] text-mark whitespace-nowrap">
+                {formatUsd(row.last_promised_amount)}
+                {row.last_promised_by_date &&
+                  ` · ${renderDate(row.last_promised_by_date, locale)}`}
+              </div>
+            ) : (
+              <div className="mt-1 font-mono text-[10.5px] text-ink-3 tabular-nums whitespace-nowrap">
+                {relativeTime(row.last_contact_at, t)}
+              </div>
+            )}
+          </>
+        ) : (
+          <span className="font-serif italic text-ink-3 text-[12.5px]">
+            — {t("debt.no_contact_yet")}
+          </span>
+        )}
+      </td>
+
+      {/* Actions — fade in on row hover */}
+      <td className="px-3 py-3 text-right align-middle whitespace-nowrap">
+        <span className="inline-flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity align-middle">
+          {row.main_phone && (
+            <a
+              href={`tel:${row.main_phone.replace(/[^+\d]/g, "")}`}
+              onClick={(e) => e.stopPropagation()}
+              title={t("debt.action.call")}
+              className="w-[26px] h-[26px] border border-rule-2 rounded-[5px] bg-card grid place-items-center text-ink-3 hover:border-mark hover:text-mark"
+            >
+              <PhoneGlyph />
+            </a>
+          )}
+        </span>
+        <span className="text-ink-3 text-[18px] font-serif pl-1.5 align-middle group-hover:text-mark transition-colors">
+          ›
+        </span>
+      </td>
+    </tr>
   );
 }
 

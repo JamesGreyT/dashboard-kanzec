@@ -267,6 +267,16 @@
     "empty_payments": "Платежей нет.",
     "updated_ago": "Обновлено {{s}} с назад",
     "of_n_invoiced": "из {{amount}} начислено",
+    "no_contact_yet": "ещё не связывались",
+    "time_ago": {
+      "just": "только что",
+      "hours": "{{n}} ч назад",
+      "days": "{{n}} д назад",
+      "months": "{{n}} мес назад"
+    },
+    "action": {
+      "call": "Звонок"
+    },
     "opening_ar": "вкл. {{amount}} долга до 2022 г.",
     "opening_ap": "вкл. {{amount}} кредита до 2022 г.",
     "opening_ar_label": "Долг до 2022 г.",
@@ -294,6 +304,7 @@
       "outstanding": "Долг",
       "days_no_pay": "Дней",
       "aging": "Старение",
+      "contact": "Связь",
       "last_contact": "Последний контакт",
       "sales_person": "Продавец",
       "over_90": "90+ дн",

@@ -267,6 +267,16 @@
     "empty_payments": "To'lovlar yo'q.",
     "updated_ago": "{{s}} soniya oldin yangilandi",
     "of_n_invoiced": "{{amount}} dan hisoblandi",
+    "no_contact_yet": "hali gaplashilmagan",
+    "time_ago": {
+      "just": "hozirgina",
+      "hours": "{{n}} soat oldin",
+      "days": "{{n}} kun oldin",
+      "months": "{{n}} oy oldin"
+    },
+    "action": {
+      "call": "Qo'ng'iroq"
+    },
     "opening_ar": "shu jumladan {{amount}} 2022-gacha qarz",
     "opening_ap": "shu jumladan {{amount}} 2022-gacha kredit",
     "opening_ar_label": "2022-gacha qarz",
@@ -294,6 +304,7 @@
       "outstanding": "Qarz",
       "days_no_pay": "Kun",
       "aging": "Eskirish",
+      "contact": "Aloqa",
       "last_contact": "Oxirgi aloqa",
       "sales_person": "Sotuvchi",
       "over_90": "90+ kun",

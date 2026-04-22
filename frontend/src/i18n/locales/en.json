@@ -267,6 +267,16 @@
     "empty_payments": "No payments recorded.",
     "updated_ago": "Updated {{s}}s ago",
     "of_n_invoiced": "of {{amount}} invoiced",
+    "no_contact_yet": "not yet contacted",
+    "time_ago": {
+      "just": "just now",
+      "hours": "{{n}}h ago",
+      "days": "{{n}}d ago",
+      "months": "{{n}}mo ago"
+    },
+    "action": {
+      "call": "Call"
+    },
     "opening_ar": "incl. {{amount}} pre-2022 debt",
     "opening_ap": "incl. {{amount}} pre-2022 credit",
     "opening_ar_label": "Pre-2022 debt",
@@ -294,6 +304,7 @@
       "outstanding": "Owed",
       "days_no_pay": "Days",
       "aging": "Aging",
+      "contact": "Contact",
       "last_contact": "Last contact",
       "sales_person": "Sales person",
       "over_90": "90 d+",
