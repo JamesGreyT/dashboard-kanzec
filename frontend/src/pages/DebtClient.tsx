@@ -241,10 +241,25 @@ function OutcomeKicker({ outcome }: { outcome: Outcome }) {
 
 // ---- Ledger overview strip ----------------------------------------------
 
-function LedgerOverview({ aging }: { aging: ClientDetail["aging"] }) {
+function LedgerOverview({
+  aging,
+  ordersSum,
+  paymentsSum,
+}: {
+  aging: ClientDetail["aging"];
+  /** Real deal_order total (excludes synthesized opening). Matches the
+   *  "Jami savdo" number shown at the top of the Orders tab. */
+  ordersSum: number;
+  /** Real payment total (excludes synthesized opening_credit). */
+  paymentsSum: number;
+}) {
   const { t } = useTranslation();
-  const outstanding = aging.gross_invoiced - aging.gross_paid;
+  // Outstanding is derived from the REAL numbers so the four stats add
+  // up cleanly:  opening_net + orders − payments = outstanding.
+  // This also keeps the card values consistent with what the user sees
+  // inside the Orders/Payments tab totals.
   const openingNet = aging.opening_debt - aging.opening_credit;
+  const outstanding = openingNet + ordersSum - paymentsSum;
   const items: Array<{
     label: string;
     value: number | null;
@@ -262,13 +277,13 @@ function LedgerOverview({ aging }: { aging: ClientDetail["aging"] }) {
     },
     {
       label: t("debt.ledger.orders"),
-      value: aging.gross_invoiced,
+      value: ordersSum,
       sub: t("debt.ledger.since_2022"),
       tone: "ink",
     },
     {
       label: t("debt.ledger.payments"),
-      value: aging.gross_paid,
+      value: paymentsSum,
       sub: t("debt.ledger.received"),
       tone: "good",
     },
@@ -627,9 +642,15 @@ export default function DebtClient() {
 
           <div className="leader mt-8" />
 
-          {/* Ledger overview — surfaces opening balance */}
+          {/* Ledger overview — surfaces opening balance. Uses REAL order +
+              payment sums (from the meta queries) so the four stats add up
+              correctly:  opening + orders − payments = outstanding. */}
           <div className="stagger-2 mt-6">
-            <LedgerOverview aging={aging} />
+            <LedgerOverview
+              aging={aging}
+              ordersSum={ordersSum}
+              paymentsSum={paymentsSum}
+            />
           </div>
 
           {/* Contact + Aging */}
