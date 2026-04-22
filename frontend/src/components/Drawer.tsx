@@ -47,17 +47,16 @@ export default function Drawer({
   if (!open) return null;
   return createPortal(
     <div
-      className="fixed inset-0 z-50"
-      style={{ background: "rgba(26,23,19,0.18)" }}
+      className="fixed inset-0 z-50 bg-ink/30 backdrop-blur-drawer"
       onClick={onClose}
     >
       <aside
         onClick={(e) => e.stopPropagation()}
-        className="absolute right-0 top-0 bottom-0 bg-card flex flex-col animate-enter-up"
+        className="absolute right-0 top-0 bottom-0 bg-card flex flex-col animate-enter-up shadow-popover"
         style={{ width, maxWidth: "92vw" }}
       >
         <div className="h-14 px-4 md:px-7 border-b border-rule flex items-center justify-between gap-4">
-          <div className="eyebrow shrink-0">{title}</div>
+          <div className="serif-italic text-[16px] text-ink shrink-0">{title}</div>
           {pk && (
             <div className="mono text-mono-sm text-ink-3 truncate tabular-nums">
               {pk}
@@ -65,7 +64,7 @@ export default function Drawer({
           )}
           <button
             onClick={onClose}
-            className="text-ink-3 hover:text-mark serif text-[18px] leading-none shrink-0"
+            className="text-ink-3 hover:text-mark serif text-[22px] leading-none shrink-0 transition-colors"
             aria-label={t("common.close")}
             title={t("common.close_hint")}
           >

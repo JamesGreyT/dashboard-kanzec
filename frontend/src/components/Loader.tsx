@@ -16,7 +16,7 @@ export function Phrase({
   const { t } = useTranslation();
   return (
     <div
-      className={`py-10 text-center caption italic text-ink-3 ${
+      className={`py-10 text-center font-serif italic text-[15px] text-ink-3 ${
         kind === "error" ? "border-l-2 border-risk pl-3 text-risk" : ""
       } ${className}`}
     >
@@ -48,7 +48,7 @@ export function RuledLoader({ rows = 7 }: { rows?: number }) {
           />
         ))}
       </div>
-      <div className="pb-6 text-center caption italic text-ink-3">
+      <div className="pb-6 text-center font-serif italic text-[14px] text-ink-3">
         {t("common.loading")}
       </div>
     </div>
