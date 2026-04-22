@@ -61,7 +61,7 @@ export default function Sidebar({
 
       <aside
         className={[
-          "w-[264px] shrink-0 bg-paper px-7 py-6 flex flex-col",
+          "w-[264px] shrink-0 bg-paper-2 border-r border-rule px-7 py-6 flex flex-col",
           // Mobile: full-viewport drawer that slides in from the left.
           "fixed inset-y-0 left-0 z-50 h-screen transition-transform duration-200",
           open ? "translate-x-0" : "-translate-x-full",
@@ -171,7 +171,7 @@ function NavGroup({
                   "group relative flex items-center gap-3 h-9 pl-3 pr-3 rounded-md text-label transition-colors font-medium",
                   isActive
                     ? "bg-mark-bg text-mark font-semibold after:content-['·'] after:ml-auto after:text-mark after:text-[22px] after:leading-none after:-translate-y-0.5"
-                    : "text-ink-2 hover:bg-paper-2 hover:text-ink",
+                    : "text-ink-2 hover:bg-card hover:text-ink",
                 ].join(" ")
               }
             >

@@ -3,36 +3,36 @@
 @tailwind utilities;
 
 /* ============================================================
-   Folio Amber (lighter) — palette + type + utilities
+   Folio Amber (lighter-still) — palette + type + utilities
    ------------------------------------------------------------
-   Pale warm cream paper, crisp white cards, navy ink, burnt-
-   orange accent. Fraunces italic display + Inter body + JBM
-   data. Every colour flows from CSS variables; components use
-   Tailwind utilities that resolve to these at runtime.
+   Near-white main page, cool pale-stone sidebar, crisp white
+   cards, navy ink, burnt-orange accent (only warm colour).
+   Fraunces italic display + Inter body + JBM data. Every colour
+   flows from CSS variables.
    ============================================================ */
 
 :root {
-  --paper:      #fcf8ef;   /* pale warm cream — page bg */
-  --paper-2:    #f5efdf;   /* subtle zones / zebra / hover */
+  --paper:      #f9f9f6;   /* near-white, whisper of warmth — main content bg */
+  --paper-2:    #ecede7;   /* cool pale-stone — sidebar + zebra / hover wash */
   --card:       #ffffff;   /* crisp white card fill */
   --ink:        #0e1b3a;   /* deep navy primary text */
   --ink-2:      #384368;   /* secondary */
   --ink-3:      #6b7385;   /* tertiary */
-  --rule:       #e5ddca;   /* hairline */
-  --rule-2:     #cec3a8;   /* secondary hairline / input borders */
+  --rule:       #e1e1dc;   /* cool hairline */
+  --rule-2:     #c8c8c2;   /* secondary hairline / input borders */
 
-  --mark:       #c2541b;   /* burnt-orange accent */
+  --mark:       #c2541b;   /* burnt-orange accent — the only warm colour */
   --mark-2:     #e0845a;
-  --mark-bg:    #f9ead8;
+  --mark-bg:    #fae6d7;
 
   --good:       #2f6e4a;
   --good-bg:    #e2eee4;
   --warn:       #b37012;
-  --warn-bg:    #f5e8cf;
+  --warn-bg:    #f3e7ca;
   --risk:       #b03a2c;
-  --risk-bg:    #f3ddd6;
+  --risk-bg:    #f1d8d3;
   --quiet:      #6b6556;
-  --quiet-bg:   #e7dfd0;
+  --quiet-bg:   #e6e6df;
 
   --font-serif: "Fraunces", ui-serif, Georgia, serif;
   --font-sans:  "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -42,7 +42,7 @@
 html,
 body,
 #root {
-  background: var(--paper-2);
+  background: var(--paper);
   color: var(--ink);
   font-family: var(--font-sans);
   font-size: 15px;
