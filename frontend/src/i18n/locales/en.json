@@ -237,6 +237,22 @@
     "no_contact_info": "No contact details on file.",
     "log_a_call": "Log a call",
     "log_a_call_title": "Record the outcome",
+    "ledger": {
+      "title": "Ledger overview",
+      "orders": "Orders",
+      "payments": "Payments",
+      "since_2022": "since 2022-09",
+      "pre_2022": "pre-2022 carryover",
+      "received": "received",
+      "net_owed": "net owed",
+      "settled": "settled",
+      "none": "none on record"
+    },
+    "composer": {
+      "outcome_label": "Outcome",
+      "shortcut_hint": "Q / N / P / R for fast outcome"
+    },
+    "aging_dominance": "{{pct}}% in {{bucket}}",
     "aging_title": "Aging breakdown",
     "aging_what": "what is this?",
     "aging_hide_help": "hide",
@@ -270,6 +286,7 @@
       "over_90_count": "90 d+ debtors",
       "gross_paid": "paid",
       "gross_invoiced": "invoiced",
+      "opening_ar_short": "Opening AR",
       "overdue_promises": "Overdue promises"
     },
     "col": {

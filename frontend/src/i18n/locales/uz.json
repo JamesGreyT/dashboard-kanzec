@@ -237,6 +237,22 @@
     "no_contact_info": "Aloqa ma'lumotlari yo'q.",
     "log_a_call": "Qo'ng'iroqni yozish",
     "log_a_call_title": "Natijani qayd qiling",
+    "ledger": {
+      "title": "Daftar tafsiloti",
+      "orders": "Buyurtmalar",
+      "payments": "To'lovlar",
+      "since_2022": "2022-09 dan beri",
+      "pre_2022": "2022-gacha qoldiq",
+      "received": "qabul qilingan",
+      "net_owed": "sof qarz",
+      "settled": "yopildi",
+      "none": "qayd etilmagan"
+    },
+    "composer": {
+      "outcome_label": "Natija",
+      "shortcut_hint": "Tez tanlash — Q / N / P / R"
+    },
+    "aging_dominance": "{{pct}}% — {{bucket}}",
     "aging_title": "Eskirish bo'yicha taqsimot",
     "aging_what": "bu nima?",
     "aging_hide_help": "yashirish",
@@ -270,6 +286,7 @@
       "over_90_count": "90+ kunlik qarzdorlar",
       "gross_paid": "to'langan",
       "gross_invoiced": "hisob-kitob",
+      "opening_ar_short": "2022-gacha qarz",
       "overdue_promises": "Muddati o'tgan va'dalar"
     },
     "col": {

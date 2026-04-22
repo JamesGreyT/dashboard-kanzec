@@ -237,6 +237,22 @@
     "no_contact_info": "Контактов в карточке нет.",
     "log_a_call": "Записать звонок",
     "log_a_call_title": "Зафиксируйте исход",
+    "ledger": {
+      "title": "Обзор книги",
+      "orders": "Заказы",
+      "payments": "Платежи",
+      "since_2022": "с 2022-09",
+      "pre_2022": "остаток до 2022",
+      "received": "получено",
+      "net_owed": "чистый долг",
+      "settled": "закрыто",
+      "none": "нет записей"
+    },
+    "composer": {
+      "outcome_label": "Исход",
+      "shortcut_hint": "Быстро — Q / N / P / R"
+    },
+    "aging_dominance": "{{pct}}% в {{bucket}}",
     "aging_title": "Разбивка по старению",
     "aging_what": "что это?",
     "aging_hide_help": "скрыть",
@@ -270,6 +286,7 @@
       "over_90_count": "Должников 90+ дн",
       "gross_paid": "оплачено",
       "gross_invoiced": "счёт",
+      "opening_ar_short": "Остаток до 2022",
       "overdue_promises": "Просрочено обещаний"
     },
     "col": {
