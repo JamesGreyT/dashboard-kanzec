@@ -1,103 +1,112 @@
-import { NavLink } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import {
+  LayoutDashboard,
+  Package,
+  Wallet,
+  Building2,
+  Scale,
+  BookText,
+  FileBarChart,
+  Users,
+  ShieldCheck,
+  LogOut,
+} from "lucide-react";
 import { useAuth } from "../lib/auth";
 import LangToggle from "./LangToggle";
+import ThemeToggle from "./ThemeToggle";
+import {
+  Sidebar as ShadSidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 
-type Glyph = "dashboard" | "orders" | "payments" | "people" | "scales" | "ledger";
+type IconKind =
+  | "dashboard"
+  | "orders"
+  | "payments"
+  | "people"
+  | "scales"
+  | "ledger"
+  | "reports"
+  | "users"
+  | "audit";
 
 interface Item {
   to: string;
   labelKey: string;
   roles: Array<"admin" | "operator" | "viewer">;
-  glyph?: Glyph;
+  icon?: IconKind;
 }
 
 const REGISTRY: Item[] = [
-  { to: "/dashboard", labelKey: "nav.dashboard", roles: ["admin", "operator", "viewer"], glyph: "dashboard" },
+  { to: "/dashboard", labelKey: "nav.dashboard", roles: ["admin", "operator", "viewer"], icon: "dashboard" },
 ];
 const DATA: Item[] = [
-  { to: "/data/orders", labelKey: "nav.orders", roles: ["admin", "operator", "viewer"], glyph: "orders" },
-  { to: "/data/payments", labelKey: "nav.payments", roles: ["admin", "operator", "viewer"], glyph: "payments" },
-  { to: "/data/legal-persons", labelKey: "nav.legal_persons", roles: ["admin", "operator", "viewer"], glyph: "people" },
+  { to: "/data/orders", labelKey: "nav.orders", roles: ["admin", "operator", "viewer"], icon: "orders" },
+  { to: "/data/payments", labelKey: "nav.payments", roles: ["admin", "operator", "viewer"], icon: "payments" },
+  { to: "/data/legal-persons", labelKey: "nav.legal_persons", roles: ["admin", "operator", "viewer"], icon: "people" },
 ];
 const COLLECTION: Item[] = [
-  { to: "/collection/debt", labelKey: "nav.debt", roles: ["admin", "operator", "viewer"], glyph: "scales" },
-  { to: "/collection/ledger", labelKey: "nav.ledger", roles: ["admin", "operator", "viewer"], glyph: "ledger" },
+  { to: "/collection/debt", labelKey: "nav.debt", roles: ["admin", "operator", "viewer"], icon: "scales" },
+  { to: "/collection/ledger", labelKey: "nav.ledger", roles: ["admin", "operator", "viewer"], icon: "ledger" },
 ];
 const OPERATIONS: Item[] = [
-  { to: "/ops", labelKey: "nav.reports", roles: ["admin", "operator"] },
+  { to: "/ops", labelKey: "nav.reports", roles: ["admin", "operator"], icon: "reports" },
 ];
 const ADMIN: Item[] = [
-  { to: "/admin/users", labelKey: "nav.users", roles: ["admin"] },
-  { to: "/admin/audit", labelKey: "nav.audit", roles: ["admin"] },
+  { to: "/admin/users", labelKey: "nav.users", roles: ["admin"], icon: "users" },
+  { to: "/admin/audit", labelKey: "nav.audit", roles: ["admin"], icon: "audit" },
 ];
 
-/**
- * Static column on md+; slide-out drawer on mobile.
- * On mobile the parent <Layout> tracks `open` and renders a backdrop below us.
- */
-export default function Sidebar({
-  open = false,
-  onClose,
-}: {
-  open?: boolean;
-  onClose?: () => void;
-}) {
+function IconFor({ kind }: { kind: IconKind }) {
+  const size = "h-4 w-4";
+  switch (kind) {
+    case "dashboard": return <LayoutDashboard className={size} />;
+    case "orders": return <Package className={size} />;
+    case "payments": return <Wallet className={size} />;
+    case "people": return <Building2 className={size} />;
+    case "scales": return <Scale className={size} />;
+    case "ledger": return <BookText className={size} />;
+    case "reports": return <FileBarChart className={size} />;
+    case "users": return <Users className={size} />;
+    case "audit": return <ShieldCheck className={size} />;
+  }
+}
+
+export default function Sidebar() {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
   if (!user) return null;
 
   return (
-    <>
-      {/* Backdrop (mobile only, only when open). */}
-      <div
-        aria-hidden
-        onClick={onClose}
-        className={[
-          "md:hidden fixed inset-0 z-40 bg-ink/20 transition-opacity",
-          open ? "opacity-100" : "opacity-0 pointer-events-none",
-        ].join(" ")}
-      />
-
-      <aside
-        className={[
-          "w-[264px] shrink-0 bg-paper-2 px-7 py-6 flex flex-col relative",
-          // Mobile: full-viewport drawer that slides in from the left.
-          "fixed inset-y-0 left-0 z-50 h-screen transition-transform duration-200",
-          open ? "translate-x-0" : "-translate-x-full",
-          // md+: sticky column pinned to the viewport so the footer
-          // (logout + lang) stays visible regardless of page scroll.
-          "md:sticky md:top-0 md:h-screen md:translate-x-0 md:transition-none",
-        ].join(" ")}
-        style={{
-          // Parchment spine: linear wash from a hair lighter at the top to
-          // the full --paper-2 below, then a gutter shadow on the right edge
-          // so the sidebar reads as a bound page against the main content.
-          backgroundImage:
-            "linear-gradient(180deg, color-mix(in srgb, var(--paper-2) 80%, var(--paper) 20%) 0%, var(--paper-2) 38%, var(--paper-2) 100%), var(--grain)",
-          backgroundBlendMode: "normal, multiply",
-          backgroundSize: "100% 100%, 180px 180px",
-          boxShadow:
-            "inset -1px 0 0 var(--rule), 8px 0 18px -14px color-mix(in srgb, var(--ink) 35%, transparent)",
-        }}
-      >
-        <div className="flex items-center gap-3">
-          <div
-            className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 bg-ink"
-            style={{ color: "var(--paper)" }}
-          >
-            <span className="serif-italic text-[17px] font-semibold">
+    <ShadSidebar>
+      <SidebarHeader className="border-b">
+        <div className="flex items-center gap-3 px-2 py-2">
+          <Avatar className="h-9 w-9">
+            <AvatarFallback className="bg-primary text-primary-foreground text-sm font-semibold">
               {user.username.slice(0, 2).toUpperCase()}
-            </span>
-          </div>
-          <div className="min-w-0">
-            <div className="serif-italic text-[17px] leading-tight text-ink truncate">
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-semibold text-foreground truncate">
               {user.username}
             </div>
-            <div className="eyebrow-mono mt-1">{t(`roles.${user.role}`)}</div>
+            <div className="text-xs text-muted-foreground">
+              {t(`roles.${user.role}`)}
+            </div>
             {user.scope_rooms.length > 0 && (
               <div
-                className="caption mt-1 text-ink-3 truncate"
+                className="text-xs text-muted-foreground truncate"
                 title={user.scope_rooms.map((r) => r.room_name).join(", ")}
               >
                 {user.scope_rooms.length === 1
@@ -107,50 +116,34 @@ export default function Sidebar({
             )}
           </div>
         </div>
+      </SidebarHeader>
 
-        <div className="leader" />
+      <SidebarContent>
+        <NavGroup titleKey="nav.registry" items={REGISTRY} role={user.role} />
+        <NavGroup titleKey="nav.data_group" items={DATA} role={user.role} />
+        <NavGroup titleKey="nav.collection" items={COLLECTION} role={user.role} />
+        <NavGroup titleKey="nav.operations" items={OPERATIONS} role={user.role} />
+        <NavGroup titleKey="nav.admin" items={ADMIN} role={user.role} />
+      </SidebarContent>
 
-        <NavGroup titleKey="nav.registry" items={REGISTRY} role={user.role} onNavigate={onClose} />
-        <div className="leader" />
-        <NavGroup titleKey="nav.data_group" items={DATA} role={user.role} onNavigate={onClose} />
-        <div className="leader" />
-        <NavGroup titleKey="nav.collection" items={COLLECTION} role={user.role} onNavigate={onClose} />
-        {OPERATIONS.some((i) => i.roles.includes(user.role)) && (
-          <>
-            <div className="leader" />
-            <NavGroup titleKey="nav.operations" items={OPERATIONS} role={user.role} onNavigate={onClose} />
-          </>
-        )}
-        {ADMIN.some((i) => i.roles.includes(user.role)) && (
-          <>
-            <div className="leader" />
-            <NavGroup titleKey="nav.admin" items={ADMIN} role={user.role} onNavigate={onClose} />
-          </>
-        )}
-
-        <div className="flex-1" />
-
-        <div className="leader" />
-        <div className="flex items-center justify-between">
-          <button
+      <SidebarFooter className="border-t">
+        <div className="flex items-center justify-between px-2 py-1">
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => void logout()}
-            className="group inline-flex items-center gap-2 text-label text-ink-2 hover:text-mark transition-colors text-left"
+            className="gap-2"
           >
-            <span>{t("nav.signout")}</span>
-            <span
-              aria-hidden
-              className="serif text-[15px] text-ink-3 group-hover:text-mark transition-[color,transform] translate-x-0 group-hover:translate-x-0.5"
-            >
-              ›
-            </span>
-          </button>
-          {/* LangToggle hidden on mobile since it's already in the top bar. */}
-          <div className="hidden md:block">
+            <LogOut className="h-4 w-4" />
+            {t("nav.signout")}
+          </Button>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
             <LangToggle />
           </div>
         </div>
-      </aside>
-    </>
+      </SidebarFooter>
+    </ShadSidebar>
   );
 }
 
@@ -158,218 +151,36 @@ function NavGroup({
   titleKey,
   items,
   role,
-  onNavigate,
 }: {
   titleKey: string;
   items: Item[];
   role: "admin" | "operator" | "viewer";
-  onNavigate?: () => void;
 }) {
   const { t } = useTranslation();
+  const { pathname } = useLocation();
   const visible = items.filter((i) => i.roles.includes(role));
   if (!visible.length) return null;
   return (
-    <div>
-      <div className="eyebrow-mono mb-3">{t(titleKey)}</div>
-      <ul className="flex flex-col gap-0.5">
-        {visible.map((i) => (
-          <li key={i.to}>
-            <NavLink
-              to={i.to}
-              onClick={onNavigate}
-              className={({ isActive }) =>
-                [
-                  "group relative flex items-center gap-3 h-9 pl-4 pr-3 rounded-md text-label transition-colors font-medium",
-                  isActive
-                    ? "bg-mark-bg text-mark font-semibold shadow-[inset_3px_0_0_var(--mark)]"
-                    : "text-ink-2 hover:text-ink hover:bg-[color-mix(in_srgb,var(--card)_55%,transparent)]",
-                ].join(" ")
-              }
-            >
-              {({ isActive }: { isActive: boolean }) => (
-                <>
-                  {i.glyph && (
-                    <SidebarGlyph
-                      kind={i.glyph}
-                      className={
-                        isActive
-                          ? "text-mark"
-                          : "text-ink-3 group-hover:text-ink-2"
-                      }
-                    />
-                  )}
-                  <span className="truncate">{t(i.labelKey)}</span>
-                </>
-              )}
-            </NavLink>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <SidebarGroup>
+      <SidebarGroupLabel>{t(titleKey)}</SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {visible.map((i) => {
+            const isActive =
+              pathname === i.to || pathname.startsWith(i.to + "/");
+            return (
+              <SidebarMenuItem key={i.to}>
+                <SidebarMenuButton asChild isActive={isActive}>
+                  <Link to={i.to}>
+                    {i.icon && <IconFor kind={i.icon} />}
+                    <span className="truncate">{t(i.labelKey)}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            );
+          })}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
   );
-}
-
-function SidebarGlyph({ kind, className = "" }: { kind: Glyph; className?: string }) {
-  return (
-    <GlyphSvg
-      kind={kind}
-      size={16}
-      className={`shrink-0 transition-colors ${className}`}
-    />
-  );
-}
-
-/**
- * Editorial line-art glyphs shared between the sidebar (16px) and the
- * locked-mode page header disc (22px). Single source keeps link + page
- * visually tied together.
- *
- *   dashboard — bar chart with baseline (data-viz)
- *   orders    — isometric parcel / shipping box
- *   payments  — stack of coins in perspective
- *   people    — classical columned building (courthouse) — signals
- *               "registered legal entity" better than a generic person glyph
- */
-export function GlyphSvg({
-  kind,
-  size = 16,
-  className = "",
-}: {
-  kind: Glyph;
-  size?: number;
-  className?: string;
-}) {
-  const common = {
-    width: size,
-    height: size,
-    viewBox: "0 0 24 24",
-    fill: "none" as const,
-    "aria-hidden": true as const,
-    className,
-  };
-  if (kind === "dashboard") {
-    return (
-      <svg {...common}>
-        <path
-          d="M4 20V12M9 20V7M14 20V14M19 20V4"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-        />
-        <path
-          d="M3.5 20.5h17"
-          stroke="currentColor"
-          strokeWidth="1.2"
-          strokeLinecap="round"
-          opacity="0.55"
-        />
-      </svg>
-    );
-  }
-  if (kind === "orders") {
-    return (
-      <svg {...common}>
-        <path
-          d="M12 3.5 4 7l8 3.5L20 7l-8-3.5Z"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M4 7v10l8 3.5"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M20 7v10l-8 3.5"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M12 10.5v10"
-          stroke="currentColor"
-          strokeWidth="1.2"
-          strokeLinecap="round"
-          opacity="0.55"
-        />
-      </svg>
-    );
-  }
-  if (kind === "payments") {
-    return (
-      <svg {...common}>
-        <ellipse cx="12" cy="6" rx="7" ry="2.4" stroke="currentColor" strokeWidth="1.5" />
-        <path
-          d="M5 6v3.5c0 1.33 3.13 2.4 7 2.4s7-1.07 7-2.4V6"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M5 11.5V15c0 1.33 3.13 2.4 7 2.4s7-1.07 7-2.4v-3.5"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M5 17v1.2c0 1.33 3.13 2.4 7 2.4s7-1.07 7-2.4V17"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-        />
-      </svg>
-    );
-  }
-  if (kind === "people") {
-    return (
-      <svg {...common}>
-        <path
-          d="M3.5 9.5h17L12 4 3.5 9.5Z"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M6 10.5v7M10 10.5v7M14 10.5v7M18 10.5v7"
-          stroke="currentColor"
-          strokeWidth="1.4"
-          strokeLinecap="round"
-        />
-        <path
-          d="M3 20.5h18M3.5 18h17"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        />
-      </svg>
-    );
-  }
-  if (kind === "scales") {
-    // Balance scale — the collection / receivables metaphor.
-    return (
-      <svg {...common}>
-        <path d="M12 4v16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M4 20h16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M5 6h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        <path
-          d="M6 6 3.5 12h5L6 6ZM18 6l-2.5 6h5L18 6Z"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-        />
-      </svg>
-    );
-  }
-  if (kind === "ledger") {
-    // Bound ledger book — the spreadsheet / register metaphor.
-    return (
-      <svg {...common}>
-        <rect x="4" y="4" width="16" height="16" rx="1" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M4 9h16M4 14h16M9 4v16" stroke="currentColor" strokeWidth="1.5" />
-      </svg>
-    );
-  }
-  return null;
 }

@@ -46,10 +46,10 @@ function ActionLink({
       type="button"
       onClick={onClick}
       className={[
-        "text-caption leading-none px-2.5 py-1 transition-colors underline-offset-[3px]",
+        "text-xs leading-none px-2.5 py-1 transition-colors underline-offset-[3px]",
         danger
-          ? "text-risk hover:underline decoration-risk"
-          : "text-ink-2 hover:text-mark hover:underline decoration-mark",
+          ? "text-red-700 dark:text-red-400 hover:underline decoration-risk"
+          : "text-foreground/80 hover:text-primary hover:underline decoration-primary",
       ].join(" ")}
     >
       {children}
@@ -59,7 +59,7 @@ function ActionLink({
 
 function ActionDot() {
   return (
-    <span aria-hidden className="text-caption text-ink-3/60 select-none">
+    <span aria-hidden className="text-xs text-muted-foreground/60 select-none">
       ·
     </span>
   );
@@ -79,7 +79,7 @@ function RoomsCell({
     return (
       <button
         onClick={onEdit}
-        className="caption text-ink-3 hover:text-mark transition-colors"
+        className="caption text-muted-foreground hover:text-primary transition-colors"
       >
         {t("admin.rooms_unscoped")}
       </button>
@@ -94,7 +94,7 @@ function RoomsCell({
     <button
       onClick={onEdit}
       title={names.join(", ")}
-      className="caption text-ink-2 hover:text-mark underline decoration-mark underline-offset-[3px] truncate max-w-[200px] inline-block"
+      className="caption text-foreground/80 hover:text-primary underline decoration-primary underline-offset-[3px] truncate max-w-[200px] inline-block"
     >
       {label}
     </button>
@@ -157,7 +157,7 @@ export default function AdminUsers() {
 
   return (
     <div>
-      <div className="stagger-0">
+      <div className="">
         <PageHeading
           crumb={[
             t("dashboard.crumb_dashboard"),
@@ -169,7 +169,7 @@ export default function AdminUsers() {
         />
       </div>
 
-      <div className="stagger-1 mt-6 flex items-center justify-end gap-3">
+      <div className="mt-6 flex items-center justify-end gap-3">
         <Button onClick={() => setBulkOpen(true)}>
           {t("admin.bulk_from_rooms")}
         </Button>
@@ -178,7 +178,7 @@ export default function AdminUsers() {
         </Button>
       </div>
 
-      <Card className="stagger-2 mt-4 p-0 overflow-hidden">
+      <Card className="mt-4 p-0 overflow-hidden">
         <div className="hidden md:block">
           <table className="w-full border-separate border-spacing-0">
             <thead>
@@ -194,7 +194,7 @@ export default function AdminUsers() {
                 ].map((h) => (
                   <th
                     key={h.key}
-                    className={`h-10 px-4 border-b border-rule sticky top-0 bg-card eyebrow font-semibold text-ink-3 ${
+                    className={`h-10 px-4 border-b border-border sticky top-0 bg-card text-xs text-muted-foreground uppercase tracking-wider font-medium font-semibold text-muted-foreground ${
                       h.last ? "text-right" : "text-left"
                     }`}
                   >
@@ -205,30 +205,30 @@ export default function AdminUsers() {
             </thead>
             <tbody>
               {(q.data?.users ?? []).map((u) => (
-                <tr key={u.id} className="transition-colors hover:bg-paper-2">
-                  <td className="h-[52px] px-4 border-b border-rule text-body text-ink">
+                <tr key={u.id} className="transition-colors hover:bg-muted">
+                  <td className="h-[52px] px-4 border-b border-border text-sm text-foreground">
                     {u.username}{" "}
                     {u.id === user?.id && (
-                      <span className="caption text-ink-3">
+                      <span className="caption text-muted-foreground">
                         ({t("common.you")})
                       </span>
                     )}
                   </td>
-                  <td className="h-[52px] px-4 border-b border-rule">
+                  <td className="h-[52px] px-4 border-b border-border">
                     <RolePicker
                       value={u.role}
                       onChange={(role) => changeRole.mutate({ id: u.id, role })}
                       disabled={u.id === user?.id}
                     />
                   </td>
-                  <td className="h-[52px] px-4 border-b border-rule">
+                  <td className="h-[52px] px-4 border-b border-border">
                     <RoomsCell
                       ids={u.scope_room_ids}
                       roomsById={roomsById}
                       onEdit={() => setEditRoomsFor(u)}
                     />
                   </td>
-                  <td className="h-[52px] px-4 border-b border-rule">
+                  <td className="h-[52px] px-4 border-b border-border">
                     <button
                       onClick={() =>
                         toggleActive.mutate({ id: u.id, is_active: !u.is_active })
@@ -241,13 +241,13 @@ export default function AdminUsers() {
                       </StatusPill>
                     </button>
                   </td>
-                  <td className="h-[52px] px-4 border-b border-rule caption text-ink-2">
+                  <td className="h-[52px] px-4 border-b border-border caption text-foreground/80">
                     <RelativeTime iso={u.last_login_at} />
                   </td>
-                  <td className="h-[52px] px-4 border-b border-rule caption text-ink-3 tabular-nums">
+                  <td className="h-[52px] px-4 border-b border-border caption text-muted-foreground tabular-nums">
                     {formatDate(u.created_at)}
                   </td>
-                  <td className="h-[52px] px-4 border-b border-rule text-right">
+                  <td className="h-[52px] px-4 border-b border-border text-right">
                     <div className="inline-flex items-center whitespace-nowrap leading-none">
                       <ActionLink onClick={() => setResetFor(u)}>
                         {t("admin.reset_password")}
@@ -289,16 +289,16 @@ export default function AdminUsers() {
 
         <ul className="md:hidden flex flex-col">
           {(q.data?.users ?? []).map((u) => (
-            <li key={u.id} className="border-b border-rule last:border-b-0 px-4 py-4">
+            <li key={u.id} className="border-b border-border last:border-b-0 px-4 py-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="text-body text-ink truncate">
+                  <div className="text-sm text-foreground truncate">
                     {u.username}
                     {u.id === user?.id && (
-                      <span className="caption text-ink-3"> ({t("common.you")})</span>
+                      <span className="caption text-muted-foreground"> ({t("common.you")})</span>
                     )}
                   </div>
-                  <div className="mt-1 caption text-ink-3 tabular-nums">
+                  <div className="mt-1 caption text-muted-foreground tabular-nums">
                     {formatDate(u.created_at)}
                     {" · "}
                     <RelativeTime iso={u.last_login_at} />
@@ -413,9 +413,9 @@ function RoomChecklist({
         onChange={(e) => setQ(e.target.value)}
         placeholder={t("admin.rooms_search_placeholder")}
       />
-      <div className="max-h-[260px] overflow-y-auto border border-rule rounded-[10px]">
+      <div className="max-h-[260px] overflow-y-auto border border-border rounded-[10px]">
         {filtered.length === 0 && (
-          <div className="caption text-ink-3 px-3 py-4 text-center">
+          <div className="caption text-muted-foreground px-3 py-4 text-center">
             {t("admin.rooms_no_matches")}
           </div>
         )}
@@ -426,16 +426,16 @@ function RoomChecklist({
               key={r.room_id}
               type="button"
               onClick={() => toggle(r.room_id)}
-              className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-paper-2 transition-colors border-b border-rule last:border-b-0"
+              className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-muted transition-colors border-b border-border last:border-b-0"
             >
               <span
                 aria-hidden
                 className={`shrink-0 inline-block h-4 w-4 rounded-sm border ${
-                  checked ? "bg-mark border-mark" : "border-ink-3/40"
+                  checked ? "bg-primary border-primary" : "border-ink-3/40"
                 }`}
               />
-              <span className="flex-1 text-body text-ink">{r.room_name}</span>
-              <span className="caption text-ink-3 mono tabular-nums">{r.room_id}</span>
+              <span className="flex-1 text-sm text-foreground">{r.room_name}</span>
+              <span className="caption text-muted-foreground font-mono tabular-nums">{r.room_id}</span>
             </button>
           );
         })}
@@ -503,17 +503,17 @@ function EnrollUserModal({
           required
         />
         <label className="grid grid-cols-[100px_1fr] items-center gap-x-4">
-          <span className="eyebrow text-right">{t("admin.form_role")}</span>
+          <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium text-right">{t("admin.form_role")}</span>
           <div className="flex gap-2">
             {(["viewer", "operator", "admin"] as const).map((r) => (
               <button
                 key={r}
                 type="button"
                 onClick={() => setRole(r)}
-                className={`flex-1 h-10 rounded-[10px] text-label transition-colors ${
+                className={`flex-1 h-10 rounded-[10px] text-sm transition-colors ${
                   role === r
-                    ? "bg-mark-bg text-mark"
-                    : "bg-paper-2 text-ink-2 hover:text-ink"
+                    ? "bg-primary/10 text-primary"
+                    : "bg-muted text-foreground/80 hover:text-foreground"
                 }`}
               >
                 {t(`roles.${r}`)}
@@ -523,12 +523,12 @@ function EnrollUserModal({
         </label>
         {role !== "admin" && (
           <label className="grid grid-cols-[100px_1fr] items-start gap-x-4">
-            <span className="eyebrow text-right mt-2">{t("admin.form_rooms")}</span>
+            <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium text-right mt-2">{t("admin.form_rooms")}</span>
             <RoomChecklist rooms={rooms} value={scope} onChange={setScope} />
           </label>
         )}
         {err && (
-          <div className="caption text-risk border-l-2 border-risk pl-3">{err}</div>
+          <div className="caption text-red-700 dark:text-red-400 border-l-2 border-red-500 pl-3">{err}</div>
         )}
         <div className="flex items-center justify-end gap-5 mt-2">
           <Button variant="link" type="button" onClick={onClose}>
@@ -580,7 +580,7 @@ function EditRoomsModal({
     >
       <div className="flex flex-col gap-5">
         {user.role === "admin" ? (
-          <div className="caption text-ink-3 border-l-2 border-rule pl-3">
+          <div className="caption text-muted-foreground border-l-2 border-border pl-3">
             {t("admin.rooms_admin_notice")}
           </div>
         ) : (
@@ -643,7 +643,7 @@ function BulkFromRoomsModal({ onClose }: { onClose: () => void }) {
     <Modal open onClose={onClose} title={t("admin.bulk_modal_title")}>
       {creds === null ? (
         <div className="flex flex-col gap-5">
-          <p className="text-body text-ink-2">{t("admin.bulk_modal_blurb")}</p>
+          <p className="text-sm text-foreground/80">{t("admin.bulk_modal_blurb")}</p>
           <div className="flex items-center justify-end gap-5 mt-2">
             <Button variant="link" type="button" onClick={onClose}>
               {t("common.cancel")}
@@ -660,7 +660,7 @@ function BulkFromRoomsModal({ onClose }: { onClose: () => void }) {
         </div>
       ) : creds.length === 0 ? (
         <div className="flex flex-col gap-5">
-          <p className="text-body text-ink-2">{t("admin.bulk_none_to_create")}</p>
+          <p className="text-sm text-foreground/80">{t("admin.bulk_none_to_create")}</p>
           <div className="flex items-center justify-end">
             <Button variant="primary" type="button" onClick={onClose}>
               {t("common.close")}
@@ -669,30 +669,30 @@ function BulkFromRoomsModal({ onClose }: { onClose: () => void }) {
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          <div className="caption text-risk border-l-2 border-risk pl-3">
+          <div className="caption text-red-700 dark:text-red-400 border-l-2 border-red-500 pl-3">
             {t("admin.bulk_warning")}
           </div>
-          <div className="border border-rule rounded-[10px] max-h-[340px] overflow-y-auto">
-            <table className="w-full text-body">
+          <div className="border border-border rounded-[10px] max-h-[340px] overflow-y-auto">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="sticky top-0 bg-card">
-                  <th className="eyebrow text-left px-3 py-2 border-b border-rule">
+                  <th className="text-xs text-muted-foreground uppercase tracking-wider font-medium text-left px-3 py-2 border-b border-border">
                     {t("admin.col_rooms")}
                   </th>
-                  <th className="eyebrow text-left px-3 py-2 border-b border-rule">
+                  <th className="text-xs text-muted-foreground uppercase tracking-wider font-medium text-left px-3 py-2 border-b border-border">
                     {t("admin.col_username")}
                   </th>
-                  <th className="eyebrow text-left px-3 py-2 border-b border-rule">
+                  <th className="text-xs text-muted-foreground uppercase tracking-wider font-medium text-left px-3 py-2 border-b border-border">
                     {t("admin.bulk_col_password")}
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {creds.map((c) => (
-                  <tr key={c.username} className="border-b border-rule last:border-b-0">
-                    <td className="px-3 py-2 text-ink">{c.room_name}</td>
-                    <td className="px-3 py-2 mono text-ink">{c.username}</td>
-                    <td className="px-3 py-2 mono text-ink tabular-nums">{c.temp_password}</td>
+                  <tr key={c.username} className="border-b border-border last:border-b-0">
+                    <td className="px-3 py-2 text-foreground">{c.room_name}</td>
+                    <td className="px-3 py-2 font-mono text-foreground">{c.username}</td>
+                    <td className="px-3 py-2 font-mono text-foreground tabular-nums">{c.temp_password}</td>
                   </tr>
                 ))}
               </tbody>

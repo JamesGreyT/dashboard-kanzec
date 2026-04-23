@@ -1,16 +1,14 @@
-/**
- * Excel-style per-column filter popover.
- *
- * Rendered through a React portal into document.body with position:fixed,
- * so it escapes the table's overflow-x-auto clipping and can auto-flip
- * horizontally / vertically when near a viewport edge.
- */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
-import Button from "./Button";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export type ColumnType = "date" | "timestamp" | "text" | "int" | "numeric";
 
@@ -82,7 +80,6 @@ export default function ColumnFilter({
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
 
-  // Measure anchor + popover on mount, pin the popover in viewport coordinates.
   useLayoutEffect(() => {
     if (!anchorEl || !ref.current) return;
     const place = () => {
@@ -92,17 +89,12 @@ export default function ColumnFilter({
       const margin = 12;
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-
       let left = btn.left;
-      if (left + pop.width > vw - margin) {
-        left = btn.right - pop.width; // flip to right-aligned
-      }
+      if (left + pop.width > vw - margin) left = btn.right - pop.width;
       if (left < margin) left = margin;
-
       let top = btn.bottom + 4;
-      if (top + pop.height > vh - margin) {
-        top = Math.max(margin, btn.top - pop.height - 4); // flip above
-      }
+      if (top + pop.height > vh - margin)
+        top = Math.max(margin, btn.top - pop.height - 4);
       setPos({ top, left });
     };
     place();
@@ -117,7 +109,6 @@ export default function ColumnFilter({
   useEffect(() => {
     function onDown(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
-        // Don't close if the user clicked the trigger — they'd expect a toggle.
         if (anchorEl && anchorEl.contains(e.target as Node)) return;
         onClose();
       }
@@ -163,7 +154,10 @@ export default function ColumnFilter({
   };
   const selectAllVisible = () => {
     const visible = (distinctQ.data?.values ?? []).map((v) => v.value);
-    setDraft({ ...draft, values: Array.from(new Set([...(draft.values ?? []), ...visible])) });
+    setDraft({
+      ...draft,
+      values: Array.from(new Set([...(draft.values ?? []), ...visible])),
+    });
   };
 
   const apply = () => {
@@ -185,61 +179,73 @@ export default function ColumnFilter({
         width: POP_WIDTH,
         visibility: pos ? "visible" : "hidden",
       }}
-      className="z-50 bg-card rounded-[10px] shadow-popover border border-rule p-4 animate-enter-up"
+      className="z-50 bg-popover text-popover-foreground rounded-md shadow-md border p-4 animate-in fade-in-0 zoom-in-95"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="serif-italic text-[14px] text-ink">{t("data.filter", { label: col.label })}</div>
-      <div className="leader" />
+      <div className="text-sm font-medium text-foreground">
+        {t("data.filter", { label: col.label })}
+      </div>
+      <Separator className="my-3" />
 
       {showRange && (
         <div className="grid grid-cols-2 gap-3">
-          <label className="flex flex-col gap-1.5">
-            <span className="caption text-ink-3">{t("data.filter_range_from")}</span>
-            <input
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs text-muted-foreground">
+              {t("data.filter_range_from")}
+            </Label>
+            <Input
               type={rangeInputType(col.type)}
               value={draft.from ?? ""}
               onChange={(e) => setDraft({ ...draft, from: e.target.value || undefined })}
               onKeyDown={(e) => e.key === "Enter" && apply()}
-              className="h-9 bg-paper-2 px-3 rounded-[8px] text-body text-ink border border-rule-2 focus:outline-none focus:border-mark focus:ring-2 focus:ring-mark/30 tabular-nums"
+              className="h-9 tabular-nums"
             />
-          </label>
-          <label className="flex flex-col gap-1.5">
-            <span className="caption text-ink-3">{t("data.filter_range_to")}</span>
-            <input
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs text-muted-foreground">
+              {t("data.filter_range_to")}
+            </Label>
+            <Input
               type={rangeInputType(col.type)}
               value={draft.to ?? ""}
               onChange={(e) => setDraft({ ...draft, to: e.target.value || undefined })}
               onKeyDown={(e) => e.key === "Enter" && apply()}
-              className="h-9 bg-paper-2 px-3 rounded-[8px] text-body text-ink border border-rule-2 focus:outline-none focus:border-mark focus:ring-2 focus:ring-mark/30 tabular-nums"
+              className="h-9 tabular-nums"
             />
-          </label>
+          </div>
         </div>
       )}
 
-      {showRange && (showContains || showValues || showEquals) && <div className="leader" />}
+      {showRange && (showContains || showValues || showEquals) && (
+        <Separator className="my-3" />
+      )}
 
       {showContains && (
-        <label className="flex flex-col gap-1.5">
-          <span className="caption text-ink-3">{t("data.filter_contains")}</span>
-          <input
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-xs text-muted-foreground">
+            {t("data.filter_contains")}
+          </Label>
+          <Input
             value={draft.contains ?? ""}
             onChange={(e) => setDraft({ ...draft, contains: e.target.value || undefined })}
             onKeyDown={(e) => e.key === "Enter" && apply()}
-            className="h-9 bg-paper-2 px-3 rounded-[8px] text-body text-ink border border-rule-2 focus:outline-none focus:border-mark focus:ring-2 focus:ring-mark/30"
+            className="h-9"
           />
-        </label>
+        </div>
       )}
 
-      {showContains && showValues && <div className="leader" />}
+      {showContains && showValues && <Separator className="my-3" />}
 
       {showValues && (
         <div>
           <div className="flex items-center justify-between mb-2">
-            <span className="caption text-ink-3">{t("data.filter_values")}</span>
-            <div className="flex items-center gap-3 text-caption">
+            <Label className="text-xs text-muted-foreground">
+              {t("data.filter_values")}
+            </Label>
+            <div className="flex items-center gap-3 text-xs">
               <button
                 type="button"
-                className="text-ink-2 hover:text-mark hover:underline decoration-mark underline-offset-[3px]"
+                className="text-muted-foreground hover:text-foreground hover:underline"
                 onClick={selectAllVisible}
               >
                 {t("data.filter_select_shown")}
@@ -247,7 +253,7 @@ export default function ColumnFilter({
               {draft.values && draft.values.length > 0 && (
                 <button
                   type="button"
-                  className="text-ink-2 hover:text-mark hover:underline decoration-mark underline-offset-[3px]"
+                  className="text-muted-foreground hover:text-foreground hover:underline"
                   onClick={() => setDraft({ ...draft, values: undefined })}
                 >
                   {t("data.filter_clear_picks")}
@@ -255,81 +261,84 @@ export default function ColumnFilter({
               )}
             </div>
           </div>
-          <input
+          <Input
             value={valSearch}
             onChange={(e) => setValSearch(e.target.value)}
-            className="w-full h-8 bg-paper-2 px-2.5 rounded-[6px] text-body text-ink border-0 focus:outline-none focus:ring-2 focus:ring-mark/35 mb-2"
+            className="h-8 mb-2"
             placeholder={t("data.filter_search_values_placeholder")}
           />
-          <div className="max-h-[220px] overflow-auto border border-rule rounded-[8px]">
+          <ScrollArea className="h-[220px] rounded-md border">
             {distinctQ.isLoading && (
-              <div className="px-3 py-3 caption text-ink-3">{t("data.reading")}</div>
+              <div className="px-3 py-3 text-xs text-muted-foreground">
+                {t("data.reading")}
+              </div>
             )}
             {distinctQ.isError && (
-              <div className="px-3 py-3 caption text-risk">
+              <div className="px-3 py-3 text-xs text-destructive">
                 {t("data.filter_cant_read")}
               </div>
             )}
             {distinctQ.data?.values.map(({ value: v, count }) => (
               <label
                 key={v || "<null>"}
-                className="flex items-baseline gap-2 px-3 py-1.5 hover:bg-paper-2 cursor-pointer"
+                className="flex items-center gap-2 px-3 py-1.5 hover:bg-muted cursor-pointer"
               >
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={pickedSet.has(v)}
-                  onChange={() => togglePick(v)}
-                  className="accent-[var(--mark)] self-center"
+                  onCheckedChange={() => togglePick(v)}
                 />
-                <span className="text-body text-ink truncate max-w-[170px]">
+                <span className="text-sm text-foreground truncate flex-1">
                   {v === "" || v == null ? (
-                    <span className="italic text-ink-3">{t("data.filter_empty")}</span>
+                    <span className="italic text-muted-foreground">
+                      {t("data.filter_empty")}
+                    </span>
                   ) : (
                     v
                   )}
                 </span>
-                <span className="dotted-leader" />
-                <span className="mono text-mono-xs text-ink-3 tabular-nums shrink-0">
+                <span className="font-mono text-xs text-muted-foreground tabular-nums shrink-0">
                   {count.toLocaleString()}
                 </span>
               </label>
             ))}
             {distinctQ.data && distinctQ.data.values.length === 0 && (
-              <div className="px-3 py-3 caption text-ink-3">{t("data.filter_no_matches")}</div>
+              <div className="px-3 py-3 text-xs text-muted-foreground">
+                {t("data.filter_no_matches")}
+              </div>
             )}
-          </div>
+          </ScrollArea>
           {distinctQ.data?.limited && (
-            <div className="mt-1 caption text-ink-3">
+            <div className="mt-1 text-xs text-muted-foreground">
               {t("data.filter_limited_hint")}
             </div>
           )}
         </div>
       )}
 
-      {(showRange || showContains || showValues) && showEquals && <div className="leader" />}
+      {(showRange || showContains || showValues) && showEquals && (
+        <Separator className="my-3" />
+      )}
 
       {showEquals && (
-        <label className="flex flex-col gap-1.5">
-          <span className="caption text-ink-3">{t("data.filter_equals")}</span>
-          <input
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-xs text-muted-foreground">
+            {t("data.filter_equals")}
+          </Label>
+          <Input
             value={draft.equals ?? ""}
             onChange={(e) => setDraft({ ...draft, equals: e.target.value || undefined })}
             onKeyDown={(e) => e.key === "Enter" && apply()}
-            className="h-9 bg-paper-2 px-3 rounded-[8px] text-body text-ink border border-rule-2 focus:outline-none focus:border-mark focus:ring-2 focus:ring-mark/30"
+            className="h-9"
           />
-        </label>
+        </div>
       )}
 
-      <div className="leader" />
+      <Separator className="my-3" />
       <div className="flex items-center justify-between">
-        <button
-          onClick={clear}
-          type="button"
-          className="text-label text-ink-2 hover:text-mark hover:underline decoration-mark underline-offset-[3px]"
-        >
+        <Button type="button" variant="ghost" size="sm" onClick={clear}>
           {t("common.clear")}
-        </button>
-        <Button variant="primary" onClick={apply} className="h-8 px-3 text-caption">
+        </Button>
+        <Button type="button" size="sm" onClick={apply}>
           {t("common.apply")}
         </Button>
       </div>

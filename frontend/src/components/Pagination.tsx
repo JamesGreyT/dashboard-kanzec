@@ -1,5 +1,8 @@
 import { FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function Pagination({
   offset,
@@ -31,55 +34,49 @@ export default function Pagination({
   };
 
   return (
-    <div className="h-14 px-6 flex items-center justify-between gap-6 border-t border-rule">
-      <div className="caption text-ink-3 tabular-nums">
+    <div className="h-14 px-6 flex items-center justify-between gap-6 border-t">
+      <div className="text-xs text-muted-foreground tabular-nums">
         {t("common.showing_range", {
           from: from.toLocaleString(),
           to: to.toLocaleString(),
           total: total.toLocaleString(),
         })}
       </div>
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-4">
         {showJump && (
           <form
             onSubmit={submitJump}
-            className="flex items-center gap-2 caption text-ink-3"
+            className="flex items-center gap-2 text-xs text-muted-foreground"
           >
-            <span>
-              {t("common.page_of", { input: "", total: pages.toLocaleString() }).split(
-                "[",
-              )[0].trim()}
-            </span>
-            <input
+            <span>{currentPage} /</span>
+            <Input
               value={jumpDraft}
               onChange={(e) => setJumpDraft(e.target.value.replace(/\D/g, ""))}
-              className="w-12 h-7 bg-paper-2 rounded-[6px] px-2 mono text-mono-sm text-ink text-center tabular-nums focus:outline-none focus:ring-2 focus:ring-mark/35"
-              placeholder={String(currentPage)}
+              className="w-14 h-8 text-center tabular-nums"
+              placeholder={String(pages)}
               aria-label="Jump to page"
             />
-            <span>
-              {t("common.page_of", { input: "", total: pages.toLocaleString() })
-                .split("]")
-                .pop()
-                ?.trim()}
-            </span>
           </form>
         )}
-        <div className="flex items-center gap-6 text-label">
-          <button
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => onOffset(Math.max(0, offset - limit))}
             disabled={!canPrev}
-            className="text-ink hover:text-mark hover:underline decoration-mark underline-offset-[3px] disabled:text-ink-3 disabled:no-underline disabled:cursor-not-allowed"
           >
+            <ChevronLeft className="h-4 w-4 mr-1" />
             {t("common.prev")}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => onOffset(offset + limit)}
             disabled={!canNext}
-            className="text-ink hover:text-mark hover:underline decoration-mark underline-offset-[3px] disabled:text-ink-3 disabled:no-underline disabled:cursor-not-allowed"
           >
             {t("common.next")}
-          </button>
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
         </div>
       </div>
     </div>

@@ -1,9 +1,17 @@
 import { ReactNode } from "react";
+import {
+  Card as ShadCard,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 export default function Card({
   children,
   accent,
-  className = "",
+  className,
   eyebrow,
   title,
   interactive,
@@ -17,40 +25,20 @@ export default function Card({
 }) {
   const hasHeader = !!(eyebrow || title);
   return (
-    <div
-      className={[
-        "bg-card rounded-card shadow-card p-5 md:p-7 relative",
-        interactive ? "card-interactive" : "",
+    <ShadCard
+      className={cn(
+        accent && "border-l-4 border-l-primary",
+        interactive && "transition-shadow hover:shadow-md cursor-pointer",
         className,
-      ].join(" ")}
+      )}
     >
-      {accent && (
-        // Top-left corner wedge — two 14px × 2px orange bars anchored into
-        // the card radius. Replaces the old full-height 3px left accent bar;
-        // subtler, still legible as "this card has emphasis".
-        <>
-          <span
-            aria-hidden
-            className="absolute top-0 left-0 w-[14px] h-[2px] bg-mark rounded-tl-card"
-          />
-          <span
-            aria-hidden
-            className="absolute top-0 left-0 w-[2px] h-[14px] bg-mark rounded-tl-card"
-          />
-        </>
-      )}
       {hasHeader && (
-        <>
-          <div>
-            {eyebrow && <div className="eyebrow-mono mb-2">{eyebrow}</div>}
-            {title && (
-              <div className="serif-italic text-heading-sm text-ink">{title}</div>
-            )}
-          </div>
-          <div className="leader" />
-        </>
+        <CardHeader>
+          {eyebrow && <CardDescription className="uppercase tracking-wider text-xs">{eyebrow}</CardDescription>}
+          {title && <CardTitle>{title}</CardTitle>}
+        </CardHeader>
       )}
-      {children}
-    </div>
+      <CardContent className={cn(!hasHeader && "pt-6")}>{children}</CardContent>
+    </ShadCard>
   );
 }

@@ -60,13 +60,13 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div className="stagger-0">
+      <div className="">
         <PageHeading
           crumb={[t("dashboard.crumb_dashboard"), t("dashboard.crumb_overview")]}
           title={t("dashboard.title")}
           subtitle={
             <>
-              <span className="serif-italic">{t("common.tashkent")}</span> ·{" "}
+              <span className="font-semibold italic">{t("common.tashkent")}</span> ·{" "}
               {formatTashkentNow()}
             </>
           }
@@ -74,13 +74,13 @@ export default function Dashboard() {
       </div>
 
       {isError && (
-        <div className="mt-6 caption text-risk border-l-2 border-risk pl-3 stagger-1">
+        <div className="mt-6 caption text-red-700 dark:text-red-400 border-l-2 border-red-500 pl-3">
           {t("common.error")}
         </div>
       )}
 
       {/* Row 1 — lede (2/3) + stacked stats (1/3) */}
-      <div className="mt-10 grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-6 items-stretch stagger-1">
+      <div className="mt-10 grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-6 items-stretch">
         <LedeOrdersCard
           value={data?.today.orders.count}
           prev={data?.yesterday.orders.count ?? 0}
@@ -107,7 +107,7 @@ export default function Dashboard() {
 
       {/* Row 2 — full-width chart card */}
       <Card
-        className="mt-8 stagger-2"
+        className="mt-8"
         eyebrow={t("dashboard.last_30_days")}
         title={t("dashboard.orders_and_payments")}
       >
@@ -159,7 +159,7 @@ export default function Dashboard() {
       </Card>
 
       {/* Row 3 — workers (1/3) + activity (2/3) */}
-      <div className="mt-8 grid grid-cols-1 xl:grid-cols-[1fr_2fr] gap-6 items-stretch stagger-3">
+      <div className="mt-8 grid grid-cols-1 xl:grid-cols-[1fr_2fr] gap-6 items-stretch">
         <Card eyebrow={t("dashboard.report_workers")} title={t("dashboard.register")}>
           {(data?.worker_health ?? []).length === 0 && !isLoading && (
             <Phrase kind="empty" />
@@ -168,10 +168,10 @@ export default function Dashboard() {
             {(data?.worker_health ?? []).map((w, i, arr) => {
               const wTone = workerTone(w.last_recent_at, w.last_error_at);
               const railClass = {
-                live: "bg-good",
-                failed: "bg-risk",
-                quiet: "bg-ink-3",
-                staged: "bg-warn",
+                live: "bg-emerald-500",
+                failed: "bg-red-500",
+                quiet: "bg-foreground-3",
+                staged: "bg-amber-500",
               }[wTone];
               const failed = wTone === "failed";
               return (
@@ -179,7 +179,7 @@ export default function Dashboard() {
                   key={w.key}
                   className={[
                     "relative pl-4 py-3",
-                    i < arr.length - 1 ? "border-b border-rule" : "",
+                    i < arr.length - 1 ? "border-b border-border" : "",
                   ].join(" ")}
                 >
                   <span
@@ -187,12 +187,12 @@ export default function Dashboard() {
                     className={`absolute left-0 top-3 bottom-3 w-[2px] ${railClass}`}
                   />
                   <div className="flex items-baseline justify-between gap-3">
-                    <span className="mono text-mono-sm text-ink">{w.key}</span>
+                    <span className="font-mono text-xs text-foreground">{w.key}</span>
                     <StatusPill tone={wTone} pulse={wTone === "live"}>
                       {failed ? t("dashboard.failed") : t("dashboard.live")}
                     </StatusPill>
                   </div>
-                  <div className="mt-1 caption text-ink-2">
+                  <div className="mt-1 caption text-foreground/80">
                     <RelativeTime iso={w.last_recent_at ?? w.last_all_at} />
                   </div>
                 </div>
@@ -211,18 +211,18 @@ export default function Dashboard() {
                 key={i}
                 className={[
                   "relative pl-4 py-3 flex items-baseline justify-between gap-4",
-                  i < arr.length - 1 ? "border-b border-rule" : "",
+                  i < arr.length - 1 ? "border-b border-border" : "",
                 ].join(" ")}
               >
                 <span
                   aria-hidden
                   className={[
                     "absolute left-0 top-3 bottom-3 w-[2px]",
-                    a.kind === "payment" ? "bg-mark" : "bg-ink",
+                    a.kind === "payment" ? "bg-primary" : "bg-foreground",
                   ].join(" ")}
                 />
                 <div className="flex items-baseline gap-4 min-w-0">
-                  <span className="mono text-mono-sm text-ink-3 tabular-nums shrink-0">
+                  <span className="font-mono text-xs text-muted-foreground tabular-nums shrink-0">
                     {new Date(a.ts).toLocaleTimeString("en-GB", {
                       timeZone: "Asia/Tashkent",
                       hour: "2-digit",
@@ -232,18 +232,18 @@ export default function Dashboard() {
                   </span>
                   <span
                     className={[
-                      "eyebrow shrink-0",
-                      a.kind === "payment" ? "text-mark" : "",
+                      "text-xs text-muted-foreground uppercase tracking-wider font-medium shrink-0",
+                      a.kind === "payment" ? "text-primary" : "",
                     ].join(" ")}
                   >
                     {t(`dashboard.kind_${a.kind}`)}
                   </span>
-                  <span className="text-body text-ink truncate">
+                  <span className="text-sm text-foreground truncate">
                     {a.subject ?? "—"}
                   </span>
                 </div>
                 {a.amount != null && (
-                  <span className="serif nums text-body text-ink tabular-nums shrink-0">
+                  <span className="nums text-sm text-foreground tabular-nums shrink-0">
                     {a.amount.toLocaleString("en-US", {
                       maximumFractionDigits: 2,
                     })}
@@ -260,7 +260,7 @@ export default function Dashboard() {
 
 /**
  * Lede card — the front-page story. Composes as 2 columns at xl:
- *   LEFT  → eyebrow + italic trend + week-total marginalia
+ *   LEFT  → text-xs text-muted-foreground uppercase tracking-wider font-medium + italic trend + week-total marginalia
  *   RIGHT → 96px tabular number + 120px sparkline directly beneath it
  *           with a baseline hairline, 8% mark area fill, and a mark dot
  *           + halo at the rightmost point.
@@ -284,14 +284,14 @@ function LedeOrdersCard({
       : undefined;
   return (
     <Card className="relative flex flex-col min-h-[260px]" accent>
-      <div className="eyebrow">{t("dashboard.orders_today")}</div>
+      <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">{t("dashboard.orders_today")}</div>
 
       {/* Mobile / tablet: stacked. xl: 2-column composition. */}
       <div className="flex-1 mt-6 xl:mt-0 xl:grid xl:grid-cols-[1fr_1.4fr] xl:gap-10 xl:items-end">
         {/* LEFT — marginalia */}
         <div className="xl:pb-2 order-2 xl:order-none">
           {trend && (
-            <div className="caption italic text-ink-2 leading-relaxed">
+            <div className="caption italic text-foreground/80 leading-relaxed">
               {trend.arrow && (
                 <span
                   className={`not-italic mr-1.5 text-[15px] font-semibold ${trend.toneClass}`}
@@ -304,18 +304,18 @@ function LedeOrdersCard({
           )}
           {weekTotal != null && (
             <div className="mt-5">
-              <div className="eyebrow">{t("dashboard.last_7_days")}</div>
-              <div className="mt-1.5 serif nums text-stat-md text-ink tabular-nums leading-none">
+              <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">{t("dashboard.last_7_days")}</div>
+              <div className="mt-1.5 nums text-2xl text-foreground tabular-nums leading-none">
                 {weekTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </div>
-              <div className="caption text-ink-3 mt-1">USD</div>
+              <div className="caption text-muted-foreground mt-1">USD</div>
             </div>
           )}
         </div>
 
         {/* RIGHT — number + sparkline */}
         <div className="order-1 xl:order-none flex flex-col items-end xl:items-stretch">
-          <div className="serif nums text-[96px] leading-none text-ink tabular-nums self-end">
+          <div className="nums text-[96px] leading-none text-foreground tabular-nums self-end">
             {value != null ? value.toLocaleString() : "—"}
           </div>
           <LedeSparkline data={sparkline} />
@@ -377,16 +377,16 @@ function LedeSparkline({ data }: { data: { day: string; orders: number }[] }) {
           />
         </ComposedChart>
       </ResponsiveContainer>
-      {/* End-point label ("today's count") in small serif. */}
-      <div className="absolute right-0 -bottom-5 caption text-ink-3 mono tabular-nums">
+      {/* End-point label ("today's count") in small . */}
+      <div className="absolute right-0 -bottom-5 caption text-muted-foreground font-mono tabular-nums">
         {last.orders.toLocaleString()}
       </div>
     </div>
   );
 }
 
-/** Editorial chart tooltip — paper card with a vermilion edge rail, eyebrow
- *  label, and dotted-leader rows per series. Matches the Drawer voice. */
+/** Editorial chart tooltip — paper card with a vermilion edge rail, text-xs text-muted-foreground uppercase tracking-wider font-medium
+ *  label, and border-b border-dotted border-border flex-1 mx-2 rows per series. Matches the Drawer voice. */
 function ChartTooltip({
   active,
   payload,
@@ -399,19 +399,19 @@ function ChartTooltip({
   if (!active || !payload || payload.length === 0) return null;
   return (
     <div
-      className="relative bg-card border border-rule rounded-[8px] py-2.5 pl-4 pr-4"
+      className="relative bg-card border border-border rounded-[8px] py-2.5 pl-4 pr-4"
       style={{ minWidth: 200, boxShadow: "0 2px 8px rgba(26,23,19,0.06)" }}
     >
       <span
         aria-hidden
-        className="absolute left-0 top-1.5 bottom-1.5 w-[2px] bg-mark rounded-r"
+        className="absolute left-0 top-1.5 bottom-1.5 w-[2px] bg-primary rounded-r"
       />
-      <div className="eyebrow mb-1.5 tabular-nums">{label}</div>
+      <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-1.5 tabular-nums">{label}</div>
       {payload.map((p) => (
         <div key={p.name} className="flex items-baseline gap-2 py-0.5">
-          <span className="caption text-ink-2 capitalize">{p.name}</span>
-          <span className="flex-1 border-b border-dotted border-rule translate-y-[-3px] min-w-[8px]" />
-          <span className="serif nums text-body text-ink tabular-nums">
+          <span className="caption text-foreground/80 capitalize">{p.name}</span>
+          <span className="flex-1 border-b border-dotted border-border translate-y-[-3px] min-w-[8px]" />
+          <span className="nums text-sm text-foreground tabular-nums">
             {p.value.toLocaleString("en-US")}
           </span>
         </div>
@@ -424,19 +424,19 @@ function ChartLegend() {
   const { t } = useTranslation();
   return (
     <div className="flex items-center gap-6 caption">
-      <span className="inline-flex items-center gap-2 text-ink-2">
+      <span className="inline-flex items-center gap-2 text-foreground/80">
         <span
           aria-hidden
-          className="block w-[10px] h-[2px] bg-ink"
+          className="block w-[10px] h-[2px] bg-foreground"
         />
-        <span className="eyebrow">{t("dashboard.kind_order")}</span>
+        <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">{t("dashboard.kind_order")}</span>
       </span>
-      <span className="inline-flex items-center gap-2 text-ink-2">
+      <span className="inline-flex items-center gap-2 text-foreground/80">
         <span
           aria-hidden
-          className="block w-[10px] h-[2px] bg-mark"
+          className="block w-[10px] h-[2px] bg-primary"
         />
-        <span className="eyebrow">{t("dashboard.kind_payment")}</span>
+        <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">{t("dashboard.kind_payment")}</span>
       </span>
     </div>
   );
@@ -462,12 +462,12 @@ function deltaTrend(
     return {
       arrow: "—",
       text: t("dashboard.trend_no_change_from_yesterday"),
-      toneClass: "text-ink-3",
+      toneClass: "text-muted-foreground",
     };
   return {
     arrow: d > 0 ? "↗" : "↘",
     text: `${Math.abs(d).toLocaleString()}${suffix}`,
-    toneClass: d > 0 ? "text-good" : "text-risk",
+    toneClass: d > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400",
   };
 }
 

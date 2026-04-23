@@ -1,6 +1,16 @@
 import { ReactNode } from "react";
+import { ChevronRight, ArrowUp, ArrowDown } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { RuledLoader, Phrase } from "./Loader";
 import { useIsMobile } from "../lib/media";
+import { cn } from "@/lib/utils";
 
 export type Density = "compact" | "comfortable";
 
@@ -14,11 +24,8 @@ export interface Column<R> {
   width?: string;
   filter?: ReactNode;
   hasActiveFilter?: boolean;
-  /** If set, header label is a clickable sort toggle. */
   sort?: "asc" | "desc" | null;
-  /** Marks the column that should be the "headline" of the card on mobile. */
   mobilePrimary?: boolean;
-  /** Hide this column in the mobile card view (too noisy / redundant). */
   mobileHidden?: boolean;
 }
 
@@ -37,9 +44,7 @@ export default function DataTable<R extends Record<string, unknown>>({
   rows: R[];
   onRowClick?: (row: R) => void;
   onSort?: (col: string) => void;
-  /** Key of the currently-selected row (e.g. the one whose drawer is open). */
   activeKey?: string | number | null;
-  /** Function to derive the row's key for matching activeKey. Falls back to index. */
   rowKey?: (row: R, index: number) => string | number;
   density?: Density;
   emptyPhrase?: "empty" | "filtered";
@@ -61,147 +66,120 @@ export default function DataTable<R extends Record<string, unknown>>({
     );
   }
 
-  const rowH = density === "compact" ? 36 : 44;
+  const rowH = density === "compact" ? 40 : 52;
   const showChevron = !!onRowClick;
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-separate border-spacing-0">
-        <thead>
-          <tr>
+      <Table>
+        <TableHeader>
+          <TableRow>
             {columns.map((c) => (
-              <th
+              <TableHead
                 key={c.name}
-                className={[
-                  "h-11 px-4 border-b-[1.5px] border-ink sticky top-0 bg-card z-10 whitespace-nowrap",
-                  "font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-ink",
-                  c.numeric ? "text-right" : "text-left",
-                ].join(" ")}
+                className={cn(
+                  "whitespace-nowrap sticky top-0 bg-background z-10",
+                  c.numeric && "text-right",
+                )}
                 style={c.width ? { width: c.width, minWidth: c.width } : undefined}
               >
                 <div
-                  className={[
-                    "inline-flex items-center gap-1.5 relative",
-                    c.numeric ? "flex-row-reverse" : "",
-                  ].join(" ")}
+                  className={cn(
+                    "inline-flex items-center gap-1.5",
+                    c.numeric && "flex-row-reverse",
+                  )}
                 >
                   {c.filter}
                   <button
                     type="button"
                     onClick={() => onSort?.(c.name)}
-                    className={`inline-flex items-center gap-1 ${onSort ? "hover:text-ink" : "cursor-default"}`}
+                    className={cn(
+                      "inline-flex items-center gap-1",
+                      onSort ? "hover:text-foreground cursor-pointer" : "cursor-default",
+                    )}
                     disabled={!onSort}
                   >
                     <span>{c.label}</span>
-                    {c.sort && (
-                      <span className="text-[9px] leading-none text-mark">
-                        {c.sort === "asc" ? "▲" : "▼"}
-                      </span>
-                    )}
+                    {c.sort === "asc" && <ArrowUp className="h-3 w-3 text-primary" />}
+                    {c.sort === "desc" && <ArrowDown className="h-3 w-3 text-primary" />}
                   </button>
                   {c.hasActiveFilter && (
                     <span
-                      className="w-1.5 h-1.5 rounded-full bg-mark"
+                      className="w-1.5 h-1.5 rounded-full bg-primary"
                       aria-label="filter active"
                     />
                   )}
                 </div>
-              </th>
+              </TableHead>
             ))}
-            {showChevron && (
-              <th
-                className="h-11 border-b border-rule sticky top-0 bg-card z-10"
-                style={{ width: 36 }}
-                aria-hidden
-              />
-            )}
-          </tr>
-        </thead>
-        <tbody>
+            {showChevron && <TableHead style={{ width: 36 }} aria-hidden />}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {loading && (
-            <tr>
-              <td colSpan={columns.length + (showChevron ? 1 : 0)} className="p-0">
+            <TableRow>
+              <TableCell colSpan={columns.length + (showChevron ? 1 : 0)} className="p-0">
                 <RuledLoader />
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           )}
           {!loading && rows.length === 0 && (
-            <tr>
-              <td colSpan={columns.length + (showChevron ? 1 : 0)}>
+            <TableRow>
+              <TableCell colSpan={columns.length + (showChevron ? 1 : 0)}>
                 <Phrase
                   kind={emptyPhrase === "filtered" ? "filtered" : "empty"}
                   className="py-14"
                 />
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           )}
           {!loading &&
             rows.map((r, i) => {
               const key = rowKey ? rowKey(r, i) : i;
-              const isActive = activeKey !== undefined && activeKey !== null && key === activeKey;
+              const isActive =
+                activeKey !== undefined && activeKey !== null && key === activeKey;
               return (
-                <tr
+                <TableRow
                   key={key}
                   onClick={() => onRowClick?.(r)}
-                  className={[
-                    "group transition-colors relative",
-                    onRowClick ? "cursor-pointer hover:bg-mark-bg/40" : "",
-                    isActive ? "bg-mark-bg/60" : "",
-                  ].join(" ")}
+                  data-state={isActive ? "selected" : undefined}
+                  className={cn(
+                    "group",
+                    onRowClick && "cursor-pointer",
+                  )}
                   style={{ height: rowH }}
                 >
-                  {columns.map((c, colIdx) => (
-                    <td
+                  {columns.map((c) => (
+                    <TableCell
                       key={c.name}
-                      className={[
-                        "px-4 border-b border-rule whitespace-nowrap relative",
-                        c.numeric ? "text-right" : "overflow-hidden text-ellipsis",
-                        c.idColumn ? "mono text-mono-sm text-ink-2" : "text-body text-ink",
-                        c.numeric ? "serif nums" : "",
-                      ].join(" ")}
+                      className={cn(
+                        "whitespace-nowrap",
+                        c.numeric && "text-right tabular-nums",
+                        c.idColumn && "font-mono text-xs text-muted-foreground",
+                      )}
                       style={{
                         width: c.width ?? undefined,
                         maxWidth: c.width ?? undefined,
-                        height: rowH,
                       }}
                       title={c.numeric ? undefined : stringify(r[c.name])}
                     >
-                      {isActive && colIdx === 0 && (
-                        <span
-                          aria-hidden
-                          className="absolute left-0 top-0 bottom-0 w-[2px] bg-mark"
-                        />
-                      )}
                       {c.render ? c.render(r) : formatCell(r[c.name], c)}
-                    </td>
+                    </TableCell>
                   ))}
                   {showChevron && (
-                    <td
-                      className="px-2 border-b border-rule text-center"
-                      style={{ width: 36, height: rowH }}
-                    >
-                      <span
-                        aria-hidden
-                        className="serif text-[16px] text-ink-3 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-mark transition-[opacity,transform] duration-150 inline-block"
-                      >
-                        ›
-                      </span>
-                    </td>
+                    <TableCell className="w-9 text-center">
+                      <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </TableCell>
                   )}
-                </tr>
+                </TableRow>
               );
             })}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }
 
-/**
- * Stacked card layout for mobile. Each row becomes a card; each column becomes
- * an eyebrow label with its value right-aligned. The first non-hidden column
- * (or the one flagged `mobilePrimary`) doubles as the card's headline strip.
- */
 function CardList<R extends Record<string, unknown>>({
   columns,
   rows,
@@ -220,8 +198,7 @@ function CardList<R extends Record<string, unknown>>({
   loading?: boolean;
 }) {
   const visible = columns.filter((c) => !c.mobileHidden);
-  const headlineCol =
-    visible.find((c) => c.mobilePrimary) ?? visible[0] ?? null;
+  const headlineCol = visible.find((c) => c.mobilePrimary) ?? visible[0] ?? null;
   const restCols = visible.filter((c) => c.name !== headlineCol?.name);
 
   if (loading) return <RuledLoader />;
@@ -238,32 +215,33 @@ function CardList<R extends Record<string, unknown>>({
     <ul className="flex flex-col">
       {rows.map((r, i) => {
         const key = rowKey ? rowKey(r, i) : i;
-        const isActive = activeKey !== undefined && activeKey !== null && key === activeKey;
+        const isActive =
+          activeKey !== undefined && activeKey !== null && key === activeKey;
         const Element = onRowClick ? "button" : "div";
         return (
-          <li key={key} className="border-b border-rule last:border-b-0">
+          <li key={key} className="border-b last:border-b-0">
             <Element
               {...(onRowClick
                 ? { type: "button" as const, onClick: () => onRowClick(r) }
                 : {})}
-              className={[
-                "group w-full text-left py-3 px-1 relative transition-colors",
-                onRowClick ? "cursor-pointer active:bg-paper-2" : "",
-                isActive ? "bg-paper-2" : "",
-              ].join(" ")}
+              className={cn(
+                "w-full text-left py-3 px-1 relative transition-colors",
+                onRowClick && "cursor-pointer active:bg-muted",
+                isActive && "bg-muted",
+              )}
             >
               {isActive && (
                 <span
                   aria-hidden
-                  className="absolute left-0 top-2 bottom-2 w-[2px] bg-mark"
+                  className="absolute left-0 top-2 bottom-2 w-[2px] bg-primary"
                 />
               )}
               {headlineCol && (
                 <div
-                  className={[
-                    "text-body text-ink pl-3 pr-2",
-                    headlineCol.idColumn ? "mono text-mono-sm text-ink-2" : "",
-                  ].join(" ")}
+                  className={cn(
+                    "text-sm text-foreground pl-3 pr-2",
+                    headlineCol.idColumn && "font-mono text-xs text-muted-foreground",
+                  )}
                 >
                   {headlineCol.render
                     ? headlineCol.render(r)
@@ -273,15 +251,19 @@ function CardList<R extends Record<string, unknown>>({
               {restCols.length > 0 && (
                 <dl className="mt-2 pl-3 pr-2 flex flex-col gap-1">
                   {restCols.map((c) => (
-                    <div key={c.name} className="flex items-baseline gap-2">
-                      <dt className="eyebrow shrink-0">{c.label}</dt>
-                      <span className="dotted-leader" />
+                    <div
+                      key={c.name}
+                      className="flex items-baseline gap-2 justify-between"
+                    >
+                      <dt className="text-xs text-muted-foreground uppercase tracking-wider shrink-0">
+                        {c.label}
+                      </dt>
                       <dd
-                        className={[
+                        className={cn(
                           "shrink-0 text-right",
-                          c.idColumn ? "mono text-mono-sm text-ink-2" : "text-ink",
-                          c.numeric ? "serif nums tabular-nums" : "text-body",
-                        ].join(" ")}
+                          c.idColumn && "font-mono text-xs text-muted-foreground",
+                          c.numeric ? "tabular-nums" : "text-sm text-foreground",
+                        )}
                         style={{ maxWidth: "60%" }}
                       >
                         {c.render ? c.render(r) : formatCell(r[c.name], c)}
@@ -305,7 +287,8 @@ function stringify(v: unknown): string {
 }
 
 function formatCell<R>(value: unknown, col: Column<R>): ReactNode {
-  if (value == null || value === "") return <span className="text-ink-3">—</span>;
+  if (value == null || value === "")
+    return <span className="text-muted-foreground">—</span>;
   if (col.numeric) {
     const n = typeof value === "number" ? value : Number(value);
     if (Number.isNaN(n)) return String(value);
@@ -317,9 +300,7 @@ function formatCell<R>(value: unknown, col: Column<R>): ReactNode {
       return (
         <div className="flex flex-col items-end leading-tight">
           <span>{formatted}</span>
-          <span className="caption text-ink-3 not-italic font-sans font-normal">
-            {col.currency}
-          </span>
+          <span className="text-xs text-muted-foreground">{col.currency}</span>
         </div>
       );
     }

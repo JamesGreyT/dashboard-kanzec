@@ -1,21 +1,15 @@
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+
 export type StatusTone = "live" | "staged" | "failed" | "quiet";
 
-/**
- * Status pill — Folio vocabulary.
- *
- *   live   → filled good-bg wash + good text + leading 6px dot (pulses
- *            at ~1.4Hz only when `pulse=true`)
- *   staged → filled warn wash
- *   failed → filled risk wash
- *   quiet  → filled quiet wash
- *
- * Labels render in uppercase mono with 0.05em tracking (matches the Folio
- * preview).  Dot always leads and uses currentColor so tone reads as one.
- *
- * Only one pulsing dot should exist globally at a time — the Dashboard's
- * worker panel sets `pulse`; Ops shows multiple `live` report cards, so
- * pulse is omitted there to keep the eye from fidgeting.
- */
+const toneClass: Record<StatusTone, string> = {
+  live: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border-transparent hover:bg-emerald-100",
+  staged: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-transparent hover:bg-amber-100",
+  failed: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300 border-transparent hover:bg-red-100",
+  quiet: "bg-muted text-muted-foreground border-transparent hover:bg-muted",
+};
+
 export default function StatusPill({
   tone,
   children,
@@ -25,27 +19,16 @@ export default function StatusPill({
   children: React.ReactNode;
   pulse?: boolean;
 }) {
-  const toneClass = {
-    live:   "bg-good-bg text-good",
-    staged: "bg-warn-bg text-warn",
-    failed: "bg-risk-bg text-risk",
-    quiet:  "bg-quiet-bg text-quiet",
-  }[tone];
   return (
-    <span
-      className={[
-        "inline-flex items-center gap-1.5 h-[22px] px-3 rounded-chip font-mono text-[11px] font-semibold uppercase tracking-[0.05em] whitespace-nowrap",
-        toneClass,
-      ].join(" ")}
-    >
+    <Badge className={cn("gap-1.5 font-normal", toneClass[tone])}>
       <span
         aria-hidden
-        className={[
-          "block w-[6px] h-[6px] rounded-full bg-current shrink-0",
-          tone === "live" && pulse ? "animate-live-pulse" : "",
-        ].join(" ")}
+        className={cn(
+          "block w-1.5 h-1.5 rounded-full bg-current shrink-0",
+          tone === "live" && pulse && "animate-pulse",
+        )}
       />
       {children}
-    </span>
+    </Badge>
   );
 }

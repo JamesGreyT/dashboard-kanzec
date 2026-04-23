@@ -9,7 +9,7 @@ export default function RelativeTime({ iso }: { iso: string | null | undefined }
     const interval = setInterval(() => tick((n) => n + 1), 15_000);
     return () => clearInterval(interval);
   }, []);
-  if (!iso) return <span className="text-ink-3">—</span>;
+  if (!iso) return <span className="text-muted-foreground">—</span>;
   const d = new Date(iso);
   const diff = (Date.now() - d.getTime()) / 1000;
   if (isNaN(diff)) return <span>—</span>;

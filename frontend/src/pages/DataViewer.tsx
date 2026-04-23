@@ -13,7 +13,7 @@ import { useTranslation } from "react-i18next";
 import { api, ApiError, getAccessToken } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import PageHeading from "../components/PageHeading";
-import { GlyphSvg } from "../components/Sidebar";
+import { Package, Wallet, Building2 } from "lucide-react";
 import Card from "../components/Card";
 import DataTable, { Column, Density } from "../components/DataTable";
 import Drawer from "../components/Drawer";
@@ -271,8 +271,8 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
               }}
               className={`h-5 w-5 grid place-items-center rounded-sm transition-colors ${
                 openFilterCol === c.name || hasActive(filters[c.name])
-                  ? "text-mark"
-                  : "text-ink-3 hover:text-ink"
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
               aria-label={`Filter ${c.label}`}
             >
@@ -361,38 +361,38 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
 
   return (
     <div>
-      <div className="stagger-0">
+      <div className="">
         {locked && activeTable ? (
           <div>
-            <div className="caption text-ink-3">
+            <div className="caption text-muted-foreground">
               <span>{t("dashboard.crumb_dashboard")}</span>
               <span className="mx-2">·</span>
               <span>{t("data.crumb_data")}</span>
               <span className="mx-2">·</span>
-              <span className="text-ink-2">
+              <span className="text-foreground/80">
                 {t(TABLE_LABEL_KEYS[activeTable.key] ?? activeTable.label)}
               </span>
             </div>
             <div className="mt-2 flex items-center gap-4">
               <TableGlyph kind={lockedIcon} />
-              <h1 className="serif text-heading-lg text-ink leading-none">
+              <h1 className="text-4xl font-semibold tracking-tight text-foreground leading-none">
                 {lockedTitleKey ? t(lockedTitleKey) : activeTable.label}
-                <span className="mark-stop">.</span>
+                <span className="">.</span>
               </h1>
             </div>
             {lockedSubtitleKey && (
-              <p className="text-body text-ink-2 mt-3 max-w-2xl">
+              <p className="text-sm text-foreground/80 mt-3 max-w-2xl">
                 {t(lockedSubtitleKey)}
               </p>
             )}
             {rowsQ.data && (
-              <p className="caption text-ink-3 mt-2 tabular-nums">
+              <p className="caption text-muted-foreground mt-2 tabular-nums">
                 {t("data.subtitle_rows", {
                   n: rowsQ.data.total.toLocaleString(),
                 })}
               </p>
             )}
-            <div className="leader mt-6" />
+            <div className="border-t border-border my-3 mt-6" />
           </div>
         ) : (
           <PageHeading
@@ -416,7 +416,7 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
       {/* Table tabs — hidden in locked mode where the page is dedicated to
           a single table (each has its own sidebar entry + URL). */}
       {!locked && (
-      <div className="stagger-1 mt-8 flex items-center gap-6 border-b border-rule">
+      <div className="mt-8 flex items-center gap-6 border-b border-border">
         {tablesList.map((tab) => (
           <button
             key={tab.key}
@@ -427,10 +427,10 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
               setOpenRowIdx(null);
             }}
             className={[
-              "pb-3 text-label transition-colors",
+              "pb-3 text-sm transition-colors",
               tab.key === activeKey
-                ? "text-mark border-b-2 border-mark -mb-px"
-                : "text-ink-2 hover:text-ink border-b-2 border-transparent",
+                ? "text-primary border-b-2 border-primary -mb-px"
+                : "text-foreground/80 hover:text-foreground border-b-2 border-transparent",
             ].join(" ")}
           >
             {t(TABLE_LABEL_KEYS[tab.key] ?? tab.label)}
@@ -440,7 +440,7 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
       )}
 
       {/* Top strip — search + density toggle + CSV */}
-      <div className="stagger-2 mt-6 flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+      <div className="mt-6 flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
         <div className="flex-1">
           <Input
             placeholder={t("data.search_placeholder")}
@@ -454,15 +454,15 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
         </div>
         <div className="flex items-center justify-between md:justify-end gap-4">
           {/* Density toggle is meaningless in card view — hide on mobile. */}
-          <div className="hidden md:flex items-center gap-3 caption text-ink-3">
+          <div className="hidden md:flex items-center gap-3 caption text-muted-foreground">
             <span>{t("common.density")}</span>
             <button
               type="button"
               onClick={() => setDensity("compact")}
               className={`caption transition-colors ${
                 density === "compact"
-                  ? "text-mark underline decoration-mark underline-offset-[3px]"
-                  : "text-ink-2 hover:text-ink"
+                  ? "text-primary underline decoration-primary underline-offset-[3px]"
+                  : "text-foreground/80 hover:text-foreground"
               }`}
             >
               {t("common.compact")}
@@ -473,8 +473,8 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
               onClick={() => setDensity("comfortable")}
               className={`caption transition-colors ${
                 density === "comfortable"
-                  ? "text-mark underline decoration-mark underline-offset-[3px]"
-                  : "text-ink-2 hover:text-ink"
+                  ? "text-primary underline decoration-primary underline-offset-[3px]"
+                  : "text-foreground/80 hover:text-foreground"
               }`}
             >
               {t("common.comfortable")}
@@ -486,9 +486,9 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
               type="button"
               onClick={() => setAddFilterMenuOpen((o) => !o)}
               disabled={!activeTable}
-              className="inline-flex items-center justify-center gap-2 h-10 px-4 text-label font-medium rounded-[10px] transition-colors active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 bg-transparent text-ink-2 border border-rule hover:bg-paper-2 hover:text-ink"
+              className="inline-flex items-center justify-center gap-2 h-10 px-4 text-sm font-medium rounded-[10px] transition-colors active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 bg-transparent text-foreground/80 border border-border hover:bg-muted hover:text-foreground"
             >
-              <span aria-hidden className="text-ink-3">+</span>
+              <span aria-hidden className="text-muted-foreground">+</span>
               {t("data.add_filter")}
             </button>
             {addFilterMenuOpen && activeTable && (
@@ -552,15 +552,15 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
                 <button
                   key={`${chip.col}-${chip.op}-${i}`}
                   onClick={() => updateFilter(chip.col, undefined)}
-                  className="group inline-flex items-center gap-2 h-7 pl-3 pr-2 rounded-full bg-mark-bg/60 hover:bg-mark-bg border border-mark-2/70 hover:border-mark transition-colors caption text-ink"
+                  className="group inline-flex items-center gap-2 h-7 pl-3 pr-2 rounded-full bg-primary/10/60 hover:bg-primary/10 border border-primary-2/70 hover:border-primary transition-colors caption text-foreground"
                   title="Click to remove"
                 >
-                  <span className="text-ink-2">{colMeta.label}</span>
-                  <span className="mono text-mono-xs text-ink-3">{chip.op}</span>
-                  <span className="text-ink tabular-nums">{chip.val}</span>
+                  <span className="text-foreground/80">{colMeta.label}</span>
+                  <span className="font-mono text-xs text-muted-foreground">{chip.op}</span>
+                  <span className="text-foreground tabular-nums">{chip.val}</span>
                   <span
                     aria-hidden
-                    className="serif text-[16px] leading-none text-ink-3 group-hover:text-mark transition-colors ml-0.5"
+                    className="text-[16px] leading-none text-muted-foreground group-hover:text-primary transition-colors ml-0.5"
                   >
                     ✕
                   </span>
@@ -569,7 +569,7 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
             })}
             <button
               onClick={clearAllFilters}
-              className="caption text-ink-2 hover:text-mark hover:underline decoration-mark underline-offset-[3px] ml-2"
+              className="caption text-foreground/80 hover:text-primary hover:underline decoration-primary underline-offset-[3px] ml-2"
             >
               {t("common.clear_all")}
             </button>
@@ -577,7 +577,7 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
         )}
       </AnimatePresence>
 
-      <Card className="stagger-3 mt-4 p-0 overflow-hidden">
+      <Card className="mt-4 p-0 overflow-hidden">
         <DataTable
           columns={columns}
           rows={rows}
@@ -615,7 +615,7 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
         onNext={openRowIdx != null && openRowIdx < rows.length - 1 ? () => setOpenRowIdx(openRowIdx + 1) : undefined}
         footer={
           openRowIdx != null && rows.length > 0 ? (
-            <div className="caption text-ink-3 tabular-nums flex items-center justify-between">
+            <div className="caption text-muted-foreground tabular-nums flex items-center justify-between">
               <span>
                 {t("data.drawer_row_of_page", {
                   n: openRowIdx + 1,
@@ -623,8 +623,8 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
                 })}
               </span>
               <span>
-                <kbd className="mono text-mono-xs">←</kbd>{" "}
-                <kbd className="mono text-mono-xs">→</kbd>{" "}
+                <kbd className="font-mono text-xs">←</kbd>{" "}
+                <kbd className="font-mono text-xs">→</kbd>{" "}
                 {t("data.drawer_nav_hint")}
               </span>
             </div>
@@ -638,15 +638,15 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
                 key={c.name}
                 className="flex items-baseline gap-2 py-1.5"
               >
-                <span className="eyebrow text-right shrink-0" style={{ width: 140 }}>
+                <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium text-right shrink-0" style={{ width: 140 }}>
                   {c.label}
                 </span>
-                <span className="dotted-leader" />
+                <span className="border-b border-dotted border-border flex-1 mx-2" />
                 <span
                   className={[
-                    "text-body shrink-0 text-right",
-                    c.id_column ? "mono text-mono-sm text-ink-2" : "text-ink",
-                    c.numeric ? "serif nums tabular-nums" : "",
+                    "text-sm shrink-0 text-right",
+                    c.id_column ? "font-mono text-xs text-foreground/80" : "text-foreground",
+                    c.numeric ? " nums tabular-nums" : "",
                   ].join(" ")}
                   style={{ maxWidth: "60%" }}
                 >
@@ -677,12 +677,12 @@ function widthFor(c: {
 }
 
 function formatDetail(v: unknown, currency: string | null) {
-  if (v == null || v === "") return <span className="text-ink-3">—</span>;
+  if (v == null || v === "") return <span className="text-muted-foreground">—</span>;
   if (typeof v === "number") {
     const s = v.toLocaleString("en-US", { maximumFractionDigits: 4 });
     return currency ? (
       <span>
-        {s} <span className="caption text-ink-3 font-sans not-italic">{currency}</span>
+        {s} <span className="caption text-muted-foreground font-sans not-italic">{currency}</span>
       </span>
     ) : (
       s
@@ -802,7 +802,7 @@ function DirectionCell({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -2 }}
             transition={{ duration: 0.18 }}
-            className="serif-italic caption text-good pointer-events-none"
+            className="font-semibold italic caption text-emerald-700 dark:text-emerald-400 pointer-events-none"
           >
             ✓
           </motion.span>
@@ -813,7 +813,7 @@ function DirectionCell({
             initial={{ opacity: 0, y: 2 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="serif-italic caption text-risk pointer-events-none max-w-[200px] truncate"
+            className="font-semibold italic caption text-red-700 dark:text-red-400 pointer-events-none max-w-[200px] truncate"
             title={error}
           >
             ! {error}
@@ -863,19 +863,19 @@ const DirectionTag = ({
   const isManual = source === "manual";
 
   // Readable tag: normal case, body-size, with a clear chevron so it's
-  // obviously a dropdown trigger (not a tiny obscure mono label).
+  // obviously a dropdown trigger (not a tiny obscure font-mono label).
   const base =
     "inline-flex items-center gap-1.5 rounded-[7px] whitespace-nowrap text-[13px] leading-none transition-colors";
   const idle = isUnset
-    ? "text-ink-3 font-serif italic border border-dashed border-rule-2 px-2.5 py-[5px]"
-    : "text-ink bg-paper-2 border border-rule-2 px-2.5 py-[5px]";
+    ? "text-muted-foreground font- italic border border-dashed border-border px-2.5 py-[5px]"
+    : "text-foreground bg-muted border border-border px-2.5 py-[5px]";
 
   const content = (
     <>
       {isManual && !isUnset && (
         <span
           aria-hidden
-          className="w-1.5 h-1.5 rounded-full bg-mark shrink-0"
+          className="w-1.5 h-1.5 rounded-full bg-primary shrink-0"
           title="manually set"
         />
       )}
@@ -889,7 +889,7 @@ const DirectionTag = ({
           height="9"
           viewBox="0 0 10 10"
           fill="none"
-          className="text-ink-3 shrink-0"
+          className="text-muted-foreground shrink-0"
         >
           <path
             d="M2 3.5 5 6.5 8 3.5"
@@ -915,8 +915,8 @@ const DirectionTag = ({
       className={[
         base,
         idle,
-        "hover:border-ink-3 hover:text-ink",
-        active ? "border-mark text-mark ring-1 ring-mark/30" : "",
+        "hover:border-ink-3 hover:text-foreground",
+        active ? "border-primary text-primary ring-1 ring-ring/$1" : "",
       ].join(" ")}
       title={
         source === "excel"
@@ -1061,28 +1061,28 @@ function DirectionMenu({
       }}
       role="dialog"
       aria-label="Yoʻnalish tanlash"
-      className="rounded-[10px] border border-rule bg-card shadow-[0_20px_60px_-20px_rgba(0,0,0,0.25)] overflow-hidden"
+      className="rounded-[10px] border border-border bg-card shadow-[0_20px_60px_-20px_rgba(0,0,0,0.25)] overflow-hidden"
     >
-      <div className="px-3.5 pt-3 pb-2.5 border-b border-rule bg-paper">
-        <div className="text-[11px] font-medium text-ink-3 uppercase tracking-[0.08em]">
+      <div className="px-3.5 pt-3 pb-2.5 border-b border-border bg-background">
+        <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-[0.08em]">
           Yoʻnalish
         </div>
-        <div className="mt-1 flex items-center gap-2 text-[13.5px] leading-tight text-ink">
-          <span className={current ? "" : "text-ink-3 italic"}>
+        <div className="mt-1 flex items-center gap-2 text-[13.5px] leading-tight text-foreground">
+          <span className={current ? "" : "text-muted-foreground italic"}>
             {current ?? "tanlanmagan"}
           </span>
           {dirty && (
             <>
-              <span className="text-ink-3" aria-hidden>
+              <span className="text-muted-foreground" aria-hidden>
                 →
               </span>
-              <span className="font-semibold text-mark">
+              <span className="font-semibold text-primary">
                 {staged ?? "tanlanmagan"}
               </span>
             </>
           )}
           {pending && (
-            <span className="ml-auto text-[11px] text-ink-3">saqlanmoqda…</span>
+            <span className="ml-auto text-[11px] text-muted-foreground">saqlanmoqda…</span>
           )}
         </div>
       </div>
@@ -1111,10 +1111,10 @@ function DirectionMenu({
                 className={[
                   "w-full text-left px-3.5 py-2 flex items-center gap-2.5 text-[13.5px] transition-colors",
                   isStaged
-                    ? "bg-mark-bg text-mark font-medium"
+                    ? "bg-primary/10 text-primary font-medium"
                     : isFocused
-                      ? "bg-paper-2 text-ink"
-                      : "text-ink",
+                      ? "bg-muted text-foreground"
+                      : "text-foreground",
                   pending ? "cursor-wait opacity-60" : "cursor-pointer",
                 ].join(" ")}
               >
@@ -1123,8 +1123,8 @@ function DirectionMenu({
                   className={[
                     "w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0",
                     isStaged
-                      ? "border-mark bg-mark"
-                      : "border-rule-2 bg-card",
+                      ? "border-primary bg-primary"
+                      : "border-border bg-card",
                   ].join(" ")}
                 >
                   {isStaged && (
@@ -1133,7 +1133,7 @@ function DirectionMenu({
                 </span>
                 <span className="flex-1">{d}</span>
                 {isCurrent && !isStaged && (
-                  <span className="text-[10px] text-ink-3 uppercase tracking-wider">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
                     joriy
                   </span>
                 )}
@@ -1142,8 +1142,8 @@ function DirectionMenu({
           );
         })}
       </ul>
-      <div className="px-3.5 py-2.5 border-t border-rule bg-paper flex items-center justify-between gap-2">
-        <div className="min-w-0 flex-1 flex flex-col text-[11px] leading-tight text-ink-3">
+      <div className="px-3.5 py-2.5 border-t border-border bg-background flex items-center justify-between gap-2">
+        <div className="min-w-0 flex-1 flex flex-col text-[11px] leading-tight text-muted-foreground">
           <span className="truncate">{sourceCopy}</span>
           {renderUpdated() && (
             <span className="truncate">{renderUpdated()}</span>
@@ -1153,7 +1153,7 @@ function DirectionMenu({
           type="button"
           onClick={onClose}
           disabled={pending}
-          className="text-[12.5px] px-3 py-1.5 rounded-[6px] text-ink-2 hover:text-ink hover:bg-paper-2 transition-colors disabled:opacity-50"
+          className="text-[12.5px] px-3 py-1.5 rounded-[6px] text-foreground/80 hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
         >
           Bekor
         </button>
@@ -1164,8 +1164,8 @@ function DirectionMenu({
           className={[
             "text-[12.5px] px-3 py-1.5 rounded-[6px] font-medium transition-colors",
             dirty && staged && !pending
-              ? "bg-mark text-card hover:brightness-110"
-              : "bg-paper-2 text-ink-3 cursor-not-allowed",
+              ? "bg-primary text-card hover:brightness-110"
+              : "bg-muted text-muted-foreground cursor-not-allowed",
           ].join(" ")}
         >
           Saqlash
@@ -1219,13 +1219,13 @@ function SearchIcon() {
  */
 function TableGlyph({ kind }: { kind: "orders" | "payments" | "people" | undefined }) {
   if (!kind) return null;
+  const Icon = kind === "orders" ? Package : kind === "payments" ? Wallet : Building2;
   return (
     <span
       aria-hidden
-      className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-full"
-      style={{ background: "var(--mark-bg)", color: "var(--mark)" }}
+      className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-full bg-muted text-foreground"
     >
-      <GlyphSvg kind={kind} size={22} />
+      <Icon className="h-5 w-5" />
     </span>
   );
 }
@@ -1327,12 +1327,12 @@ function AddFilterMenu({
         visibility: pos ? "visible" : "hidden",
         zIndex: 50,
       }}
-      className="rounded-[10px] border border-rule bg-paper shadow-lg"
+      className="rounded-[10px] border border-border bg-background shadow-lg"
       role="menu"
     >
-      <div className="p-2 border-b border-rule">
-        <div className="flex items-center gap-2 h-9 bg-paper-2 px-2.5 rounded-md border border-rule transition-colors focus-within:border-mark focus-within:ring-2 focus-within:ring-mark/35">
-          <span className="text-ink-3">
+      <div className="p-2 border-b border-border">
+        <div className="flex items-center gap-2 h-9 bg-muted px-2.5 rounded-md border border-border transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-ring/$1">
+          <span className="text-muted-foreground">
             <SearchIcon />
           </span>
           <input
@@ -1341,13 +1341,13 @@ function AddFilterMenu({
             value={search}
             onChange={(e) => onSearch(e.target.value)}
             placeholder={t("data.add_filter_placeholder")}
-            className="flex-1 bg-transparent text-body text-ink outline-none border-0 placeholder:italic placeholder:text-ink-3 min-w-0"
+            className="flex-1 bg-transparent text-sm text-foreground outline-none border-0 placeholder:italic placeholder:text-muted-foreground min-w-0"
           />
         </div>
       </div>
       <div className="max-h-[360px] overflow-y-auto py-1">
         {items.length === 0 && (
-          <div className="px-3 py-6 caption text-ink-3 text-center">
+          <div className="px-3 py-6 caption text-muted-foreground text-center">
             {t("data.add_filter_no_matches")}
           </div>
         )}
@@ -1357,18 +1357,18 @@ function AddFilterMenu({
             <button
               key={c.name}
               onClick={() => onPick(c.name)}
-              className="w-full flex items-center gap-2 px-3 py-2 text-left text-body hover:bg-paper-2 transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted transition-colors"
               role="menuitem"
             >
               <span
                 aria-hidden
                 className={`inline-block h-1.5 w-1.5 rounded-full shrink-0 ${
-                  active ? "bg-mark" : "bg-transparent"
+                  active ? "bg-primary" : "bg-transparent"
                 }`}
               />
-              <span className="text-ink flex-1 truncate">{c.label}</span>
+              <span className="text-foreground flex-1 truncate">{c.label}</span>
               {!c.visible && (
-                <span className="caption text-ink-3 shrink-0">
+                <span className="caption text-muted-foreground shrink-0">
                   {t("data.add_filter_hidden")}
                 </span>
               )}

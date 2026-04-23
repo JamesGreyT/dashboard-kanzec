@@ -1,4 +1,14 @@
 import { ReactNode } from "react";
+import { Fragment } from "react";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Separator } from "@/components/ui/separator";
 
 export default function PageHeading({
   crumb,
@@ -11,22 +21,30 @@ export default function PageHeading({
 }) {
   return (
     <div>
-      <div className="caption text-ink-3">
-        {crumb.map((c, i) => (
-          <span key={i}>
-            {i > 0 && <span className="mx-2">·</span>}
-            <span className={i === crumb.length - 1 ? "text-ink-2" : ""}>{c}</span>
-          </span>
-        ))}
-      </div>
-      <h1 className="serif-italic text-heading-lg text-ink mt-2 leading-none">
+      <Breadcrumb>
+        <BreadcrumbList>
+          {crumb.map((c, i) => {
+            const isLast = i === crumb.length - 1;
+            return (
+              <Fragment key={i}>
+                <BreadcrumbItem>
+                  {isLast ? (
+                    <BreadcrumbPage>{c}</BreadcrumbPage>
+                  ) : (
+                    <BreadcrumbLink>{c}</BreadcrumbLink>
+                  )}
+                </BreadcrumbItem>
+                {!isLast && <BreadcrumbSeparator />}
+              </Fragment>
+            );
+          })}
+        </BreadcrumbList>
+      </Breadcrumb>
+      <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-foreground mt-3 leading-tight">
         {title}
-        <span className="mark-stop">.</span>
       </h1>
-      {subtitle && (
-        <div className="text-body text-ink-2 mt-3">{subtitle}</div>
-      )}
-      <div className="leader mt-6" />
+      {subtitle && <div className="text-sm text-muted-foreground mt-2">{subtitle}</div>}
+      <Separator className="mt-6" />
     </div>
   );
 }

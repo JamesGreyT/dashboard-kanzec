@@ -1,15 +1,15 @@
 import { ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import Card from "./Card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
-/**
- * Almanac stat card. Asymmetric: eyebrow top-left, number right-aligned and
- * larger, leader, trend phrase under the number in small italic caption.
- * The trend's arrow glyph carries the tone; the phrase stays in ink-2 so
- * the only colored element in the card is the number's eyebrow.
- *
- * Number crossfades when the value changes (TanStack Query refetch).
- */
+const trendToneClass: Record<"good" | "risk" | "quiet", string> = {
+  good: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border-transparent",
+  risk: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300 border-transparent",
+  quiet: "bg-muted text-muted-foreground border-transparent",
+};
+
 export default function StatCard({
   label,
   value,
@@ -23,50 +23,37 @@ export default function StatCard({
   trend?: { tone: "good" | "risk" | "quiet"; arrow?: string; text: string };
   children?: ReactNode;
 }) {
-  const chipClass = trend
-    ? {
-        good: "bg-good-bg text-good",
-        risk: "bg-risk-bg text-risk",
-        quiet: "bg-quiet-bg text-quiet",
-      }[trend.tone]
-    : "";
   return (
     <Card className="min-h-[168px] flex flex-col">
-      {/* .eyebrow-mono + leading 5px orange dot — Folio's KPI label voice. */}
-      <div className="eyebrow-mono flex items-center gap-2 before:content-[''] before:w-[5px] before:h-[5px] before:bg-mark before:rounded-full">
-        {label}
-      </div>
-      <div className="flex-1 flex flex-col justify-end items-end">
-        <div
-          className="serif nums text-stat-xl text-ink leading-none font-medium"
-          style={{ fontVariantNumeric: "tabular-nums lining-nums" }}
-        >
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.span
-              key={String(value)}
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 4 }}
-              transition={{ duration: 0.26, ease: [0.2, 0.85, 0.25, 1] }}
-              className="inline-block"
-            >
-              {value}
-            </motion.span>
-          </AnimatePresence>
+      <CardContent className="flex-1 flex flex-col pt-6">
+        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          {label}
         </div>
-        {unit && <div className="caption text-ink-3 mt-1 font-serif italic">{unit}</div>}
-        {trend && (
-          <div
-            className={`mt-3 inline-flex items-center gap-1.5 px-[11px] py-1 rounded-chip font-semibold text-caption tabular-nums ${chipClass}`}
-          >
-            {trend.arrow && (
-              <span className="text-[13px] leading-none">{trend.arrow}</span>
-            )}
-            <span>{trend.text}</span>
+        <div className="flex-1 flex flex-col justify-end items-end mt-4">
+          <div className="text-4xl font-semibold text-foreground leading-none tabular-nums">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.span
+                key={String(value)}
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.26, ease: [0.2, 0.85, 0.25, 1] }}
+                className="inline-block"
+              >
+                {value}
+              </motion.span>
+            </AnimatePresence>
           </div>
-        )}
-        {children}
-      </div>
+          {unit && <div className="text-sm text-muted-foreground mt-1">{unit}</div>}
+          {trend && (
+            <Badge className={cn("mt-3 gap-1 tabular-nums", trendToneClass[trend.tone])}>
+              {trend.arrow && <span>{trend.arrow}</span>}
+              <span>{trend.text}</span>
+            </Badge>
+          )}
+          {children}
+        </div>
+      </CardContent>
     </Card>
   );
 }

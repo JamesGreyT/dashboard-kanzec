@@ -16,7 +16,7 @@ export default function RequireAuth({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-ink-3 caption italic">
+      <div className="min-h-screen flex items-center justify-center text-muted-foreground caption italic">
         {t("common.reading_the_register")}
       </div>
     );
@@ -30,11 +30,11 @@ export default function RequireAuth({
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="max-w-md text-center">
-          <div className="eyebrow text-risk">{t("common.forbidden_code")}</div>
-          <div className="serif text-heading-md text-ink mt-2">
+          <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium text-red-700 dark:text-red-400">{t("common.forbidden_code")}</div>
+          <div className="text-2xl font-semibold tracking-tight text-foreground mt-2">
             {t("common.forbidden_title")}
           </div>
-          <div className="caption text-ink-3 mt-3">
+          <div className="caption text-muted-foreground mt-3">
             {t("common.forbidden_body")}
           </div>
         </div>

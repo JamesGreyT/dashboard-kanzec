@@ -142,30 +142,30 @@ export default function DebtLedger() {
   return (
     <div>
       {/* ── Masthead ──────────────────────────────────────────────────── */}
-      <div className="stagger-0">
-        <div className="caption text-ink-3">
+      <div className="">
+        <div className="caption text-muted-foreground">
           <button
             type="button"
-            className="hover:text-mark"
+            className="hover:text-primary"
             onClick={() => nav("/collection/debt")}
           >
             {t("debt.title")}
           </button>{" "}
-          / <span className="text-ink-2">{t("ledger.title")}</span>
+          / <span className="text-foreground/80">{t("ledger.title")}</span>
         </div>
-        <h1 className="serif text-heading-lg text-ink mt-2 leading-none">
+        <h1 className="text-4xl font-semibold tracking-tight text-foreground mt-2 leading-none">
           {t("ledger.title")}
-          <span className="mark-stop">.</span>
+          <span className="">.</span>
         </h1>
-        <p className="caption text-ink-3 italic mt-3 max-w-3xl">
+        <p className="caption text-muted-foreground italic mt-3 max-w-3xl">
           {t("ledger.blurb")}
         </p>
-        <div className="leader mt-6" />
+        <div className="border-t border-border my-3 mt-6" />
       </div>
 
       {/* ── Summary strip ─────────────────────────────────────────────── */}
       {summary && (
-        <div className="stagger-1 mt-6 grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-6">
           <SummaryStat
             label={t("ledger.kpi.debtor_count")}
             value={summary.debtor_count.toLocaleString("en-US")}
@@ -191,7 +191,7 @@ export default function DebtLedger() {
       )}
 
       {/* ── Filters ───────────────────────────────────────────────────── */}
-      <div className="stagger-2 mt-8 flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+      <div className="mt-8 flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
         <div className="flex-1 min-w-0">
           <Input
             placeholder={t("ledger.search_placeholder")}
@@ -208,7 +208,7 @@ export default function DebtLedger() {
             setRoomId(e.target.value);
             setOffset(0);
           }}
-          className="h-11 px-3 rounded-[10px] bg-paper-2 border-0 caption text-ink focus:outline-none focus:ring-2 focus:ring-mark/35"
+          className="h-11 px-3 rounded-[10px] bg-muted border-0 caption text-foreground focus:outline-none focus:ring-2 focus:ring-ring/$1"
         >
           <option value="">{t("ledger.filter.all_managers")}</option>
           {(rooms.data?.rooms ?? []).map((r) => (
@@ -223,7 +223,7 @@ export default function DebtLedger() {
             setDirection(e.target.value);
             setOffset(0);
           }}
-          className="h-11 px-3 rounded-[10px] bg-paper-2 border-0 caption text-ink focus:outline-none focus:ring-2 focus:ring-mark/35"
+          className="h-11 px-3 rounded-[10px] bg-muted border-0 caption text-foreground focus:outline-none focus:ring-2 focus:ring-ring/$1"
           title="Yoʻnalish"
         >
           <option value="">Barcha yoʻnalishlar</option>
@@ -239,7 +239,7 @@ export default function DebtLedger() {
             setTermDays(Number(e.target.value));
             setOffset(0);
           }}
-          className="h-11 px-3 rounded-[10px] bg-paper-2 border-0 caption text-ink focus:outline-none focus:ring-2 focus:ring-mark/35"
+          className="h-11 px-3 rounded-[10px] bg-muted border-0 caption text-foreground focus:outline-none focus:ring-2 focus:ring-ring/$1"
           title={t("ledger.filter.term_hint")}
         >
           {[15, 30, 45, 60, 90].map((d) => (
@@ -248,7 +248,7 @@ export default function DebtLedger() {
             </option>
           ))}
         </select>
-        <label className="inline-flex items-center gap-2 caption text-ink-2 cursor-pointer">
+        <label className="inline-flex items-center gap-2 caption text-foreground/80 cursor-pointer">
           <input
             type="checkbox"
             checked={overdueOnly}
@@ -263,16 +263,16 @@ export default function DebtLedger() {
       </div>
 
       {/* ── Table ─────────────────────────────────────────────────────── */}
-      <Card className="stagger-3 mt-4 p-0 overflow-hidden">
+      <Card className="mt-4 p-0 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full border-separate border-spacing-0 text-body text-ink tabular-nums">
+          <table className="w-full border-separate border-spacing-0 text-sm text-foreground tabular-nums">
             <thead>
               <tr>
                 {LEDGER_COLUMNS.map((c, i) => (
                   <th
                     key={c.key}
                     className={[
-                      "h-10 px-3 border-b border-rule sticky top-0 bg-card eyebrow font-semibold text-ink-3 whitespace-nowrap",
+                      "h-10 px-3 border-b border-border sticky top-0 bg-card text-xs text-muted-foreground uppercase tracking-wider font-medium font-semibold text-muted-foreground whitespace-nowrap",
                       c.align === "right" ? "text-right" : "text-left",
                       // i===0: the top-left corner is sticky in BOTH axes and
                       // must sit above every other sticky cell so rows sliding
@@ -291,14 +291,14 @@ export default function DebtLedger() {
             <tbody>
               {ledger.isLoading && (
                 <tr>
-                  <td colSpan={LEDGER_COLUMNS.length} className="py-12 text-center italic caption text-ink-3">
+                  <td colSpan={LEDGER_COLUMNS.length} className="py-12 text-center italic caption text-muted-foreground">
                     {t("common.loading")}
                   </td>
                 </tr>
               )}
               {!ledger.isLoading && rows.length === 0 && (
                 <tr>
-                  <td colSpan={LEDGER_COLUMNS.length} className="py-12 text-center italic caption text-ink-3">
+                  <td colSpan={LEDGER_COLUMNS.length} className="py-12 text-center italic caption text-muted-foreground">
                     {t("ledger.empty")}
                   </td>
                 </tr>
@@ -307,22 +307,22 @@ export default function DebtLedger() {
                 <tr
                   key={r.person_id}
                   onClick={() => nav(`/collection/debt/client/${r.person_id}`)}
-                  className="group cursor-pointer transition-colors hover:bg-paper-2"
+                  className="group cursor-pointer transition-colors hover:bg-muted"
                 >
                   {LEDGER_COLUMNS.map((c, i) => (
                     <td
                       key={c.key}
                       className={[
-                        "h-11 px-3 border-b border-rule whitespace-nowrap",
+                        "h-11 px-3 border-b border-border whitespace-nowrap",
                         c.align === "right" ? "text-right" : "text-left",
-                        c.mono ? "mono text-mono-sm text-ink-2" : "",
-                        c.emphasis === "mark" ? "serif text-mark" : "",
-                        c.emphasis === "risk" && (r as any)[c.key] > 0 ? "text-risk" : "",
+                        c.mono ? "font-mono text-xs text-foreground/80" : "",
+                        c.emphasis === "mark" ? " text-primary" : "",
+                        c.emphasis === "risk" && (r as any)[c.key] > 0 ? "text-red-700 dark:text-red-400" : "",
                         // Sticky first column needs an opaque background of its
                         // own (tr hover:bg on its own wouldn't cover — td paints
                         // above tr — so we mirror the row state via group-hover).
                         i === 0
-                          ? "sticky left-0 z-[5] bg-card group-hover:bg-paper-2 min-w-[220px]"
+                          ? "sticky left-0 z-[5] bg-card group-hover:bg-muted min-w-[220px]"
                           : "",
                       ].join(" ")}
                     >
@@ -341,7 +341,7 @@ export default function DebtLedger() {
                     <td
                       key={c.key}
                       className={[
-                        "h-11 px-3 border-t-2 border-mark whitespace-nowrap font-medium bg-paper-2 sticky bottom-0",
+                        "h-11 px-3 border-t-2 border-primary whitespace-nowrap font-medium bg-muted sticky bottom-0",
                         c.align === "right" ? "text-right" : "text-left",
                         i === 0 ? "left-0 z-[15] min-w-[220px]" : "z-[4]",
                       ].join(" ")}
@@ -462,14 +462,14 @@ function SummaryStat({
   hint?: string;
   tone?: "mark" | "risk";
 }) {
-  const toneClass = tone === "mark" ? "text-mark" : tone === "risk" ? "text-risk" : "text-ink";
+  const toneClass = tone === "mark" ? "text-primary" : tone === "risk" ? "text-red-700 dark:text-red-400" : "text-foreground";
   return (
     <div>
-      <div className="eyebrow text-ink-3">{label}</div>
-      <div className={`serif nums tabular-nums text-[26px] leading-none mt-2 ${toneClass}`}>
+      <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium text-muted-foreground">{label}</div>
+      <div className={` nums tabular-nums text-[26px] leading-none mt-2 ${toneClass}`}>
         {value}
       </div>
-      {hint && <div className="caption italic text-ink-3 mt-1">{hint}</div>}
+      {hint && <div className="caption italic text-muted-foreground mt-1">{hint}</div>}
     </div>
   );
 }

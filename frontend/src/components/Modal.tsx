@@ -1,5 +1,10 @@
-import { ReactNode, useEffect } from "react";
-import { createPortal } from "react-dom";
+import { ReactNode } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function Modal({
   open,
@@ -14,36 +19,19 @@ export default function Modal({
   title?: string;
   width?: number;
 }) {
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
-  if (!open) return null;
-  return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[12vh]"
-      style={{ background: "rgba(26,23,19,0.18)" }}
-      onClick={onClose}
-    >
-      <div
-        className="bg-card rounded-[16px] shadow-card p-6 md:p-10 animate-enter-up"
-        style={{ width, maxWidth: "92vw" }}
-        onClick={(e) => e.stopPropagation()}
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent
+        style={{ maxWidth: Math.min(width, typeof window !== "undefined" ? window.innerWidth * 0.92 : width) }}
+        className="sm:max-w-[var(--modal-width)]"
       >
         {title && (
-          <>
-            <h2 className="serif-italic text-heading-sm text-ink">{title}</h2>
-            <div className="leader" />
-          </>
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+          </DialogHeader>
         )}
         {children}
-      </div>
-    </div>,
-    document.body,
+      </DialogContent>
+    </Dialog>
   );
 }
