@@ -90,23 +90,23 @@ export default function Sidebar() {
 
   return (
     <ShadSidebar>
-      <SidebarHeader className="border-b">
-        <div className="flex items-center gap-3 px-2 py-2">
-          <Avatar className="h-9 w-9">
-            <AvatarFallback className="bg-primary text-primary-foreground text-sm font-semibold">
-              {user.username.slice(0, 2).toUpperCase()}
+      <SidebarHeader className="border-b border-sidebar-border">
+        <div className="flex items-center gap-3 px-2 py-3">
+          <Avatar className="h-10 w-10 ring-1 ring-sidebar-border">
+            <AvatarFallback className="bg-primary text-primary-foreground font-display text-[15px] font-medium italic">
+              {user.username.slice(0, 2).toLowerCase()}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <div className="text-sm font-semibold text-foreground truncate">
+            <div className="font-display text-[17px] font-medium leading-tight text-sidebar-foreground truncate">
               {user.username}
             </div>
-            <div className="text-xs text-muted-foreground">
+            <div className="eyebrow mt-1 !text-[10px]">
               {t(`roles.${user.role}`)}
             </div>
             {user.scope_rooms.length > 0 && (
               <div
-                className="text-xs text-muted-foreground truncate"
+                className="text-xs text-muted-foreground mt-0.5 truncate italic"
                 title={user.scope_rooms.map((r) => r.room_name).join(", ")}
               >
                 {user.scope_rooms.length === 1

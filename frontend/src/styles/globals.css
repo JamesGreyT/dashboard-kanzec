@@ -2,76 +2,100 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   Quarto — editorial archive identity
+   ------------------------------------------------------------
+   Warm ivory paper, deep ink-navy foreground, umber (not
+   orange) accent. Fraunces for display, Geist for UI,
+   JetBrains Mono for data. Dark mode keeps the temperature —
+   a deep ink-slate bg with cream foreground and a warmer,
+   lifted amber accent so the eye still reads "amber" not "mud".
+   ============================================================ */
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    --background: 44 40% 96%;
+    --foreground: 222 28% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
-    --radius: 0.5rem;
-    --chart-1: 12 76% 61%;
+    --card-foreground: 222 28% 11%;
+    --popover: 44 40% 98%;
+    --popover-foreground: 222 28% 11%;
+    --primary: 24 78% 38%;
+    --primary-foreground: 44 40% 96%;
+    --secondary: 42 28% 90%;
+    --secondary-foreground: 222 28% 11%;
+    --muted: 42 24% 91%;
+    --muted-foreground: 222 15% 38%;
+    --accent: 24 60% 93%;
+    --accent-foreground: 24 78% 28%;
+    --destructive: 0 72% 44%;
+    --destructive-foreground: 44 40% 96%;
+    --border: 42 22% 84%;
+    --input: 42 22% 84%;
+    --ring: 24 78% 38%;
+    --radius: 0.375rem;
+
+    --chart-1: 24 78% 42%;
     --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --chart-3: 217 47% 42%;
+    --chart-4: 42 74% 52%;
+    --chart-5: 340 58% 50%;
+
+    /* Sidebar — warmer paper than main body, reads as book spine. */
+    --sidebar-background: 42 30% 92%;
+    --sidebar-foreground: 222 20% 22%;
+    --sidebar-primary: 24 78% 38%;
+    --sidebar-primary-foreground: 44 40% 96%;
+    --sidebar-accent: 42 22% 86%;
+    --sidebar-accent-foreground: 24 78% 28%;
+    --sidebar-border: 42 22% 80%;
+    --sidebar-ring: 24 78% 38%;
+
+    --font-display: "Fraunces", ui-serif, Georgia, serif;
+    --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+
+    /* Fractal-noise paper grain — ~3% opacity. Applied via body::before
+       with mix-blend-mode:multiply so the ivory takes the tactile warmth
+       without darkening the card surfaces. */
+    --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.08  0 0 0 0 0.06  0 0 0 0 0.04  0 0 0 0.3 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/></svg>");
   }
 
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --background: 222 30% 7%;
+    --foreground: 44 30% 92%;
+    --card: 222 28% 10%;
+    --card-foreground: 44 30% 92%;
+    --popover: 222 28% 10%;
+    --popover-foreground: 44 30% 92%;
+    --primary: 24 85% 58%;
+    --primary-foreground: 222 30% 7%;
+    --secondary: 222 20% 16%;
+    --secondary-foreground: 44 30% 92%;
+    --muted: 222 20% 14%;
+    --muted-foreground: 44 10% 65%;
+    --accent: 222 24% 18%;
+    --accent-foreground: 24 85% 72%;
+    --destructive: 0 65% 52%;
+    --destructive-foreground: 44 30% 92%;
+    --border: 222 18% 20%;
+    --input: 222 18% 20%;
+    --ring: 24 85% 58%;
+
+    --chart-1: 24 85% 58%;
+    --chart-2: 173 60% 50%;
+    --chart-3: 217 55% 60%;
+    --chart-4: 42 80% 62%;
+    --chart-5: 340 65% 62%;
+
+    --sidebar-background: 222 32% 5%;
+    --sidebar-foreground: 44 20% 82%;
+    --sidebar-primary: 24 85% 58%;
+    --sidebar-primary-foreground: 222 30% 7%;
+    --sidebar-accent: 222 22% 12%;
+    --sidebar-accent-foreground: 24 85% 72%;
+    --sidebar-border: 222 20% 14%;
+    --sidebar-ring: 24 85% 58%;
   }
 }
 
@@ -79,8 +103,152 @@
   * {
     @apply border-border;
   }
+  html {
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01", "ss03";
+  }
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    position: relative;
+    min-height: 100vh;
+  }
+  /* Paper grain — editorial tactility. Fixed so it doesn't scroll with
+     content. Hidden in dark mode (keeps the ink surface flat). */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: var(--grain);
+    background-size: 200px 200px;
+    opacity: 0.45;
+    pointer-events: none;
+    z-index: 0;
+    mix-blend-mode: multiply;
+  }
+  .dark body::before {
+    display: none;
+  }
+  #root {
+    position: relative;
+    z-index: 1;
+  }
+
+  code,
+  kbd,
+  pre,
+  samp {
+    font-family: var(--font-mono);
+  }
+}
+
+/* ============================================================
+   Typography utilities — editorial voice
+   ============================================================ */
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+    font-variation-settings: "opsz" 36, "SOFT" 40, "WONK" 0;
+  }
+  .font-display-italic {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-variation-settings: "opsz" 36, "SOFT" 80, "WONK" 1;
+  }
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+  .nums {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+  .eyebrow {
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    line-height: 1;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: hsl(var(--muted-foreground));
+  }
+  .mark-rule {
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      hsl(var(--primary)) 0%,
+      hsl(var(--primary) / 0.3) 30%,
+      transparent 70%
+    );
+  }
+}
+
+/* ============================================================
+   Sidebar spine — warmer paper than body + subtle vertical wash
+   so it reads as "bookbinding" rather than another panel.
+   ============================================================ */
+@layer components {
+  [data-sidebar="sidebar"] {
+    background-image:
+      linear-gradient(
+        180deg,
+        hsl(var(--sidebar-background) / 1) 0%,
+        hsl(var(--sidebar-background) / 0.96) 40%,
+        hsl(var(--sidebar-background) / 1) 100%
+      ),
+      var(--grain);
+    background-blend-mode: normal, multiply;
+    background-size: 100% 100%, 200px 200px;
+    box-shadow: inset -1px 0 0 hsl(var(--sidebar-border)),
+      8px 0 24px -16px hsl(var(--foreground) / 0.25);
+  }
+  .dark [data-sidebar="sidebar"] {
+    background-image: linear-gradient(
+      180deg,
+      hsl(var(--sidebar-background) / 1) 0%,
+      hsl(var(--sidebar-background) / 0.98) 100%
+    );
+  }
+}
+
+/* ============================================================
+   Entrance rhythm — stagger-0..5 for page-load unfold
+   ============================================================ */
+@layer utilities {
+  .stagger-0,
+  .stagger-1,
+  .stagger-2,
+  .stagger-3,
+  .stagger-4,
+  .stagger-5 {
+    opacity: 0;
+    animation: enter-up 320ms cubic-bezier(0.2, 0.85, 0.25, 1) both;
+  }
+  .stagger-0 { animation-delay:   0ms; }
+  .stagger-1 { animation-delay:  50ms; }
+  .stagger-2 { animation-delay: 100ms; }
+  .stagger-3 { animation-delay: 150ms; }
+  .stagger-4 { animation-delay: 200ms; }
+  .stagger-5 { animation-delay: 250ms; }
+
+  @keyframes enter-up {
+    0% {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stagger-0,
+  .stagger-1,
+  .stagger-2,
+  .stagger-3,
+  .stagger-4,
+  .stagger-5 {
+    animation: none;
+    opacity: 1;
   }
 }
