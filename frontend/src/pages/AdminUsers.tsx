@@ -2,6 +2,7 @@ import { FormEvent, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
+import { formatDate } from "../lib/format";
 import { useAuth } from "../lib/auth";
 import PageHeading from "../components/PageHeading";
 import Card from "../components/Card";
@@ -101,7 +102,7 @@ function RoomsCell({
 }
 
 export default function AdminUsers() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const qc = useQueryClient();
   const q = useQuery({
@@ -244,10 +245,7 @@ export default function AdminUsers() {
                     <RelativeTime iso={u.last_login_at} />
                   </td>
                   <td className="h-[52px] px-4 border-b border-rule caption text-ink-3 tabular-nums">
-                    {new Date(u.created_at).toLocaleDateString(
-                      i18n.resolvedLanguage || "en-GB",
-                      { timeZone: "Asia/Tashkent" },
-                    )}
+                    {formatDate(u.created_at)}
                   </td>
                   <td className="h-[52px] px-4 border-b border-rule text-right">
                     <div className="inline-flex items-center whitespace-nowrap leading-none">
@@ -301,10 +299,7 @@ export default function AdminUsers() {
                     )}
                   </div>
                   <div className="mt-1 caption text-ink-3 tabular-nums">
-                    {new Date(u.created_at).toLocaleDateString(
-                      i18n.resolvedLanguage || "en-GB",
-                      { timeZone: "Asia/Tashkent" },
-                    )}
+                    {formatDate(u.created_at)}
                     {" · "}
                     <RelativeTime iso={u.last_login_at} />
                   </div>

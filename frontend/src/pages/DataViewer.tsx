@@ -729,8 +729,6 @@ function DirectionCell({
   editable: boolean;
   onSaved: () => void;
 }) {
-  const { i18n } = useTranslation();
-  const locale = i18n.resolvedLanguage || "en-GB";
   const [optimistic, setOptimistic] = useState<string | null>(null);
   const [optimisticSource, setOptimisticSource] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -828,9 +826,8 @@ function DirectionCell({
           current={displayed}
           source={displayedSource}
           updatedAt={updatedAt}
-          locale={locale}
           pending={pending}
-          onPick={(d) => {
+          onConfirm={(d) => {
             setOpen(false);
             if (d !== displayed) mutation.mutate(d);
           }}
@@ -862,40 +859,52 @@ const DirectionTag = ({
   active: boolean;
   onClick: (e: React.MouseEvent) => void;
 }) => {
-  const isDefault = source === "default" || !source;
+  const isUnset = !value;
   const isManual = source === "manual";
 
-  const label = value ?? "—";
-  const text = pending ? "…" : isDefault ? label : label.toUpperCase();
-
-  // Folio tag vocabulary: default = italic serif muted (no fill);
-  // excel = filled amber wash with uppercase mono; manual = same amber
-  // wash tinted to mark with a subtle ring + leading bullet.
+  // Readable tag: normal case, body-size, with a clear chevron so it's
+  // obviously a dropdown trigger (not a tiny obscure mono label).
   const base =
-    "inline-flex items-center gap-1 rounded-chip transition-colors whitespace-nowrap";
-  const toneClass = isDefault
-    ? "text-ink-3 font-serif italic text-[12px] px-0"
-    : isManual
-      ? "bg-mark-bg text-mark font-mono text-[10.5px] tracking-[0.08em] font-semibold px-2 py-[3px] ring-1 ring-mark/25"
-      : "bg-mark-bg text-ink font-mono text-[10.5px] tracking-[0.08em] font-semibold px-2 py-[3px]";
+    "inline-flex items-center gap-1.5 rounded-[7px] whitespace-nowrap text-[13px] leading-none transition-colors";
+  const idle = isUnset
+    ? "text-ink-3 font-serif italic border border-dashed border-rule-2 px-2.5 py-[5px]"
+    : "text-ink bg-paper-2 border border-rule-2 px-2.5 py-[5px]";
 
   const content = (
     <>
-      {isManual && (
+      {isManual && !isUnset && (
         <span
           aria-hidden
-          className="text-[7px] leading-none text-mark -translate-y-[1px]"
+          className="w-1.5 h-1.5 rounded-full bg-mark shrink-0"
           title="manually set"
-        >
-          ●
-        </span>
+        />
       )}
-      <span className={pending ? "opacity-60" : ""}>{text}</span>
+      <span className={pending ? "opacity-50" : ""}>
+        {pending ? "…" : (value ?? "tanlash")}
+      </span>
+      {editable && (
+        <svg
+          aria-hidden
+          width="9"
+          height="9"
+          viewBox="0 0 10 10"
+          fill="none"
+          className="text-ink-3 shrink-0"
+        >
+          <path
+            d="M2 3.5 5 6.5 8 3.5"
+            stroke="currentColor"
+            strokeWidth="1.3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
     </>
   );
 
   if (!editable) {
-    return <span className={[base, toneClass].join(" ")}>{content}</span>;
+    return <span className={[base, idle].join(" ")}>{content}</span>;
   }
 
   return (
@@ -905,17 +914,16 @@ const DirectionTag = ({
       onClick={onClick}
       className={[
         base,
-        toneClass,
-        "hover:brightness-95",
-        active ? "ring-2 ring-mark/40" : "",
-        isDefault ? "hover:text-ink underline decoration-dotted underline-offset-4" : "",
+        idle,
+        "hover:border-ink-3 hover:text-ink",
+        active ? "border-mark text-mark ring-1 ring-mark/30" : "",
       ].join(" ")}
       title={
         source === "excel"
-          ? "set from Excel Clients sheet"
+          ? "Excel dan (Clients)"
           : source === "manual"
-            ? "manually set — Excel loader will not overwrite"
-            : "not classified yet"
+            ? "qoʻlda sozlangan"
+            : "hali tanlanmagan"
       }
     >
       {content}
@@ -928,26 +936,28 @@ function DirectionMenu({
   current,
   source,
   updatedAt,
-  locale,
   pending,
-  onPick,
+  onConfirm,
   onClose,
 }: {
   anchorEl: HTMLElement | null;
   current: string | null;
   source: string | null;
   updatedAt: string | null;
-  locale: string;
   pending: boolean;
-  onPick: (d: string) => void;
+  onConfirm: (d: string) => void;
   onClose: () => void;
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
-  const [focusIdx, setFocusIdx] = useState<number>(() => {
+  const initialIdx = (() => {
     const i = LEGAL_PERSON_DIRECTIONS.indexOf(current ?? "");
     return i >= 0 ? i : 0;
-  });
+  })();
+  const [focusIdx, setFocusIdx] = useState<number>(initialIdx);
+  // Staged selection — nothing is persisted until the user clicks Saqlash.
+  const [staged, setStaged] = useState<string | null>(current);
+  const dirty = staged !== current;
 
   // Portal-pin in viewport coordinates, auto-flip when near edges.
   useLayoutEffect(() => {
@@ -996,7 +1006,13 @@ function DirectionMenu({
         );
       } else if (e.key === "Enter") {
         e.preventDefault();
-        onPick(LEGAL_PERSON_DIRECTIONS[focusIdx]);
+        const picked = LEGAL_PERSON_DIRECTIONS[focusIdx];
+        if (staged === picked && dirty) {
+          // Second Enter on the already-staged option confirms + saves.
+          onConfirm(picked);
+        } else {
+          setStaged(picked);
+        }
       }
     };
     window.addEventListener("mousedown", onDown);
@@ -1005,21 +1021,22 @@ function DirectionMenu({
       window.removeEventListener("mousedown", onDown);
       window.removeEventListener("keydown", onKey);
     };
-  }, [anchorEl, onClose, onPick, focusIdx]);
+  }, [anchorEl, onClose, onConfirm, focusIdx, staged, dirty]);
 
   const renderUpdated = useCallback(() => {
     if (!updatedAt) return null;
-    try {
-      const d = new Date(updatedAt);
-      return d.toLocaleDateString(locale || "en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      });
-    } catch {
-      return null;
-    }
-  }, [updatedAt, locale]);
+    const d = new Date(updatedAt);
+    if (Number.isNaN(d.getTime())) return null;
+    // Manual format — Intl's `uz` short-month output is "M01"/"M02"/… on
+    // many ICU builds, so we bypass the locale machinery entirely and emit
+    // a clean "12 Apr 2026" string regardless of i18n state.
+    const MONTHS = [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ];
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${day} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+  }, [updatedAt]);
 
   const sourceCopy =
     source === "excel"
@@ -1038,88 +1055,121 @@ function DirectionMenu({
         position: "fixed",
         top: pos?.top ?? -9999,
         left: pos?.left ?? -9999,
-        width: 232,
+        width: 264,
         visibility: pos ? "visible" : "hidden",
         zIndex: 60,
       }}
-      role="menu"
-      className="rounded-[8px] border border-rule bg-paper shadow-[0_20px_60px_-20px_rgba(0,0,0,0.25)] overflow-hidden"
+      role="dialog"
+      aria-label="Yoʻnalish tanlash"
+      className="rounded-[10px] border border-rule bg-card shadow-[0_20px_60px_-20px_rgba(0,0,0,0.25)] overflow-hidden"
     >
-      <div className="px-4 pt-3 pb-2 border-b border-rule">
-        <div
-          className="eyebrow text-ink-3"
-          style={{ letterSpacing: "0.18em" }}
-        >
+      <div className="px-3.5 pt-3 pb-2.5 border-b border-rule bg-paper">
+        <div className="text-[11px] font-medium text-ink-3 uppercase tracking-[0.08em]">
           Yoʻnalish
         </div>
-        <div className="mt-1 serif-italic text-[15px] leading-tight text-ink">
-          {current ?? <span className="text-ink-3">— tanlanmagan —</span>}
+        <div className="mt-1 flex items-center gap-2 text-[13.5px] leading-tight text-ink">
+          <span className={current ? "" : "text-ink-3 italic"}>
+            {current ?? "tanlanmagan"}
+          </span>
+          {dirty && (
+            <>
+              <span className="text-ink-3" aria-hidden>
+                →
+              </span>
+              <span className="font-semibold text-mark">
+                {staged ?? "tanlanmagan"}
+              </span>
+            </>
+          )}
           {pending && (
-            <span className="ml-1.5 caption text-ink-3">saqlanmoqda…</span>
+            <span className="ml-auto text-[11px] text-ink-3">saqlanmoqda…</span>
           )}
         </div>
       </div>
       <ul
-        className="py-1 max-h-[300px] overflow-y-auto"
-        onMouseLeave={() => {
-          /* keep focusIdx so keyboard nav still works */
-        }}
+        className="py-1 max-h-[280px] overflow-y-auto"
+        role="listbox"
+        aria-label="Yoʻnalishlar"
       >
         {LEGAL_PERSON_DIRECTIONS.map((d, i) => {
+          const isStaged = d === staged;
           const isCurrent = d === current;
           const isFocused = i === focusIdx;
           return (
             <li key={d}>
               <button
                 type="button"
-                role="menuitem"
+                role="option"
+                aria-selected={isStaged}
                 disabled={pending}
                 onMouseEnter={() => setFocusIdx(i)}
                 onClick={(e) => {
                   e.stopPropagation();
-                  onPick(d);
+                  setStaged(d);
+                  setFocusIdx(i);
                 }}
                 className={[
-                  "w-full text-left px-4 py-1.5 flex items-center gap-2 transition-colors",
-                  isFocused ? "bg-mark-bg/50" : "",
+                  "w-full text-left px-3.5 py-2 flex items-center gap-2.5 text-[13.5px] transition-colors",
+                  isStaged
+                    ? "bg-mark-bg text-mark font-medium"
+                    : isFocused
+                      ? "bg-paper-2 text-ink"
+                      : "text-ink",
                   pending ? "cursor-wait opacity-60" : "cursor-pointer",
                 ].join(" ")}
               >
                 <span
                   aria-hidden
                   className={[
-                    "w-2 text-[12px] leading-none",
-                    isCurrent ? "text-mark" : "text-transparent",
+                    "w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0",
+                    isStaged
+                      ? "border-mark bg-mark"
+                      : "border-rule-2 bg-card",
                   ].join(" ")}
                 >
-                  •
+                  {isStaged && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-card" />
+                  )}
                 </span>
-                <span
-                  className={[
-                    "mono text-[11px] leading-none",
-                    isCurrent ? "text-mark" : "text-ink",
-                  ].join(" ")}
-                  style={{ letterSpacing: "0.14em" }}
-                >
-                  {d.toUpperCase()}
-                </span>
+                <span className="flex-1">{d}</span>
+                {isCurrent && !isStaged && (
+                  <span className="text-[10px] text-ink-3 uppercase tracking-wider">
+                    joriy
+                  </span>
+                )}
               </button>
             </li>
           );
         })}
       </ul>
-      <div className="px-4 py-2 border-t border-rule flex items-baseline justify-between gap-2">
-        <span
-          className="eyebrow text-ink-3"
-          style={{ letterSpacing: "0.18em" }}
+      <div className="px-3.5 py-2.5 border-t border-rule bg-paper flex items-center justify-between gap-2">
+        <div className="min-w-0 flex-1 flex flex-col text-[11px] leading-tight text-ink-3">
+          <span className="truncate">{sourceCopy}</span>
+          {renderUpdated() && (
+            <span className="truncate">{renderUpdated()}</span>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={pending}
+          className="text-[12.5px] px-3 py-1.5 rounded-[6px] text-ink-2 hover:text-ink hover:bg-paper-2 transition-colors disabled:opacity-50"
         >
-          {sourceCopy}
-        </span>
-        {renderUpdated() && (
-          <span className="serif-italic caption text-ink-3">
-            {renderUpdated()}
-          </span>
-        )}
+          Bekor
+        </button>
+        <button
+          type="button"
+          onClick={() => staged && onConfirm(staged)}
+          disabled={!dirty || !staged || pending}
+          className={[
+            "text-[12.5px] px-3 py-1.5 rounded-[6px] font-medium transition-colors",
+            dirty && staged && !pending
+              ? "bg-mark text-card hover:brightness-110"
+              : "bg-paper-2 text-ink-3 cursor-not-allowed",
+          ].join(" ")}
+        >
+          Saqlash
+        </button>
       </div>
     </motion.div>,
     document.body,

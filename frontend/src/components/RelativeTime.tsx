@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { formatDate, formatDateTime } from "../lib/format";
 
 export default function RelativeTime({ iso }: { iso: string | null | undefined }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [, tick] = useState(0);
   useEffect(() => {
     const interval = setInterval(() => tick((n) => n + 1), 15_000);
@@ -18,12 +19,9 @@ export default function RelativeTime({ iso }: { iso: string | null | undefined }
   else if (diff < 3600) label = t("common.minutes_ago", { n: Math.floor(diff / 60) });
   else if (diff < 86400) label = t("common.hours_ago", { n: Math.floor(diff / 3600) });
   else if (diff < 2592000) label = t("common.days_ago", { n: Math.floor(diff / 86400) });
-  else label = d.toLocaleDateString(i18n.resolvedLanguage || undefined);
-  const absolute = d.toLocaleString(i18n.resolvedLanguage || "en-GB", {
-    timeZone: "Asia/Tashkent",
-  });
+  else label = formatDate(d);
   return (
-    <span title={absolute} className="tabular-nums">
+    <span title={formatDateTime(d)} className="tabular-nums">
       {label}
     </span>
   );

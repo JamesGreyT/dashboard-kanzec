@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
+import { formatDateTime } from "../lib/format";
 import PageHeading from "../components/PageHeading";
 import Card from "../components/Card";
 import Drawer from "../components/Drawer";
@@ -23,7 +24,7 @@ interface Row {
 }
 
 export default function AdminAudit() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [action, setAction] = useState("");
   const [offset, setOffset] = useState(0);
   const limit = 100;
@@ -185,10 +186,7 @@ export default function AdminAudit() {
             <dl className="grid grid-cols-[140px_1fr] gap-y-3 gap-x-4">
               <dt className="eyebrow">{t("admin.audit_drawer_when")}</dt>
               <dd className="text-body text-ink tabular-nums">
-                {new Date(openRow.created_at).toLocaleString(
-                  i18n.resolvedLanguage || "en-GB",
-                  { timeZone: "Asia/Tashkent" },
-                )}
+                {formatDateTime(openRow.created_at)}
               </dd>
               <dt className="eyebrow">{t("admin.audit_drawer_who")}</dt>
               <dd className="text-body text-ink">{openRow.username ?? "—"}</dd>

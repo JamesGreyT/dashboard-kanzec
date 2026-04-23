@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
+import { formatTashkentNow } from "../lib/format";
 import PageHeading from "../components/PageHeading";
 import StatCard from "../components/StatCard";
 import Card from "../components/Card";
@@ -47,7 +48,7 @@ interface Overview {
 }
 
 export default function Dashboard() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { data, isLoading, isError } = useQuery({
     queryKey: ["dashboard.overview"],
     queryFn: () => api<Overview>("/api/dashboard/overview"),
@@ -66,15 +67,7 @@ export default function Dashboard() {
           subtitle={
             <>
               <span className="serif-italic">{t("common.tashkent")}</span> ·{" "}
-              {new Date().toLocaleString(i18n.resolvedLanguage || "en-GB", {
-                timeZone: "Asia/Tashkent",
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+              {formatTashkentNow()}
             </>
           }
         />
@@ -230,15 +223,12 @@ export default function Dashboard() {
                 />
                 <div className="flex items-baseline gap-4 min-w-0">
                   <span className="mono text-mono-sm text-ink-3 tabular-nums shrink-0">
-                    {new Date(a.ts).toLocaleTimeString(
-                      i18n.resolvedLanguage || "en-GB",
-                      {
-                        timeZone: "Asia/Tashkent",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        second: "2-digit",
-                      },
-                    )}
+                    {new Date(a.ts).toLocaleTimeString("en-GB", {
+                      timeZone: "Asia/Tashkent",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      second: "2-digit",
+                    })}
                   </span>
                   <span
                     className={[
@@ -254,10 +244,9 @@ export default function Dashboard() {
                 </div>
                 {a.amount != null && (
                   <span className="serif nums text-body text-ink tabular-nums shrink-0">
-                    {a.amount.toLocaleString(
-                      i18n.resolvedLanguage || "en-US",
-                      { maximumFractionDigits: 2 },
-                    )}
+                    {a.amount.toLocaleString("en-US", {
+                      maximumFractionDigits: 2,
+                    })}
                   </span>
                 )}
               </div>

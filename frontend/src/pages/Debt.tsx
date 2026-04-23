@@ -19,6 +19,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
+import { formatIsoDate } from "../lib/format";
 import { useAuth } from "../lib/auth";
 import Card from "../components/Card";
 import Input from "../components/Input";
@@ -147,17 +148,8 @@ function formatUsd(n: number | null | undefined): string {
 
 /** Parse "YYYY-MM-DD" as a calendar date (no TZ shift). Avoids the Americas
  *  off-by-one when date-only fields land in `new Date()`. */
-function renderDate(iso: string | null | undefined, locale: string): string {
-  if (!iso) return "—";
-  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!m) return iso;
-  const [, y, mo, d] = m;
-  return new Date(Date.UTC(+y, +mo - 1, +d)).toLocaleDateString(locale || "en-GB", {
-    timeZone: "UTC",
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+function renderDate(iso: string | null | undefined, _locale: string): string {
+  return formatIsoDate(iso);
 }
 
 // ---- Typographic atoms ---------------------------------------------------
