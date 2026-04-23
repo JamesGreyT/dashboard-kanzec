@@ -54,9 +54,9 @@ export default function Login() {
           {/* One-line editorial anchor above the title — the wordmark in
               text-xs text-muted-foreground uppercase tracking-wider font-medium type, middle-dot separator to echo breadcrumbs. */}
           <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-3">Kanzec · Operations</div>
-          <h1 className="text-4xl font-semibold tracking-tight text-foreground leading-none">
+          <h1 className="font-display text-5xl font-medium tracking-tight text-foreground leading-[1.04]">
             {t("login.title")}
-            <span className="">.</span>
+            <span className="font-display-italic text-primary ml-[2px]">.</span>
           </h1>
 
           {err && (
@@ -70,7 +70,7 @@ export default function Login() {
               <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">{t("login.username_label")}</span>
               <div
                 className="relative h-11 bg-muted rounded-[10px]
-                           focus-within:ring-2 focus-within:ring-ring/$1
+                           focus-within:ring-2 focus-within:ring-ring/30
                            focus-within:before:content-[''] focus-within:before:absolute
                            focus-within:before:inset-y-[8px] focus-within:before:left-0
                            focus-within:before:w-[2px] focus-within:before:bg-primary
@@ -91,7 +91,7 @@ export default function Login() {
               <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">{t("login.password_label")}</span>
               <div
                 className="relative h-11 bg-muted rounded-[10px]
-                           focus-within:ring-2 focus-within:ring-ring/$1
+                           focus-within:ring-2 focus-within:ring-ring/30
                            focus-within:before:content-[''] focus-within:before:absolute
                            focus-within:before:inset-y-[8px] focus-within:before:left-0
                            focus-within:before:w-[2px] focus-within:before:bg-primary

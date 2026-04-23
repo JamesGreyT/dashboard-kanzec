@@ -121,34 +121,34 @@ export default function Dashboard() {
                 <XAxis
                   dataKey="day"
                   tickFormatter={(v) => v.slice(5)}
-                  tick={{ fill: "var(--ink-3)", fontSize: 11, fontFamily: "var(--font-mono)" }}
-                  axisLine={{ stroke: "var(--rule-2)" }}
-                  tickLine={{ stroke: "var(--rule-2)" }}
+                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11, fontFamily: "var(--font-mono)" }}
+                  axisLine={{ stroke: "hsl(var(--border))" }}
+                  tickLine={{ stroke: "hsl(var(--border))" }}
                 />
                 <YAxis
-                  tick={{ fill: "var(--ink-3)", fontSize: 11, fontFamily: "var(--font-mono)" }}
+                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11, fontFamily: "var(--font-mono)" }}
                   axisLine={false}
                   tickLine={false}
                   width={56}
                   tickFormatter={(v) => v.toLocaleString("en-US", { notation: "compact" })}
                 />
                 <Tooltip
-                  cursor={{ stroke: "var(--rule-2)", strokeWidth: 1 }}
+                  cursor={{ stroke: "hsl(var(--border))", strokeWidth: 1 }}
                   content={<ChartTooltip />}
                 />
                 <Line
                   type="monotone"
                   dataKey="orders"
-                  stroke="var(--ink)"
-                  strokeWidth={1.5}
+                  stroke="hsl(var(--foreground))"
+                  strokeWidth={1.75}
                   dot={false}
                   name="orders"
                 />
                 <Line
                   type="monotone"
                   dataKey="payments"
-                  stroke="var(--mark)"
-                  strokeWidth={1.5}
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={1.75}
                   dot={false}
                   name="payments"
                 />
@@ -170,7 +170,7 @@ export default function Dashboard() {
               const railClass = {
                 live: "bg-emerald-500",
                 failed: "bg-red-500",
-                quiet: "bg-foreground-3",
+                quiet: "bg-muted-foreground",
                 staged: "bg-amber-500",
               }[wTone];
               const failed = wTone === "failed";
@@ -210,7 +210,7 @@ export default function Dashboard() {
               <div
                 key={i}
                 className={[
-                  "relative pl-4 py-3 flex items-baseline justify-between gap-4",
+                  "relative pl-4 py-3 flex items-baseline gap-4",
                   i < arr.length - 1 ? "border-b border-border" : "",
                 ].join(" ")}
               >
@@ -221,34 +221,38 @@ export default function Dashboard() {
                     a.kind === "payment" ? "bg-primary" : "bg-foreground",
                   ].join(" ")}
                 />
-                <div className="flex items-baseline gap-4 min-w-0">
-                  <span className="font-mono text-xs text-muted-foreground tabular-nums shrink-0">
-                    {new Date(a.ts).toLocaleTimeString("en-GB", {
-                      timeZone: "Asia/Tashkent",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      second: "2-digit",
-                    })}
-                  </span>
+                <span
+                  className={[
+                    "text-[10px] uppercase tracking-[0.12em] font-semibold shrink-0 w-[56px]",
+                    a.kind === "payment"
+                      ? "text-primary"
+                      : "text-muted-foreground",
+                  ].join(" ")}
+                >
+                  {t(`dashboard.kind_${a.kind}`)}
+                </span>
+                <span className="text-sm text-foreground truncate flex-1 min-w-0">
+                  {a.subject ?? "—"}
+                </span>
+                {a.amount != null && (
                   <span
                     className={[
-                      "text-xs text-muted-foreground uppercase tracking-wider font-medium shrink-0",
-                      a.kind === "payment" ? "text-primary" : "",
+                      "font-mono text-sm tabular-nums shrink-0",
+                      a.kind === "payment" ? "text-primary" : "text-foreground",
                     ].join(" ")}
                   >
-                    {t(`dashboard.kind_${a.kind}`)}
-                  </span>
-                  <span className="text-sm text-foreground truncate">
-                    {a.subject ?? "—"}
-                  </span>
-                </div>
-                {a.amount != null && (
-                  <span className="nums text-sm text-foreground tabular-nums shrink-0">
                     {a.amount.toLocaleString("en-US", {
                       maximumFractionDigits: 2,
                     })}
                   </span>
                 )}
+                <span className="font-mono text-[10px] text-muted-foreground tabular-nums shrink-0 w-[62px] text-right">
+                  {new Date(a.ts).toLocaleTimeString("en-GB", {
+                    timeZone: "Asia/Tashkent",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
               </div>
             ))}
           </div>

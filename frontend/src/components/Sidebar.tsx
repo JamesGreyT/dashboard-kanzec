@@ -93,7 +93,7 @@ export default function Sidebar() {
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-3 px-2 py-3">
           <Avatar className="h-10 w-10 ring-1 ring-sidebar-border">
-            <AvatarFallback className="bg-primary text-primary-foreground font-display text-[15px] font-medium italic">
+            <AvatarFallback className="bg-primary text-primary-foreground font-display italic text-[16px] font-medium !normal-case">
               {user.username.slice(0, 2).toLowerCase()}
             </AvatarFallback>
           </Avatar>

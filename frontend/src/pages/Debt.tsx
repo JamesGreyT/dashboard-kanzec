@@ -1020,7 +1020,7 @@ function LedgerRow({
 
       {/* Eskirish */}
       <td className="px-4 py-3 align-middle">
-        <div className="flex gap-[1px] h-[7px] w-full max-w-[160px] rounded-[2.5px] overflow-hidden bg-rule">
+        <div className="flex gap-[1px] h-[10px] w-full max-w-[160px] rounded-[3px] overflow-hidden bg-muted">
           {aging.buckets.map((b) =>
             b.v > 0 ? (
               <div key={b.key} className={b.className} style={{ flex: b.v }} />
