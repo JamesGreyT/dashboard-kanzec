@@ -27,6 +27,7 @@ interface Report {
   last_all_at: string | null;
   last_all_rows: number | null;
   last_error: string | null;
+  last_error_at: string | null;
   backfill_queue_len: number;
 }
 
@@ -228,9 +229,14 @@ function ReportCard({
         <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">{t("ops.errors")}</div>
         <div className="text-sm">
           {r.last_error ? (
-            <span className="block border-l-2 border-red-500 pl-3 caption text-red-700 dark:text-red-400">
-              {r.last_error}
-            </span>
+            <div className="border-l-2 border-red-500 pl-3">
+              <div className="text-xs text-red-700 dark:text-red-400 tabular-nums">
+                <RelativeTime iso={r.last_error_at} />
+              </div>
+              <div className="caption text-red-700 dark:text-red-400 mt-0.5">
+                {r.last_error}
+              </div>
+            </div>
           ) : (
             <span className="text-muted-foreground">—</span>
           )}

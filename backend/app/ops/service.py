@@ -78,9 +78,30 @@ async def _progress_summary(session: AsyncSession) -> dict[str, dict]:
                             AND r7.status='complete'
                             AND r7.range_label LIKE 'all:%%'
                           ORDER BY finished_at DESC NULLS LAST LIMIT 1) AS last_all_rows,
+                       -- Only surface an error if it's newer than the most
+                       -- recent successful run for the same report. Otherwise a
+                       -- transient blip pins a red banner forever even though
+                       -- the worker has long since recovered.
                        (SELECT last_error FROM smartup.report_sync_progress r8
                           WHERE r8.report_key = r.report_key AND r8.status='error'
-                          ORDER BY finished_at DESC NULLS LAST LIMIT 1) AS last_error
+                            AND r8.finished_at > COALESCE(
+                              (SELECT MAX(finished_at)
+                                 FROM smartup.report_sync_progress rS
+                                WHERE rS.report_key = r.report_key
+                                  AND rS.status='complete'),
+                              '-infinity'::timestamptz
+                            )
+                          ORDER BY finished_at DESC NULLS LAST LIMIT 1) AS last_error,
+                       (SELECT finished_at FROM smartup.report_sync_progress r9
+                          WHERE r9.report_key = r.report_key AND r9.status='error'
+                            AND r9.finished_at > COALESCE(
+                              (SELECT MAX(finished_at)
+                                 FROM smartup.report_sync_progress rS
+                                WHERE rS.report_key = r.report_key
+                                  AND rS.status='complete'),
+                              '-infinity'::timestamptz
+                            )
+                          ORDER BY finished_at DESC NULLS LAST LIMIT 1) AS last_error_at
                   FROM smartup.report_sync_progress r
                  GROUP BY report_key
             """)
@@ -99,6 +120,7 @@ async def _progress_summary(session: AsyncSession) -> dict[str, dict]:
             "last_all_at":       r.last_all_at.isoformat() if r.last_all_at else None,
             "last_all_rows":     int(r.last_all_rows) if r.last_all_rows is not None else None,
             "last_error":        r.last_error,
+            "last_error_at":     r.last_error_at.isoformat() if r.last_error_at else None,
         }
     return out
 
