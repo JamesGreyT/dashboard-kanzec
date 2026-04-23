@@ -294,9 +294,14 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTable, filters, openFilterCol, activeKey, sort, canEditDirection]);
 
-  function exportCsv() {
+  function exportData(format: "xlsx" | "csv" = "xlsx") {
     const token = getAccessToken();
-    const url = `/api/data/${activeKey}/export?${qs}`;
+    // Strip the page's limit/offset — the export pulls the full filtered set.
+    const exportQs = new URLSearchParams(qs);
+    exportQs.delete("limit");
+    exportQs.delete("offset");
+    exportQs.set("format", format);
+    const url = `/api/data/${activeKey}/export?${exportQs.toString()}`;
     fetch(url, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
@@ -304,7 +309,7 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
       .then((b) => {
         const link = document.createElement("a");
         link.href = URL.createObjectURL(b);
-        link.download = `${activeKey}.csv`;
+        link.download = `${activeKey}.${format}`;
         link.click();
         URL.revokeObjectURL(link.href);
       });
@@ -511,7 +516,8 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
               />
             )}
           </div>
-          <Button onClick={exportCsv}>{t("common.csv")}</Button>
+          <Button onClick={() => exportData("xlsx")}>{t("common.excel")}</Button>
+          <Button variant="ghost" onClick={() => exportData("csv")}>{t("common.csv")}</Button>
         </div>
       </div>
 

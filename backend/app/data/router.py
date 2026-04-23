@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -165,15 +165,31 @@ async def set_legal_person_direction(
 
 
 @router.get("/{key}/export")
-async def export_csv(
+async def export_table(
     key: str,
     request: Request,
     scope: ScopedUser,
     session: Annotated[AsyncSession, Depends(get_session)],
     sort: str | None = None,
     search: str | None = None,
-) -> StreamingResponse:
+    format: str = Query("xlsx", pattern="^(xlsx|csv)$"),
+) -> Response:
+    """Export the current view — filters, search, and sort from the query
+    string are applied exactly as they are for /rows, so what the user sees
+    in the table is what they get in the file."""
     filters = _extract_filters(request)
+
+    if format == "xlsx":
+        data = await service.build_xlsx(
+            session, key, filters=filters, search=search, sort=sort, scope=scope,
+        )
+        return Response(
+            content=data,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={
+                "Content-Disposition": f'attachment; filename="{key}.xlsx"',
+            },
+        )
 
     async def gen():
         async for chunk in service.stream_csv(

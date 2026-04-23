@@ -309,6 +309,104 @@ async def stream_csv(
         yield buf.getvalue().encode("utf-8")
 
 
+async def build_xlsx(
+    session: AsyncSession,
+    key: str,
+    *,
+    filters: list[tuple[str, str, str]],
+    search: str | None,
+    sort: str | None,
+    max_rows: int = 100_000,
+    scope: UserScope | None = None,
+) -> bytes:
+    """Build an xlsx workbook honoring the current filter/sort/search state.
+
+    openpyxl's write-only mode keeps per-row memory low; the final file is
+    packaged into ZIP bytes at save time (xlsx can't be truly streamed — the
+    central directory lands last). Header row uses column labels from the
+    catalog so the export reads like the dashboard, not raw SQL identifiers.
+    """
+    from openpyxl import Workbook
+    from openpyxl.cell import WriteOnlyCell
+    from openpyxl.styles import Font, PatternFill, Alignment
+
+    table = _table(key)
+    where, params = _build_where(table, filters, search, scope=scope)
+    order_by = _build_order_by(table, sort)
+    col_list = ", ".join(f'"{c}"' for c in table.columns)
+
+    wb = Workbook(write_only=True)
+    ws = wb.create_sheet(title=table.label[:31] or key[:31])
+
+    # Header row — bold on a muted fill so it reads as a header in Excel.
+    header_font = Font(bold=True, color="1F2937")
+    header_fill = PatternFill("solid", fgColor="F3F4F6")
+    center = Alignment(horizontal="left", vertical="center")
+    header_cells = []
+    for col_name, col_def in table.columns.items():
+        c = WriteOnlyCell(ws, value=col_def.label or col_name)
+        c.font = header_font
+        c.fill = header_fill
+        c.alignment = center
+        header_cells.append(c)
+    ws.append(header_cells)
+
+    # Column widths — a rough heuristic so dates don't hug and text isn't huge.
+    widths = []
+    for col_name, col_def in table.columns.items():
+        if col_def.type in ("date",):
+            widths.append(12)
+        elif col_def.type in ("timestamp",):
+            widths.append(18)
+        elif col_def.type in ("int", "numeric"):
+            widths.append(14)
+        elif col_def.id_column:
+            widths.append(16)
+        else:
+            widths.append(24)
+    ws.column_dimensions  # touch to ensure dict exists
+    for i, w in enumerate(widths, start=1):
+        ws.column_dimensions[_col_letter(i)].width = w
+
+    params_paged = {**params, "lim": max_rows, "off": 0}
+    stream = await session.stream(
+        text(
+            f'SELECT {col_list} FROM "{table.schema}"."{table.table}" '
+            f'{where} {order_by} LIMIT :lim OFFSET :off'
+        ),
+        params_paged,
+    )
+    async for chunk in stream.mappings().partitions(1000):
+        for r in chunk:
+            ws.append([_xlsx_cell(r[c]) for c in table.columns])
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
+def _col_letter(n: int) -> str:
+    # 1 -> "A", 27 -> "AA" — enough for any sane column count.
+    s = ""
+    while n > 0:
+        n, r = divmod(n - 1, 26)
+        s = chr(65 + r) + s
+    return s
+
+
+def _xlsx_cell(v):
+    """Coerce a DB value to something openpyxl writes sensibly.
+    Decimal → float (Excel has no Decimal). date/datetime pass through so
+    Excel recognises them as dates. Strings/ints/None pass through."""
+    if v is None:
+        return None
+    if isinstance(v, Decimal):
+        return float(v)
+    if isinstance(v, (date, datetime)):
+        return v
+    return v
+
+
 def _jsonify(row) -> dict:
     out = {}
     for k, v in row.items():
