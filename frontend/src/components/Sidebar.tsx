@@ -61,7 +61,7 @@ export default function Sidebar({
 
       <aside
         className={[
-          "w-[264px] shrink-0 bg-paper-2 border-r border-rule px-7 py-6 flex flex-col",
+          "w-[264px] shrink-0 bg-paper-2 px-7 py-6 flex flex-col relative",
           // Mobile: full-viewport drawer that slides in from the left.
           "fixed inset-y-0 left-0 z-50 h-screen transition-transform duration-200",
           open ? "translate-x-0" : "-translate-x-full",
@@ -69,6 +69,17 @@ export default function Sidebar({
           // (logout + lang) stays visible regardless of page scroll.
           "md:sticky md:top-0 md:h-screen md:translate-x-0 md:transition-none",
         ].join(" ")}
+        style={{
+          // Parchment spine: linear wash from a hair lighter at the top to
+          // the full --paper-2 below, then a gutter shadow on the right edge
+          // so the sidebar reads as a bound page against the main content.
+          backgroundImage:
+            "linear-gradient(180deg, color-mix(in srgb, var(--paper-2) 80%, var(--paper) 20%) 0%, var(--paper-2) 38%, var(--paper-2) 100%), var(--grain)",
+          backgroundBlendMode: "normal, multiply",
+          backgroundSize: "100% 100%, 180px 180px",
+          boxShadow:
+            "inset -1px 0 0 var(--rule), 8px 0 18px -14px color-mix(in srgb, var(--ink) 35%, transparent)",
+        }}
       >
         <div className="flex items-center gap-3">
           <div
@@ -168,10 +179,10 @@ function NavGroup({
               onClick={onNavigate}
               className={({ isActive }) =>
                 [
-                  "group relative flex items-center gap-3 h-9 pl-3 pr-3 rounded-md text-label transition-colors font-medium",
+                  "group relative flex items-center gap-3 h-9 pl-4 pr-3 rounded-md text-label transition-colors font-medium",
                   isActive
-                    ? "bg-mark-bg text-mark font-semibold after:content-['·'] after:ml-auto after:text-mark after:text-[22px] after:leading-none after:-translate-y-0.5"
-                    : "text-ink-2 hover:bg-card hover:text-ink",
+                    ? "bg-mark-bg text-mark font-semibold shadow-[inset_3px_0_0_var(--mark)]"
+                    : "text-ink-2 hover:text-ink hover:bg-[color-mix(in_srgb,var(--card)_55%,transparent)]",
                 ].join(" ")
               }
             >
