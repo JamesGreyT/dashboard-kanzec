@@ -241,6 +241,23 @@ async def export_regions(
                       columns=cols, rows=data["rows"], totals=data.get("totals"))
 
 
+@router.get("/rfm")
+async def rfm(
+    _user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    from_: date | None = Query(default=None, alias="from"),
+    to: date | None = Query(default=None),
+    sort: str = Query(default="revenue:desc"),
+    page: int = Query(default=0, ge=0),
+    size: int = Query(default=50, ge=1, le=500),
+    search: str = Query(default=""),
+    direction: str = Query(default=""),
+    region: str = Query(default=""),
+) -> dict:
+    window, filters = _parse(from_, to, direction, region, "", "")
+    return await service.rfm_segmentation(session, window, filters, page, size, sort, search)
+
+
 @router.get("/seasonality")
 async def seasonality(
     _user: CurrentUser,

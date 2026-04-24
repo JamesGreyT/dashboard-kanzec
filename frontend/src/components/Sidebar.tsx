@@ -15,6 +15,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { useAuth } from "../lib/auth";
+import AlertsBell from "./AlertsBell";
 import LangToggle from "./LangToggle";
 import ThemeToggle from "./ThemeToggle";
 import {
@@ -74,8 +75,9 @@ const OPERATIONS: Item[] = [
   { to: "/ops", labelKey: "nav.reports", roles: ["admin", "operator"], icon: "reports" },
 ];
 const ADMIN: Item[] = [
-  { to: "/admin/users", labelKey: "nav.users", roles: ["admin"], icon: "users" },
-  { to: "/admin/audit", labelKey: "nav.audit", roles: ["admin"], icon: "audit" },
+  { to: "/admin/alerts", labelKey: "nav.alerts", roles: ["admin", "operator", "viewer"], icon: "reports" },
+  { to: "/admin/users",  labelKey: "nav.users",  roles: ["admin"], icon: "users" },
+  { to: "/admin/audit",  labelKey: "nav.audit",  roles: ["admin"], icon: "audit" },
 ];
 
 function IconFor({ kind }: { kind: IconKind }) {
@@ -151,6 +153,7 @@ export default function Sidebar() {
             {t("nav.signout")}
           </Button>
           <div className="flex items-center gap-1">
+            <AlertsBell />
             <ThemeToggle />
             <LangToggle />
           </div>

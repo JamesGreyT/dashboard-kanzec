@@ -12,6 +12,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .._analytics.filters import Filters, clause
+from .._analytics.rfm import build_rfm_sql
 from .._analytics.windows import Compare, Granularity, Window, compare_periods
 
 
@@ -399,6 +400,84 @@ async def _simple_rank(
 # ---------------------------------------------------------------------------
 # Seasonality heatmap (FY rows × month columns)
 # ---------------------------------------------------------------------------
+
+
+async def rfm_segmentation(session: AsyncSession, window: Window,
+                           f: Filters, page: int = 0, size: int = 50,
+                           sort: str = "revenue:desc", search: str = "") -> dict:
+    """Return RFM-scored clients for the window, paginated. Uses the
+    helper in _analytics.rfm.py (NTILE(5) over R / F / M)."""
+    sql = build_rfm_sql(window_start=window.start, window_end=window.end)
+    rows_all = (await session.execute(text(sql))).mappings().all()
+
+    # Post-filter by Filters (R/F/M SQL already scopes to the window). We do
+    # this in Python because the RFM SQL is a self-contained string; adding
+    # filter clauses in the middle would break the NTILE windows.
+    def passes(r: dict) -> bool:
+        if f.direction and (r.get("direction") not in f.direction):
+            return False
+        if f.region and (r.get("region_name") not in f.region):
+            return False
+        if search and (search.lower() not in (r.get("name") or "").lower()):
+            return False
+        return True
+
+    rows = [r for r in rows_all if passes(r)]
+    total = len(rows)
+
+    # Sort
+    sort_key, _, sort_dir_raw = sort.partition(":")
+    sort_dir = "asc" if sort_dir_raw.lower() == "asc" else "desc"
+    key_map = {
+        "name": lambda r: (r.get("name") or "").lower(),
+        "revenue": lambda r: float(r.get("revenue") or 0),
+        "deals":   lambda r: int(r.get("deals") or 0),
+        "last_order_date": lambda r: r.get("last_order_date") or date.min,
+        "days_since": lambda r: int(r.get("days_since") or 0),
+        "r": lambda r: int(r.get("r") or 0),
+        "f": lambda r: int(r.get("f") or 0),
+        "m": lambda r: int(r.get("m") or 0),
+    }
+    key_fn = key_map.get(sort_key, key_map["revenue"])
+    rows.sort(key=key_fn, reverse=(sort_dir == "desc"))
+
+    page_rows = rows[page * size : page * size + size]
+
+    # Segment distribution for the stacked bar / pie
+    segment_counts: dict[str, int] = {}
+    segment_revenue: dict[str, float] = {}
+    for r in rows:
+        seg = r.get("segment") or "—"
+        segment_counts[seg] = segment_counts.get(seg, 0) + 1
+        segment_revenue[seg] = segment_revenue.get(seg, 0.0) + float(r.get("revenue") or 0)
+
+    return {
+        "rows": [{
+            "person_id": str(r["person_id"]),
+            "name": r.get("name"),
+            "direction": r.get("direction"),
+            "region": r.get("region_name"),
+            "last_order_date": r["last_order_date"].isoformat() if r.get("last_order_date") else None,
+            "days_since": int(r.get("days_since") or 0),
+            "deals": int(r.get("deals") or 0),
+            "revenue": float(r.get("revenue") or 0),
+            "r": int(r.get("r") or 0),
+            "f": int(r.get("f") or 0),
+            "m": int(r.get("m") or 0),
+            "score": r.get("score"),
+            "segment": r.get("segment"),
+        } for r in page_rows],
+        "total": total,
+        "page": page,
+        "size": size,
+        "sort": f"{sort_key}:{sort_dir}",
+        "totals": {"revenue": sum(float(r.get("revenue") or 0) for r in rows),
+                   "deals":   sum(int(r.get("deals") or 0) for r in rows)},
+        "segment_distribution": [
+            {"segment": k, "clients": v, "revenue": round(segment_revenue.get(k, 0), 2)}
+            for k, v in sorted(segment_counts.items(), key=lambda kv: -kv[1])
+        ],
+    }
 
 
 async def seasonality_heatmap(session: AsyncSession, years: int = 4,

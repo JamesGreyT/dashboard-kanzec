@@ -4,8 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import {
   BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip,
-  AreaChart, Area, Cell,
+  AreaChart, Area, Cell, ReferenceLine,
 } from "recharts";
+import { useQueryClient } from "@tanstack/react-query";
+import { Plus, Trash2 } from "lucide-react";
 
 import { api } from "../lib/api";
 import PageHeading from "../components/PageHeading";
@@ -14,6 +16,7 @@ import Heatmap from "../components/Heatmap";
 import AgingBar from "../components/AgingBar";
 import RankedTable, { type ColumnDef, type Page } from "../components/RankedTable";
 import DirectionMultiSelect from "../components/DirectionMultiSelect";
+import { usePreferences } from "../lib/preferences";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 interface KPIResp {
@@ -39,6 +42,13 @@ export default function Debt() {
   const { t } = useTranslation();
   const [directions, setDirections] = useState<string[]>([]);
   const [tab, setTab] = useState<"all" | "stale" | "risk" | "managers" | "broken">("all");
+  const prefsQ = usePreferences();
+  const [prefsApplied, setPrefsApplied] = useState(false);
+  if (!prefsApplied && prefsQ.data) {
+    const p = prefsQ.data;
+    if (p.default_directions?.length) setDirections(p.default_directions);
+    setPrefsApplied(true);
+  }
 
   const dirsOpts = useQuery({
     queryKey: ["snapshots.directions"],
@@ -76,6 +86,38 @@ export default function Debt() {
     queryFn: () => api<{ rows: any[] }>("/api/debt/manager-portfolios"),
     staleTime: 60_000,
   });
+
+  // Chart annotations — vertical notes on the aging-trend chart.
+  const qc = useQueryClient();
+  const annQ = useQuery({
+    queryKey: ["ann.debt.aging_trend"],
+    queryFn: () => api<{ rows: Array<{ id: number; chart_key: string; x_date: string; note: string; created_by_name: string; created_at: string }> }>(
+      "/api/annotations?chart_key=debt.aging_trend",
+    ),
+    staleTime: 60_000,
+  });
+  const addAnnotation = async (x_date: string) => {
+    const note = window.prompt(t("debt_dash.annotation_prompt", { defaultValue: "Note for this week?" }) as string);
+    if (!note) return;
+    try {
+      await api("/api/annotations", {
+        method: "POST",
+        body: JSON.stringify({ chart_key: "debt.aging_trend", x_date, note }),
+      });
+      qc.invalidateQueries({ queryKey: ["ann.debt.aging_trend"] });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+  const deleteAnnotation = async (id: number) => {
+    if (!window.confirm(t("debt_dash.annotation_confirm_delete", { defaultValue: "Delete this note?" }) as string)) return;
+    try {
+      await api(`/api/annotations/${id}`, { method: "DELETE" });
+      qc.invalidateQueries({ queryKey: ["ann.debt.aging_trend"] });
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   // paginated lists
   const [pager, setPager] = useState<Record<string, { page: number; size: number; sort: string; search: string }>>({
@@ -216,20 +258,75 @@ export default function Debt() {
           )}
         </div>
         <div>
-          <div className="eyebrow !tracking-[0.18em] mb-2 text-primary">
-            {t("debt_dash.chart_trend")}
+          <div className="flex items-baseline justify-between mb-2">
+            <div className="eyebrow !tracking-[0.18em] text-primary">
+              {t("debt_dash.chart_trend")}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const latest = trendQ.data?.series[trendQ.data.series.length - 1]?.week;
+                if (latest) addAnnotation(latest);
+              }}
+              className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.1em] text-primary hover:underline outline-none focus-visible:ring-2 focus-visible:ring-ring rounded px-1"
+              aria-label={t("debt_dash.add_annotation", { defaultValue: "Add note to latest week" }) as string}
+            >
+              <Plus className="h-3 w-3" aria-hidden />
+              {t("debt_dash.add_annotation", { defaultValue: "Add note" })}
+            </button>
           </div>
           {trendQ.data && (
             <ResponsiveContainer width="100%" height={260}>
-              <AreaChart data={trendQ.data.series.map((r) => ({ week: r.week.slice(5), value: r.over_90_approx }))}>
+              <AreaChart data={trendQ.data.series.map((r) => ({ week_key: r.week, week: r.week.slice(5), value: r.over_90_approx }))}>
                 <XAxis dataKey="week" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={{ stroke: "hsl(var(--border))" }} />
                 <YAxis tickFormatter={(v) => Math.abs(v) >= 1000 ? Math.round(v/1000) + "k" : String(v)}
                   tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
                 <Tooltip formatter={(v: number) => "$" + fmtNum(v)}
                   contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 6, fontSize: 12, fontFamily: "var(--font-mono)" }} />
                 <Area type="monotone" dataKey="value" stroke="#b91c1c" fill="#b91c1c" fillOpacity={0.15} strokeWidth={1.75} />
+                {annQ.data?.rows.map((a) => (
+                  <ReferenceLine
+                    key={a.id}
+                    x={a.x_date.slice(5)}
+                    stroke="hsl(var(--primary))"
+                    strokeDasharray="3 3"
+                    strokeWidth={1}
+                    label={{
+                      value: "•",
+                      position: "top",
+                      fill: "hsl(var(--primary))",
+                      fontSize: 16,
+                    }}
+                  />
+                ))}
               </AreaChart>
             </ResponsiveContainer>
+          )}
+          {annQ.data && annQ.data.rows.length > 0 && (
+            <div className="mt-3 space-y-1 max-h-[120px] overflow-y-auto">
+              {annQ.data.rows.map((a) => (
+                <div
+                  key={a.id}
+                  className="group flex items-start gap-2 text-[11.5px] leading-snug text-foreground/80"
+                >
+                  <span className="font-mono tabular-nums text-primary shrink-0 w-[56px]">
+                    {a.x_date.slice(5)}
+                  </span>
+                  <span className="flex-1">{a.note}</span>
+                  <span className="text-[10px] text-muted-foreground italic shrink-0">
+                    {a.created_by_name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => deleteAnnotation(a.id)}
+                    className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-muted-foreground hover:text-destructive outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                    aria-label={t("debt_dash.annotation_delete", { defaultValue: "Delete" }) as string}
+                  >
+                    <Trash2 className="h-3 w-3" aria-hidden />
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </section>

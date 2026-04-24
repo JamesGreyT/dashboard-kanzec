@@ -5,7 +5,8 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis
 
 import { api } from "../lib/api";
 import PageHeading from "../components/PageHeading";
-import WindowPicker, { defaultWindow, type WindowState } from "../components/WindowPicker";
+import WindowPicker, { defaultWindow, windowFor, type WindowAlias, type WindowState } from "../components/WindowPicker";
+import { usePreferences } from "../lib/preferences";
 import MetricCard, { fmtNum, fmtCount } from "../components/MetricCard";
 import TimeSeriesChart, { type SeriesPoint } from "../components/TimeSeriesChart";
 import Histogram from "../components/Histogram";
@@ -29,6 +30,14 @@ export default function Payments() {
   const [window, setWindow] = useState<WindowState>(defaultWindow());
   const [directions, setDirections] = useState<string[]>([]);
   const [tab, setTab] = useState<"payers" | "prepayers" | "regularity" | "churned">("payers");
+  const prefsQ = usePreferences();
+  const [prefsApplied, setPrefsApplied] = useState(false);
+  if (!prefsApplied && prefsQ.data) {
+    const p = prefsQ.data;
+    if (p.default_window) setWindow(windowFor(p.default_window as WindowAlias));
+    if (p.default_directions?.length) setDirections(p.default_directions);
+    setPrefsApplied(true);
+  }
 
   const baseQs = useMemo(() => {
     const qs = new URLSearchParams();

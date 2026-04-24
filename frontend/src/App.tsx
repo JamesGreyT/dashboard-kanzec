@@ -13,6 +13,7 @@ import Ops from "./pages/Ops";
 import Payments from "./pages/Payments";
 import Sales from "./pages/Sales";
 import YearlySnapshots from "./pages/YearlySnapshots";
+import AdminAlerts from "./pages/AdminAlerts";
 import AdminUsers from "./pages/AdminUsers";
 import AdminAudit from "./pages/AdminAudit";
 
@@ -55,6 +56,14 @@ export default function App() {
             element={
               <RequireAuth roles={["admin"]}>
                 <AdminUsers />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/alerts"
+            element={
+              <RequireAuth roles={["admin", "operator", "viewer"]}>
+                <AdminAlerts />
               </RequireAuth>
             }
           />

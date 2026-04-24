@@ -4,7 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 
 import { api } from "../lib/api";
 import PageHeading from "../components/PageHeading";
-import WindowPicker, { defaultWindow, type WindowState } from "../components/WindowPicker";
+import WindowPicker, { defaultWindow, windowFor, type WindowAlias, type WindowState } from "../components/WindowPicker";
+import { usePreferences } from "../lib/preferences";
 import MetricCard, { fmtNum, fmtCount } from "../components/MetricCard";
 import TimeSeriesChart, { type SeriesPoint } from "../components/TimeSeriesChart";
 import Heatmap from "../components/Heatmap";
@@ -46,7 +47,16 @@ export default function Sales() {
 
   const [window, setWindow] = useState<WindowState>(defaultWindow());
   const [directions, setDirections] = useState<string[]>([]);
-  const [tab, setTab] = useState<"clients" | "managers" | "brands" | "regions">("clients");
+  const [tab, setTab] = useState<"clients" | "managers" | "brands" | "regions" | "rfm">("clients");
+  const prefsQ = usePreferences();
+  const [prefsApplied, setPrefsApplied] = useState(false);
+  // Apply saved preferences once on first successful fetch.
+  if (!prefsApplied && prefsQ.data) {
+    const p = prefsQ.data;
+    if (p.default_window) setWindow(windowFor(p.default_window as WindowAlias));
+    if (p.default_directions?.length) setDirections(p.default_directions);
+    setPrefsApplied(true);
+  }
 
   const baseQs = useMemo(() => {
     const qs = new URLSearchParams();
@@ -93,6 +103,7 @@ export default function Sales() {
     managers: { page: 0, size: 50, sort: "revenue:desc", search: "" },
     brands:   { page: 0, size: 50, sort: "revenue:desc", search: "" },
     regions:  { page: 0, size: 50, sort: "revenue:desc", search: "" },
+    rfm:      { page: 0, size: 50, sort: "revenue:desc", search: "" },
   });
   const setPagerFor = (k: keyof typeof pager, next: typeof pager["clients"]) =>
     setPager((p) => ({ ...p, [k]: next }));
@@ -111,6 +122,12 @@ export default function Sales() {
   const managersQ = usePaginatedQuery<Page<any>>("sales.managers", "/api/sales/managers", mkRankedQs("managers"), tab === "managers");
   const brandsQ   = usePaginatedQuery<Page<any>>("sales.brands",   "/api/sales/brands",   mkRankedQs("brands"),   tab === "brands");
   const regionsQ  = usePaginatedQuery<Page<any>>("sales.regions",  "/api/sales/regions",  mkRankedQs("regions"),  tab === "regions");
+  const rfmQ      = usePaginatedQuery<Page<any> & { segment_distribution?: Array<{ segment: string; clients: number; revenue: number }> }>(
+    "sales.rfm",
+    "/api/sales/rfm",
+    mkRankedQs("rfm"),
+    tab === "rfm",
+  );
 
   useEffect(() => {
     document.title = t("sales.title") + " · Kanzec";
@@ -227,6 +244,7 @@ export default function Sales() {
             <TabsTrigger value="managers">{t("sales.tab_managers")}</TabsTrigger>
             <TabsTrigger value="brands">{t("sales.tab_brands")}</TabsTrigger>
             <TabsTrigger value="regions">{t("sales.tab_regions")}</TabsTrigger>
+            <TabsTrigger value="rfm">{t("sales.tab_rfm")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="clients">
@@ -267,6 +285,36 @@ export default function Sales() {
               onChange={(n) => setPagerFor("regions", n)}
               getRowKey={(r) => r.label}
               exportHref={`/api/sales/export/regions.xlsx?${mkRankedQs("regions").toString()}`}
+            />
+          </TabsContent>
+          <TabsContent value="rfm">
+            {rfmQ.data?.segment_distribution && (
+              <div className="mb-4 flex flex-wrap gap-2">
+                {rfmQ.data.segment_distribution.map((s) => (
+                  <div
+                    key={s.segment}
+                    className="inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-full border border-border/60 bg-muted/40"
+                    title={`${s.segment} — ${s.clients} clients, $${Math.round(s.revenue).toLocaleString("en-US")}`}
+                  >
+                    <span
+                      className="inline-block w-2 h-2 rounded-full"
+                      style={{ backgroundColor: rfmSegmentColor(s.segment) }}
+                      aria-hidden
+                    />
+                    <span className="text-[12px] text-foreground">{s.segment}</span>
+                    <span className="font-mono tabular-nums text-[11px] text-muted-foreground">
+                      {s.clients}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <RankedTable
+              columns={RFM_COLUMNS(t)}
+              data={rfmQ.data}
+              loading={rfmQ.isLoading}
+              onChange={(n) => setPagerFor("rfm", n)}
+              getRowKey={(r) => r.person_id}
             />
           </TabsContent>
         </Tabs>
@@ -347,5 +395,52 @@ function REGION_COLUMNS(t: any): ColumnDef<any>[] {
     { key: "unique_clients", label: t("sales.col_clients"), numeric: true, render: (r) => fmtNum(r.unique_clients) },
     { key: "qty",            label: t("sales.col_qty"), numeric: true, render: (r) => fmtNum(r.qty) },
     { key: "yoy_pct",        label: t("sales.col_yoy"), numeric: true, render: (r) => yoyChip(r.yoy_pct) },
+  ];
+}
+
+function rfmSegmentColor(seg: string): string {
+  const map: Record<string, string> = {
+    "Champions": "#047857",
+    "Loyal": "#10b981",
+    "Potential loyalists": "#0891b2",
+    "New customers": "#3b82f6",
+    "Promising": "#6366f1",
+    "Need attention": "#a16207",
+    "About to sleep": "#ca8a04",
+    "At risk": "#dc2626",
+    "Cannot lose them": "#7c2d12",
+    "Hibernating": "#6b7280",
+    "Lost": "#111827",
+  };
+  return map[seg] ?? "#6b7280";
+}
+
+function RFM_COLUMNS(t: any): ColumnDef<any>[] {
+  return [
+    { key: "name", label: t("sales.col_name"), width: "22%" },
+    { key: "segment", label: t("sales.col_segment"), width: "14%", sortable: false,
+      render: (r) => (
+        <span
+          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-[0.06em] text-white"
+          style={{ backgroundColor: rfmSegmentColor(r.segment ?? "") }}
+        >
+          {r.segment ?? "—"}
+        </span>
+      ) },
+    { key: "direction", label: t("sales.col_direction"), width: "10%" },
+    { key: "region",    label: t("sales.col_region"),    width: "12%" },
+    { key: "revenue", label: t("sales.col_revenue"), numeric: true,
+      render: (r) => "$" + fmtNum(r.revenue),
+      footer: (tt) => "$" + fmtNum(tt.revenue) },
+    { key: "deals", label: t("sales.col_deals"), numeric: true,
+      render: (r) => fmtNum(r.deals),
+      footer: (tt) => fmtNum(tt.deals) },
+    { key: "r", label: "R", numeric: true, render: (r) => String(r.r ?? "—") },
+    { key: "f", label: "F", numeric: true, render: (r) => String(r.f ?? "—") },
+    { key: "m", label: "M", numeric: true, render: (r) => String(r.m ?? "—") },
+    { key: "days_since", label: t("sales.col_days_since"), numeric: true,
+      render: (r) => (r.days_since != null ? r.days_since + "d" : "—") },
+    { key: "last_order_date", label: t("sales.col_last_order"), numeric: true,
+      render: (r) => r.last_order_date ?? "—" },
   ];
 }

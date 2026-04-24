@@ -9,6 +9,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .admin_audit_router import router as audit_router
+from .alerts import service as alerts_service
+from .alerts.router import router as alerts_router
+from .annotations.router import router as annotations_router
 from .auth.router import router as auth_router
 from .config import settings
 from .dashboard.router import router as dashboard_router
@@ -17,6 +20,7 @@ from .db import SessionLocal, healthcheck
 from .debt.router import router as debt_router
 from .ops.router import router as ops_router
 from .payments.router import router as payments_router
+from .preferences.router import router as preferences_router
 from .rooms import service as rooms_service
 from .rooms.router import router as rooms_router
 from .sales.router import router as sales_router
@@ -26,6 +30,7 @@ from .users.router import router as users_router
 log = logging.getLogger("kanzec")
 
 _ROOMS_REFRESH_INTERVAL_SEC = 600  # 10 minutes
+_ALERT_EVAL_INTERVAL_SEC = 30 * 60  # 30 minutes
 
 
 async def _rooms_refresh_loop() -> None:
@@ -42,6 +47,23 @@ async def _rooms_refresh_loop() -> None:
         except Exception as e:  # noqa: BLE001
             log.warning("rooms refresh failed: %s", e)
         await asyncio.sleep(_ROOMS_REFRESH_INTERVAL_SEC)
+
+
+async def _alert_eval_loop() -> None:
+    # Background evaluator — every 30 minutes, walk every enabled
+    # alert_rule and fire events for threshold crossings. Silent during
+    # any transient DB error.
+    while True:
+        try:
+            async with SessionLocal() as session:
+                n = await alerts_service.evaluate_rules(session)
+                if n:
+                    log.info("alerts: created %d events", n)
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:  # noqa: BLE001
+            log.warning("alerts eval failed: %s", e)
+        await asyncio.sleep(_ALERT_EVAL_INTERVAL_SEC)
 
 
 @asynccontextmanager
@@ -61,14 +83,16 @@ async def lifespan(app: FastAPI):
         log.warning("rooms bootstrap failed: %s", e)
 
     task = asyncio.create_task(_rooms_refresh_loop(), name="rooms-refresh")
+    alert_task = asyncio.create_task(_alert_eval_loop(), name="alerts-eval")
     try:
         yield
     finally:
-        task.cancel()
-        try:
-            await task
-        except asyncio.CancelledError:
-            pass
+        for t in (task, alert_task):
+            t.cancel()
+            try:
+                await t
+            except asyncio.CancelledError:
+                pass
         log.info("stopping kanzec dashboard api")
 
 
@@ -101,6 +125,9 @@ app.include_router(debt_router)
 app.include_router(snapshots_router)
 app.include_router(sales_router)
 app.include_router(payments_router)
+app.include_router(preferences_router)
+app.include_router(annotations_router)
+app.include_router(alerts_router)
 
 
 @app.get("/api/healthz")
