@@ -28,15 +28,22 @@ function fmtDate(iso: string): string {
   return `${d.getUTCDate()} ${mon}`;
 }
 
-/** Quarto-style tooltip (paper card, vermilion rail). */
-function ChartTooltip({ active, payload, label }: {
+/** Quarto-style tooltip (paper card, vermilion rail).
+ * When `annotations` is passed, any notes whose x_date matches the
+ * hovered label are rendered below the value lines. */
+function ChartTooltip({ active, payload, label, annotations }: {
   active?: boolean;
   payload?: Array<{ name?: string; value?: number; color?: string; dataKey?: string }>;
   label?: string;
+  annotations?: Array<{ id: number; x_date: string; note: string; created_by_name?: string }>;
 }) {
   if (!active || !payload?.length) return null;
+  // Match annotations for this bucket's x-value. The X axis in our charts
+  // uses ISO date strings directly (e.g. "2026-04-10"), so a straight
+  // string compare works.
+  const notes = (annotations ?? []).filter((a) => a.x_date === label);
   return (
-    <div className="bg-card border border-border rounded-md p-2.5 shadow-lg text-[12px] relative overflow-hidden">
+    <div className="bg-card border border-border rounded-md p-2.5 shadow-lg text-[12px] relative overflow-hidden max-w-[320px]">
       <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-primary" />
       <div className="font-mono text-muted-foreground mb-1 pl-1.5">{label ? fmtDate(label) : ""}</div>
       {payload.map((p) => (
@@ -46,6 +53,18 @@ function ChartTooltip({ active, payload, label }: {
           <span className="ml-auto font-mono">{(p.value ?? 0).toLocaleString("en-US")}</span>
         </div>
       ))}
+      {notes.length > 0 && (
+        <div className="mt-2 pt-2 border-t border-border/60 pl-1.5">
+          {notes.map((n) => (
+            <div key={n.id} className="leading-snug mb-1 last:mb-0">
+              <div className="text-[11px] font-medium text-primary uppercase tracking-[0.08em]">
+                Note{n.created_by_name ? ` · ${n.created_by_name}` : ""}
+              </div>
+              <div className="text-[12px] text-foreground">{n.note}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -70,6 +89,7 @@ export default function TimeSeriesChart({
   yoyColor = "hsl(var(--muted-foreground))",
   maColor = "hsl(var(--primary))",
   overlays,
+  annotations,
 }: {
   data: SeriesPoint[];
   height?: number;
@@ -85,6 +105,8 @@ export default function TimeSeriesChart({
   maColor?: string;
   /** Additional recharts children (e.g. AnnotationMarkers). */
   overlays?: ReactNode;
+  /** Annotations matched to x-axis buckets and shown in the hover tooltip. */
+  annotations?: Array<{ id: number; x_date: string; note: string; created_by_name?: string }>;
 }) {
   const { anomalies } = useMemo(() => {
     if (!highlightAnomalies) return { anomalies: [] as SeriesPoint[] };
@@ -125,7 +147,7 @@ export default function TimeSeriesChart({
           tickFormatter={fmtTick}
           width={48}
         />
-        <Tooltip content={<ChartTooltip />} />
+        <Tooltip content={<ChartTooltip annotations={annotations} />} />
         {showYoY && (
           <Line
             type="monotone"

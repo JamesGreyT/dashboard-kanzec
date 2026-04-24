@@ -11,17 +11,44 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 
 # ---------------------------------------------------------------------------
+# Scope helper — used by every aggregate below. When the caller passes
+# a non-empty `scope_rooms` list, every SQL gains an EXISTS subquery
+# restricting `legal_person.person_id` to clients the user has sold to
+# via those rooms. Empty list (admin) = no restriction.
+# ---------------------------------------------------------------------------
+
+
+def _scope_clause(scope_rooms: list[str] | None, *,
+                  person_column: str = "lp.person_id") -> tuple[str, dict[str, Any]]:
+    """Return `(sql_fragment, params)` — fragment starts with `AND` or
+    empty. Callers AND this into their WHERE. Works for any table that
+    has a person identifier (deal_order uses TEXT, legal_person uses
+    BIGINT, payment uses BIGINT — cast to text uniformly)."""
+    if not scope_rooms:
+        return "", {}
+    return (
+        f"AND {person_column}::text IN ("
+        " SELECT DISTINCT person_id FROM smartup_rep.deal_order"
+        " WHERE room_id = ANY(:_dash_scope_rooms))",
+        {"_dash_scope_rooms": scope_rooms},
+    )
+
+
+# ---------------------------------------------------------------------------
 # KPI strip
 # ---------------------------------------------------------------------------
 
 
-async def kpi_strip(session: AsyncSession) -> dict:
+async def kpi_strip(session: AsyncSession, scope_rooms: list[str] | None = None) -> dict:
     """Total outstanding, #debtors, #over-90, largest single, wavg-age."""
-    sql = """
+    scope_and, scope_params = _scope_clause(scope_rooms, person_column="lp.person_id")
+    sql = f"""
     WITH base AS (
       SELECT d.person_id, d.delivery_date, d.product_amount,
              (CURRENT_DATE - d.delivery_date) AS age
         FROM smartup_rep.deal_order d
+       WHERE 1=1
+         {('AND d.room_id = ANY(:_dash_scope_rooms)') if scope_rooms else ''}
     ),
     per_client AS (
       SELECT person_id,
@@ -44,6 +71,7 @@ async def kpi_strip(session: AsyncSession) -> dict:
         FROM smartup_rep.legal_person lp
         LEFT JOIN per_client pc ON pc.person_id = lp.person_id::text
         LEFT JOIN pays pa ON pa.person_id = lp.person_id::text
+       WHERE 1=1 {scope_and}
     )
     SELECT
       (SELECT COALESCE(SUM(debt), 0)::numeric(18,2)
@@ -57,7 +85,7 @@ async def kpi_strip(session: AsyncSession) -> dict:
       (SELECT COALESCE(SUM(b.product_amount * b.age) / NULLIF(SUM(b.product_amount), 0), 0)::numeric(10,1)
          FROM base b WHERE b.product_amount > 0)                  AS wavg_age_days
     """
-    row = (await session.execute(text(sql))).mappings().first() or {}
+    row = (await session.execute(text(sql), scope_params)).mappings().first() or {}
 
     # Overdue promise count from app.debt_contact_log. This table lives
     # in the `app` schema; gracefully return 0 if the table doesn't
@@ -96,7 +124,7 @@ async def kpi_strip(session: AsyncSession) -> dict:
 # ---------------------------------------------------------------------------
 
 
-async def aging_pyramid(session: AsyncSession) -> list[dict]:
+async def aging_pyramid(session: AsyncSession, scope_rooms: list[str] | None = None) -> list[dict]:
     sql = """
     WITH aged AS (
       SELECT d.person_id,
@@ -141,7 +169,7 @@ async def aging_pyramid(session: AsyncSession) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
-async def aging_trend(session: AsyncSession, weeks: int = 26) -> list[dict]:
+async def aging_trend(session: AsyncSession, weeks: int = 26, scope_rooms: list[str] | None = None) -> list[dict]:
     """For each week-ending, compute the as-of-then outstanding > 90d."""
     sql = """
     WITH weeks_ AS (
@@ -187,7 +215,7 @@ async def aging_trend(session: AsyncSession, weeks: int = 26) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
-async def region_aging_heatmap(session: AsyncSession) -> dict:
+async def region_aging_heatmap(session: AsyncSession, scope_rooms: list[str] | None = None) -> dict:
     sql = """
     WITH aged AS (
       SELECT d.product_amount,
@@ -220,7 +248,7 @@ async def region_aging_heatmap(session: AsyncSession) -> dict:
 # ---------------------------------------------------------------------------
 
 
-async def debt_movement(session: AsyncSession, weeks: int = 26) -> list[dict]:
+async def debt_movement(session: AsyncSession, weeks: int = 26, scope_rooms: list[str] | None = None) -> list[dict]:
     sql = """
     WITH weeks_ AS (
       SELECT generate_series(
@@ -267,7 +295,8 @@ async def debt_movement(session: AsyncSession, weeks: int = 26) -> list[dict]:
 async def debtors_ranked(session: AsyncSession, sort: str, page: int, size: int,
                          search: str, direction_csv: str = "",
                          stale_only: bool = False,
-                         stale_days: int = 90) -> dict:
+                         stale_days: int = 90,
+                         scope_rooms: list[str] | None = None) -> dict:
     dirs = [s.strip() for s in direction_csv.split(",") if s.strip()]
     sort_dir = "ASC" if sort.endswith(":asc") else "DESC"
     order_col = {
@@ -286,6 +315,10 @@ async def debtors_ranked(session: AsyncSession, sort: str, page: int, size: int,
     if search:
         extra_filter.append("AND lp.name ILIKE :q")
         params["q"] = f"%{search}%"
+    scope_and, scope_params = _scope_clause(scope_rooms, person_column="lp.person_id")
+    if scope_and:
+        extra_filter.append(scope_and)
+        params.update(scope_params)
     extra_sql = "\n".join(extra_filter)
 
     sql = f"""
@@ -376,8 +409,9 @@ async def debtors_ranked(session: AsyncSession, sort: str, page: int, size: int,
 # ---------------------------------------------------------------------------
 
 
-async def manager_portfolios(session: AsyncSession) -> list[dict]:
-    sql = """
+async def manager_portfolios(session: AsyncSession, scope_rooms: list[str] | None = None) -> list[dict]:
+    scope_and, scope_params = _scope_clause(scope_rooms, person_column="lp.person_id")
+    sql = f"""
     WITH ord_per_person AS (
       SELECT person_id, SUM(product_amount) AS invoiced, MAX(delivery_date) AS last_order
         FROM smartup_rep.deal_order WHERE person_id IS NOT NULL GROUP BY person_id
@@ -402,6 +436,7 @@ async def manager_portfolios(session: AsyncSession) -> list[dict]:
         LEFT JOIN pay_per_person p ON p.person_id = lp.person_id::text
         LEFT JOIN last_mgr lm      ON lm.person_id = lp.person_id::text
        WHERE (COALESCE(o.invoiced, 0) - COALESCE(p.paid, 0)) > 1
+         {scope_and}
     )
     SELECT COALESCE(NULLIF(TRIM(manager), ''), '(—)') AS manager,
            COUNT(*)                          AS clients,
@@ -413,7 +448,7 @@ async def manager_portfolios(session: AsyncSession) -> list[dict]:
      GROUP BY 1
      ORDER BY outstanding DESC NULLS LAST
     """
-    rows = (await session.execute(text(sql))).mappings().all()
+    rows = (await session.execute(text(sql), scope_params)).mappings().all()
     return [{
         "manager": r["manager"],
         "clients": int(r["clients"] or 0),
@@ -432,7 +467,8 @@ async def manager_portfolios(session: AsyncSession) -> list[dict]:
 
 
 async def risk_scores(session: AsyncSession, page: int = 0, size: int = 50,
-                      search: str = "") -> dict:
+                      search: str = "",
+                      scope_rooms: list[str] | None = None) -> dict:
     """Compute a 0-100 risk score per outstanding client.
 
     Heuristic (higher = worse):
@@ -442,6 +478,7 @@ async def risk_scores(session: AsyncSession, page: int = 0, size: int = 50,
       - 15 × 1 if never paid, 0 otherwise
     """
     search_clause = "AND lp.name ILIKE :q" if search else ""
+    scope_and, scope_params = _scope_clause(scope_rooms, person_column="lp.person_id")
     sql = f"""
     WITH ord AS (
       SELECT person_id, SUM(product_amount) AS invoiced,
@@ -465,6 +502,7 @@ async def risk_scores(session: AsyncSession, page: int = 0, size: int = 50,
         LEFT JOIN ord o ON o.person_id = lp.person_id::text
         LEFT JOIN pay p ON p.person_id = lp.person_id::text
        WHERE (COALESCE(o.invoiced, 0) - COALESCE(p.paid, 0)) > 1 {search_clause}
+         {scope_and}
     )
     SELECT b.*,
            LEAST(100,
@@ -481,6 +519,7 @@ async def risk_scores(session: AsyncSession, page: int = 0, size: int = 50,
     params: dict[str, Any] = {"limit": size, "offset": page * size}
     if search:
         params["q"] = f"%{search}%"
+    params.update(scope_params)
     rows = (await session.execute(text(sql), params)).mappings().all()
     total = int(rows[0]["_total"]) if rows else 0
     return {
@@ -503,7 +542,7 @@ async def risk_scores(session: AsyncSession, page: int = 0, size: int = 50,
 # ---------------------------------------------------------------------------
 
 
-async def promise_stats(session: AsyncSession) -> dict:
+async def promise_stats(session: AsyncSession, scope_rooms: list[str] | None = None) -> dict:
     try:
         rows = (await session.execute(text("""
             WITH latest AS (
@@ -528,7 +567,7 @@ async def promise_stats(session: AsyncSession) -> dict:
 # ---------------------------------------------------------------------------
 
 
-async def broken_promise_debtors(session: AsyncSession) -> list[dict]:
+async def broken_promise_debtors(session: AsyncSession, scope_rooms: list[str] | None = None) -> list[dict]:
     try:
         rows = (await session.execute(text("""
             SELECT cl.person_id,

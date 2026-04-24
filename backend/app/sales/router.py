@@ -75,9 +75,13 @@ async def clients(
     direction: str = Query(default=""),
     region: str = Query(default=""),
     manager: str = Query(default=""),
+    with_sparkline: bool = Query(default=False),
 ) -> dict:
     window, filters = _parse(from_, to, direction, region, manager, "", scope=scope)
-    return await service.clients_ranked(session, window, filters, sort, page, size, search)
+    return await service.clients_ranked(
+        session, window, filters, sort, page, size, search,
+        with_sparkline=with_sparkline,
+    )
 
 
 @router.get("/managers")
@@ -242,6 +246,21 @@ async def export_regions(
     ]
     return stream_xlsx(filename="sales-regions", sheet_title="Regions",
                       columns=cols, rows=data["rows"], totals=data.get("totals"))
+
+
+@router.get("/cross-sell")
+async def cross_sell(
+    scope: ScopedUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    from_: date | None = Query(default=None, alias="from"),
+    to: date | None = Query(default=None),
+    direction: str = Query(default=""),
+    region: str = Query(default=""),
+    manager: str = Query(default=""),
+    limit: int = Query(default=20, ge=5, le=100),
+) -> dict:
+    window, filters = _parse(from_, to, direction, region, manager, "", scope=scope)
+    return await service.cross_sell(session, window, filters, limit=limit)
 
 
 @router.get("/rfm")

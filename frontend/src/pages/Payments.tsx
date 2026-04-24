@@ -16,7 +16,6 @@ import ScopeChip from "../components/ScopeChip";
 import {
   useChartAnnotations,
   AnnotationMarkers,
-  AnnotationList,
   AddAnnotationButton,
 } from "../components/ChartAnnotations";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -219,15 +218,11 @@ export default function Payments() {
           showArea showMA showYoY
           primaryLabel={t("payments_dash.kirim") as string}
           yoyLabel={t("sales.yoy") as string}
-          primaryColor="#047857"     // emerald-700 — cash inflow accent
+          primaryColor="#047857"
           maColor="hsl(var(--primary))"
           height={280}
           overlays={<AnnotationMarkers rows={ann.rows} xMatcher={(iso) => iso} />}
-        />
-        <AnnotationList
-          rows={ann.rows}
-          onDelete={(id) => ann.del.mutate(id)}
-          xLabel={(iso) => iso.slice(5)}
+          annotations={ann.rows}
         />
       </section>
 

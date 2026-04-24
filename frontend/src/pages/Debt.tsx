@@ -7,7 +7,7 @@ import {
   AreaChart, Area, Cell, ReferenceLine,
 } from "recharts";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import { api } from "../lib/api";
 import PageHeading from "../components/PageHeading";
@@ -110,15 +110,8 @@ export default function Debt() {
       console.error(e);
     }
   };
-  const deleteAnnotation = async (id: number) => {
-    if (!window.confirm(t("debt_dash.annotation_confirm_delete", { defaultValue: "Delete this note?" }) as string)) return;
-    try {
-      await api(`/api/annotations/${id}`, { method: "DELETE" });
-      qc.invalidateQueries({ queryKey: ["ann.debt.aging_trend"] });
-    } catch (e) {
-      console.error(e);
-    }
-  };
+  // Annotations are deleted via the dedicated admin UI or by the author
+  // from the list. Kept simple on this page: hover-popover only.
 
   // paginated lists
   const [pager, setPager] = useState<Record<string, { page: number; size: number; sort: string; search: string }>>({
@@ -283,8 +276,34 @@ export default function Debt() {
                 <XAxis dataKey="week" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={{ stroke: "hsl(var(--border))" }} />
                 <YAxis tickFormatter={(v) => Math.abs(v) >= 1000 ? Math.round(v/1000) + "k" : String(v)}
                   tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
-                <Tooltip formatter={(v: number) => "$" + fmtNum(v)}
-                  contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 6, fontSize: 12, fontFamily: "var(--font-mono)" }} />
+                <Tooltip
+                  content={({ active, payload, label }: any) => {
+                    if (!active || !payload?.length) return null;
+                    const notes = annQ.data?.rows.filter((a) => a.x_date.slice(5) === label) ?? [];
+                    return (
+                      <div className="bg-card border border-border rounded-md p-2.5 shadow-lg text-[12px] relative overflow-hidden max-w-[320px]">
+                        <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-primary" />
+                        <div className="font-mono text-muted-foreground mb-1 pl-1.5">{label}</div>
+                        <div className="flex items-center gap-2 pl-1.5 tabular-nums">
+                          <span className="text-foreground">Over 90d</span>
+                          <span className="ml-auto font-mono">${fmtNum(payload[0].value ?? 0)}</span>
+                        </div>
+                        {notes.length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-border/60 pl-1.5">
+                            {notes.map((n: any) => (
+                              <div key={n.id} className="leading-snug mb-1 last:mb-0">
+                                <div className="text-[11px] font-medium text-primary uppercase tracking-[0.08em]">
+                                  Note{n.created_by_name ? " · " + n.created_by_name : ""}
+                                </div>
+                                <div className="text-[12px] text-foreground">{n.note}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }}
+                />
                 <Area type="monotone" dataKey="value" stroke="#b91c1c" fill="#b91c1c" fillOpacity={0.15} strokeWidth={1.75} />
                 {annQ.data?.rows.map((a) => (
                   <ReferenceLine
@@ -305,29 +324,11 @@ export default function Debt() {
             </ResponsiveContainer>
           )}
           {annQ.data && annQ.data.rows.length > 0 && (
-            <div className="mt-3 space-y-1 max-h-[120px] overflow-y-auto">
-              {annQ.data.rows.map((a) => (
-                <div
-                  key={a.id}
-                  className="group flex items-start gap-2 text-[11.5px] leading-snug text-foreground/80"
-                >
-                  <span className="font-mono tabular-nums text-primary shrink-0 w-[56px]">
-                    {a.x_date.slice(5)}
-                  </span>
-                  <span className="flex-1">{a.note}</span>
-                  <span className="text-[10px] text-muted-foreground italic shrink-0">
-                    {a.created_by_name}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => deleteAnnotation(a.id)}
-                    className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-muted-foreground hover:text-destructive outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-                    aria-label={t("debt_dash.annotation_delete", { defaultValue: "Delete" }) as string}
-                  >
-                    <Trash2 className="h-3 w-3" aria-hidden />
-                  </button>
-                </div>
-              ))}
+            <div className="mt-2 text-[11px] text-muted-foreground italic">
+              {t("debt_dash.annotation_hover_hint", {
+                defaultValue: "{{n}} note(s) pinned — hover the • markers to read.",
+                n: annQ.data.rows.length,
+              })}
             </div>
           )}
         </div>

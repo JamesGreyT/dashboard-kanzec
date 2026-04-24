@@ -165,8 +165,61 @@ _SORTABLE_CLIENT_COLS = {
 }
 
 
+async def _sparkline_data(
+    session: AsyncSession,
+    person_ids: list[str],
+    window: Window,
+    weeks: int = 12,
+) -> dict[str, list[float]]:
+    """Return {person_id: [w0 revenue, w1 revenue, …, w(weeks-1) revenue]}
+    for a batch of person_ids. The bucket width is a week ending on
+    `window.end`; empty weeks become 0.0 so downstream sparkline rendering
+    doesn't get bitten by missing points."""
+    if not person_ids:
+        return {}
+    end = window.end
+    # Compute week boundaries inclusive.
+    rows = (await session.execute(text("""
+        WITH weeks_ AS (
+          SELECT generate_series(
+            DATE_TRUNC('week', CAST(:e AS date) - (INTERVAL '1 week' * (:w - 1)))::date,
+            DATE_TRUNC('week', CAST(:e AS date))::date,
+            INTERVAL '1 week'
+          )::date AS w
+        )
+        SELECT d.person_id,
+               DATE_TRUNC('week', d.delivery_date)::date AS w,
+               SUM(d.product_amount)::numeric(18,2) AS amt
+          FROM smartup_rep.deal_order d
+         WHERE d.person_id = ANY(:ids)
+           AND d.delivery_date >= (SELECT MIN(w) FROM weeks_)
+           AND d.delivery_date <= CAST(:e AS date)
+         GROUP BY d.person_id, w
+    """), {"e": end, "w": weeks, "ids": person_ids})).mappings().all()
+    # Pad to a fixed-length vector. Compute the aligned week axis once.
+    from datetime import timedelta as _td
+    axis_q = (await session.execute(text("""
+        SELECT generate_series(
+          DATE_TRUNC('week', CAST(:e AS date) - (INTERVAL '1 week' * (:w - 1)))::date,
+          DATE_TRUNC('week', CAST(:e AS date))::date,
+          INTERVAL '1 week'
+        )::date AS w
+    """), {"e": end, "w": weeks})).mappings().all()
+    axis = [r["w"] for r in axis_q]
+    idx = {w: i for i, w in enumerate(axis)}
+    out: dict[str, list[float]] = {pid: [0.0] * len(axis) for pid in person_ids}
+    for r in rows:
+        pid = r["person_id"]
+        if pid in out:
+            i = idx.get(r["w"])
+            if i is not None:
+                out[pid][i] = float(r["amt"] or 0)
+    return out
+
+
 async def clients_ranked(session: AsyncSession, window: Window, f: Filters,
-                         sort: str, page: int, size: int, search: str) -> dict:
+                         sort: str, page: int, size: int, search: str,
+                         with_sparkline: bool = False) -> dict:
     f_sql, f_params = clause(f)
     sort_key, _, sort_dir_raw = sort.partition(":")
     sort_dir = "ASC" if sort_dir_raw.lower() == "asc" else "DESC"
@@ -225,6 +278,16 @@ async def clients_ranked(session: AsyncSession, window: Window, f: Filters,
     rows = (await session.execute(text(sql), params)).mappings().all()
     total = int(rows[0]["_total"]) if rows else 0
 
+    # Optional: weekly-revenue sparkline per visible client
+    spark_map: dict[str, list[float]] = {}
+    if with_sparkline and rows:
+        spark_map = await _sparkline_data(
+            session,
+            person_ids=[str(r["person_id"]) for r in rows],
+            window=window,
+            weeks=12,
+        )
+
     # Totals across the full filtered set (not just this page)
     totals_sql = f"""
     WITH cur AS (
@@ -257,6 +320,7 @@ async def clients_ranked(session: AsyncSession, window: Window, f: Filters,
                 "last_order": r["last_order"].isoformat() if r["last_order"] else None,
                 "first_order": r["first_order"].isoformat() if r["first_order"] else None,
                 "yoy_pct": float(r["yoy_pct"]) if r["yoy_pct"] is not None else None,
+                "sparkline": spark_map.get(str(r["person_id"])),
             }
             for r in rows
         ],
@@ -400,6 +464,99 @@ async def _simple_rank(
 # ---------------------------------------------------------------------------
 # Seasonality heatmap (FY rows × month columns)
 # ---------------------------------------------------------------------------
+
+
+async def cross_sell(session: AsyncSession, window: Window, f: Filters,
+                     limit: int = 20) -> dict:
+    """Top `limit` co-occurring brand pairs within the same deal_id.
+
+    Returns both the ranked pair list and a small distinct-brand list
+    so the frontend can render either a ranked table or a heatmap.
+
+    Metrics per pair (a, b):
+      cnt     = # of distinct deal_ids that contain both a and b
+      cnt_a   = # of deals containing a
+      cnt_b   = # of deals containing b
+      deals   = total # of deals in scope
+      support = cnt / deals                  ← how common is the pair
+      lift    = (cnt / deals) / ((cnt_a / deals) * (cnt_b / deals))
+                i.e. observed vs expected-if-independent. >1 means the
+                two brands tend to co-occur more than chance.
+    """
+    f_sql, f_params = clause(f)
+    sql = f"""
+    WITH deals AS (
+      -- Pick one row per deal, reduced to the set of distinct brands
+      SELECT d.deal_id,
+             array_agg(DISTINCT COALESCE(NULLIF(TRIM(d.brand), ''), 'Другие')) AS brands
+        FROM smartup_rep.deal_order d
+        JOIN smartup_rep.legal_person lp ON lp.person_id::text = d.person_id
+       WHERE d.delivery_date BETWEEN :w_s AND :w_e {f_sql}
+       GROUP BY d.deal_id
+      HAVING array_length(
+        array_agg(DISTINCT COALESCE(NULLIF(TRIM(d.brand), ''), 'Другие')),
+        1
+      ) >= 2
+    ),
+    pairs AS (
+      SELECT LEAST(a, b) AS brand_a, GREATEST(a, b) AS brand_b, deal_id
+        FROM deals,
+             LATERAL unnest(brands) AS a,
+             LATERAL unnest(brands) AS b
+       WHERE a < b
+    ),
+    pair_counts AS (
+      SELECT brand_a, brand_b, COUNT(DISTINCT deal_id)::int AS cnt
+        FROM pairs
+       GROUP BY 1, 2
+    ),
+    single_counts AS (
+      SELECT brand, COUNT(DISTINCT deal_id)::int AS cnt
+        FROM (
+          SELECT deal_id, unnest(brands) AS brand FROM deals
+        ) t
+       GROUP BY 1
+    ),
+    n_deals AS (
+      SELECT COUNT(*)::int AS n FROM deals
+    )
+    SELECT pc.brand_a,
+           pc.brand_b,
+           pc.cnt,
+           sa.cnt AS cnt_a,
+           sb.cnt AS cnt_b,
+           nd.n    AS deals,
+           (pc.cnt::numeric / NULLIF(nd.n, 0))::numeric(10,6) AS support,
+           (
+             (pc.cnt::numeric / NULLIF(nd.n, 0))
+             / NULLIF(
+                 (sa.cnt::numeric / NULLIF(nd.n, 0))
+                 * (sb.cnt::numeric / NULLIF(nd.n, 0)),
+                 0
+               )
+           )::numeric(10,3) AS lift
+      FROM pair_counts pc
+      JOIN single_counts sa ON sa.brand = pc.brand_a
+      JOIN single_counts sb ON sb.brand = pc.brand_b
+      JOIN n_deals        nd ON TRUE
+     ORDER BY pc.cnt DESC
+     LIMIT :lim
+    """
+    params: dict[str, Any] = {
+        "w_s": window.start, "w_e": window.end, "lim": limit, **f_params,
+    }
+    rows = (await session.execute(text(sql), params)).mappings().all()
+    pairs = [{
+        "brand_a": r["brand_a"], "brand_b": r["brand_b"],
+        "cnt": int(r["cnt"] or 0),
+        "cnt_a": int(r["cnt_a"] or 0),
+        "cnt_b": int(r["cnt_b"] or 0),
+        "deals": int(r["deals"] or 0),
+        "support": float(r["support"] or 0),
+        "lift": float(r["lift"] or 0) if r["lift"] is not None else None,
+    } for r in rows]
+    brands = sorted({p["brand_a"] for p in pairs} | {p["brand_b"] for p in pairs})
+    return {"pairs": pairs, "brands": brands}
 
 
 async def rfm_segmentation(session: AsyncSession, window: Window,

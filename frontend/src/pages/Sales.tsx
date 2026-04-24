@@ -10,12 +10,12 @@ import MetricCard, { fmtNum, fmtCount } from "../components/MetricCard";
 import TimeSeriesChart, { type SeriesPoint } from "../components/TimeSeriesChart";
 import Heatmap from "../components/Heatmap";
 import RankedTable, { type ColumnDef, type Page } from "../components/RankedTable";
+import Sparkline from "../components/Sparkline";
 import DirectionMultiSelect from "../components/DirectionMultiSelect";
 import ScopeChip from "../components/ScopeChip";
 import {
   useChartAnnotations,
   AnnotationMarkers,
-  AnnotationList,
   AddAnnotationButton,
 } from "../components/ChartAnnotations";
 import {
@@ -104,6 +104,14 @@ export default function Sales() {
     staleTime: 5 * 60_000,
   });
 
+  const xsellQ = useQuery({
+    queryKey: ["sales.xsell", baseQs.toString()],
+    queryFn: () => api<{ pairs: Array<{ brand_a: string; brand_b: string; cnt: number; cnt_a: number; cnt_b: number; deals: number; support: number; lift: number | null }>; brands: string[] }>(
+      `/api/sales/cross-sell?${baseQs.toString()}&limit=30`,
+    ),
+    staleTime: 60_000,
+  });
+
   // Ranked tables state (one shared control per tab, reset on tab switch)
   const [pager, setPager] = useState<Record<string, { page: number; size: number; sort: string; search: string }>>({
     clients:  { page: 0, size: 50, sort: "revenue:desc", search: "" },
@@ -122,6 +130,10 @@ export default function Sales() {
     q.set("size", String(p.size));
     q.set("sort", p.sort);
     if (p.search) q.set("search", p.search);
+    // Request per-row sparkline only for the Clients tab — it's the
+    // most useful and avoids needlessly fetching timeseries for brand
+    // / region / manager aggregates.
+    if (k === "clients") q.set("with_sparkline", "true");
     return q;
   };
 
@@ -200,6 +212,74 @@ export default function Sales() {
 
       {/* Primary time series */}
       <SalesTimeseries series={series} />
+
+      <hr className="mark-rule mb-12" aria-hidden />
+
+      {/* Cross-sell affinity */}
+      <section className="mb-12 stagger-3">
+        <div className="flex items-baseline justify-between mb-3">
+          <h2 className="font-display text-[22px] md:text-[26px] font-medium tracking-[-0.01em] text-foreground">
+            {t("sales.section_xsell", { defaultValue: "Cross-sell" })}
+            <span aria-hidden className="font-display-italic text-primary ml-[2px]">.</span>
+          </h2>
+          <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+            {t("sales.xsell_deals_hint", {
+              defaultValue: "{{n}} deals carry ≥ 2 brands",
+              n: xsellQ.data?.pairs?.[0]?.deals ?? 0,
+            })}
+          </div>
+        </div>
+        {xsellQ.data && xsellQ.data.pairs.length > 0 ? (
+          <div className="overflow-x-auto border border-border/60 rounded-md bg-background/70">
+            <table className="w-full text-[13px]">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="text-left px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-medium">
+                    {t("sales.col_brand_a", { defaultValue: "Brand A" })}
+                  </th>
+                  <th className="text-left px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-medium">
+                    {t("sales.col_brand_b", { defaultValue: "Brand B" })}
+                  </th>
+                  <th className="text-right px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-medium">
+                    {t("sales.col_deals_both", { defaultValue: "Deals with both" })}
+                  </th>
+                  <th className="text-right px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-medium">
+                    {t("sales.col_support", { defaultValue: "Support" })}
+                  </th>
+                  <th className="text-right px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-medium">
+                    {t("sales.col_lift", { defaultValue: "Lift" })}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {xsellQ.data.pairs.map((p, i) => {
+                  const lift = p.lift ?? 0;
+                  const liftTone = lift >= 3
+                    ? "text-emerald-700 dark:text-emerald-400 font-medium"
+                    : lift >= 1.5
+                    ? "text-foreground"
+                    : "text-muted-foreground";
+                  return (
+                    <tr key={i} className="border-t border-border/40">
+                      <td className="px-3 py-1.5 text-foreground">{p.brand_a}</td>
+                      <td className="px-3 py-1.5 text-foreground">{p.brand_b}</td>
+                      <td className="px-3 py-1.5 text-right font-mono tabular-nums">{fmtNum(p.cnt)}</td>
+                      <td className="px-3 py-1.5 text-right font-mono tabular-nums text-muted-foreground">
+                        {(p.support * 100).toFixed(2)}%
+                      </td>
+                      <td className={`px-3 py-1.5 text-right font-mono tabular-nums ${liftTone}`}>
+                        {lift.toFixed(2)}×
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-muted-foreground italic text-sm py-10 text-center">—</div>
+        )}
+      </section>
 
       <hr className="mark-rule mb-12" aria-hidden />
 
@@ -344,6 +424,15 @@ function CLIENT_COLUMNS(t: any): ColumnDef<any>[] {
       render: (r) => r.last_order ?? "—" },
     { key: "first_order", label: t("sales.col_first_order"), numeric: true, sortable: false,
       render: (r) => r.first_order ?? "—" },
+    { key: "sparkline", label: "12W", numeric: true, sortable: false, width: "72px",
+      render: (r) => (
+        <Sparkline
+          values={Array.isArray(r.sparkline) ? r.sparkline : []}
+          width={56}
+          height={18}
+          ariaLabel={`12-week revenue trend for ${r.name}`}
+        />
+      ) },
   ];
 }
 
@@ -440,7 +529,7 @@ function RFM_COLUMNS(t: any): ColumnDef<any>[] {
 
 function SalesTimeseries({ series }: { series: SeriesPoint[] }) {
   const { t } = useTranslation();
-  const { rows, add, del } = useChartAnnotations("sales.timeseries");
+  const { rows, add } = useChartAnnotations("sales.timeseries");
   const latest = series[series.length - 1]?.date;
   return (
     <section className="mb-12 stagger-3">
@@ -469,11 +558,7 @@ function SalesTimeseries({ series }: { series: SeriesPoint[] }) {
             xMatcher={(iso) => iso}
           />
         }
-      />
-      <AnnotationList
-        rows={rows}
-        onDelete={(id) => del.mutate(id)}
-        xLabel={(iso) => iso.slice(5)}
+        annotations={rows}
       />
     </section>
   );
