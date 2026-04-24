@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
 import Sparkline from "./Sparkline";
 
 /** Format a number in Quarto house style: zero → em-dash, optional compact.
@@ -44,6 +45,8 @@ export default function MetricCard({
   deltaLabel,
   sparkline,
   hint,
+  href,
+  title,
 }: {
   label: string;
   value: string | ReactNode;
@@ -54,6 +57,10 @@ export default function MetricCard({
   deltaLabel?: string;
   sparkline?: number[];
   hint?: string;
+  /** If present, the entire card becomes an anchor → deep-link to a
+   *  filtered detail view (e.g. `/data/orders?person=123`). */
+  href?: string;
+  title?: string;
 }) {
   const deltaTone =
     delta == null || !Number.isFinite(delta)
@@ -69,9 +76,30 @@ export default function MetricCard({
       ? "text-red-700 dark:text-red-400"
       : "text-muted-foreground";
 
+  const Wrapper: any = href ? Link : "div";
+  const wrapperProps: any = href
+    ? {
+        to: href,
+        title: title ?? "",
+        "aria-label": `${label} — open detail`,
+        className:
+          "flex flex-col gap-1.5 min-w-0 group -mx-2 px-2 py-1 rounded-md transition-colors " +
+          "hover:bg-muted/40 focus-visible:bg-muted/50 " +
+          "outline-none focus-visible:ring-2 focus-visible:ring-ring",
+      }
+    : { role: "group", "aria-label": label, className: "flex flex-col gap-1.5 min-w-0" };
+
   return (
-    <div className="flex flex-col gap-1.5 min-w-0" role="group" aria-label={label}>
-      <div className="eyebrow !tracking-[0.18em]">{label}</div>
+    <Wrapper {...wrapperProps}>
+      <div className="eyebrow !tracking-[0.18em] flex items-center gap-1">
+        <span>{label}</span>
+        {href && (
+          <ExternalLink
+            className="h-2.5 w-2.5 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity"
+            aria-hidden
+          />
+        )}
+      </div>
       <div className="flex items-baseline gap-2 flex-wrap">
         <div className="font-display text-[36px] md:text-[40px] font-medium leading-[1] tracking-tight text-foreground tabular-nums">
           {value}
@@ -102,6 +130,6 @@ export default function MetricCard({
       {hint && (
         <div className="text-[11px] text-muted-foreground italic">{hint}</div>
       )}
-    </div>
+    </Wrapper>
   );
 }

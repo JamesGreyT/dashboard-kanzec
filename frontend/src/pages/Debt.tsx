@@ -163,6 +163,8 @@ export default function Debt() {
           label={t("debt_dash.kpi_debtors")}
           value={fmtCount(kpiQ.data?.debtors ?? 0)}
           hint={kpiQ.data ? `${t("debt_dash.wavg_age")}: ${kpiQ.data.wavg_age_days.toFixed(0)}d` : undefined}
+          href="/collection/worklist"
+          title={t("debt_dash.drill_worklist", { defaultValue: "Open worklist" }) as string}
         />
         <MetricCard
           label={t("debt_dash.kpi_over_90")}
@@ -294,6 +296,7 @@ export default function Debt() {
               columns={DEBTOR_COLS(t)} data={allQ.data} loading={allQ.isLoading}
               onChange={(n) => setPagerFor("all", n)}
               getRowKey={(r) => r.person_id}
+              exportHref={`/api/debt/export/debtors.xlsx?${qsFor("all").toString()}`}
             />
           </TabsContent>
           <TabsContent value="stale">
@@ -301,6 +304,7 @@ export default function Debt() {
               columns={STALE_COLS(t)} data={staleQ.data} loading={staleQ.isLoading}
               onChange={(n) => setPagerFor("stale", n)}
               getRowKey={(r) => r.person_id}
+              exportHref={`/api/debt/export/stale-debtors.xlsx?${qsFor("stale").toString()}`}
             />
           </TabsContent>
           <TabsContent value="risk">
@@ -308,6 +312,7 @@ export default function Debt() {
               columns={RISK_COLS(t)} data={riskQ.data} loading={riskQ.isLoading}
               onChange={(n) => setPagerFor("risk", n)}
               getRowKey={(r) => r.person_id}
+              exportHref={`/api/debt/export/risk-scores.xlsx?${qsFor("risk").toString()}`}
             />
           </TabsContent>
           <TabsContent value="managers">

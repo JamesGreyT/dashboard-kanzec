@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth.deps import CurrentUser
 from ..db import get_session
+from .._analytics.export import ExportColumn, stream_xlsx
 from .._analytics.filters import Filters
 from .._analytics.windows import Granularity, resolve_window
 from . import service
@@ -145,6 +146,106 @@ async def regularity(
 ) -> dict:
     f = Filters.parse(direction=direction, region=region)
     return await service.regularity(session, f, sort, page, size, search)
+
+
+@router.get("/export/payers.xlsx")
+async def export_payers(
+    _user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    from_: date | None = Query(default=None, alias="from"),
+    to: date | None = Query(default=None),
+    sort: str = Query(default="receipts:desc"),
+    search: str = Query(default=""),
+    direction: str = Query(default=""),
+    region: str = Query(default=""),
+):
+    w, f = _parse(from_, to, direction, region)
+    data = await service.payers_ranked(session, w, f, sort, page=0, size=500, search=search)
+    cols = [
+        ExportColumn("name", "Payer", kind="text", width=30),
+        ExportColumn("direction", "Direction"),
+        ExportColumn("region", "Region"),
+        ExportColumn("receipts", "Receipts", kind="money"),
+        ExportColumn("payments", "Count", kind="int"),
+        ExportColumn("avg_payment", "Avg", kind="money"),
+        ExportColumn("yoy_pct", "YoY", kind="pct"),
+        ExportColumn("last_pay", "Last pay", kind="date"),
+        ExportColumn("first_pay", "First pay", kind="date"),
+    ]
+    return stream_xlsx(filename="payments-payers", sheet_title="Payers",
+                      columns=cols, rows=data["rows"], totals=data.get("totals"))
+
+
+@router.get("/export/prepayers.xlsx")
+async def export_prepayers(
+    _user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    sort: str = Query(default="credit:desc"),
+    search: str = Query(default=""),
+    direction: str = Query(default=""),
+    region: str = Query(default=""),
+):
+    f = Filters.parse(direction=direction, region=region)
+    data = await service.prepayers_ranked(session, f, sort, page=0, size=500, search=search)
+    cols = [
+        ExportColumn("name", "Client", kind="text", width=30),
+        ExportColumn("direction", "Direction"),
+        ExportColumn("region", "Region"),
+        ExportColumn("credit", "Credit", kind="money"),
+        ExportColumn("paid", "Paid", kind="money"),
+        ExportColumn("invoiced", "Invoiced", kind="money"),
+        ExportColumn("last_pay", "Last pay", kind="date"),
+    ]
+    return stream_xlsx(filename="payments-prepayers", sheet_title="Prepayers",
+                      columns=cols, rows=data["rows"], totals=data.get("totals"))
+
+
+@router.get("/export/regularity.xlsx")
+async def export_regularity(
+    _user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    sort: str = Query(default="receipts:desc"),
+    search: str = Query(default=""),
+    direction: str = Query(default=""),
+    region: str = Query(default=""),
+):
+    f = Filters.parse(direction=direction, region=region)
+    data = await service.regularity(session, f, sort, page=0, size=500, search=search)
+    cols = [
+        ExportColumn("name", "Client", kind="text", width=30),
+        ExportColumn("class", "Class"),
+        ExportColumn("direction", "Direction"),
+        ExportColumn("region", "Region"),
+        ExportColumn("receipts", "Receipts", kind="money"),
+        ExportColumn("payments", "Count", kind="int"),
+        ExportColumn("avg_gap", "Avg gap (d)", kind="qty"),
+        ExportColumn("last_pay", "Last pay", kind="date"),
+    ]
+    return stream_xlsx(filename="payments-regularity", sheet_title="Regularity",
+                      columns=cols, rows=data["rows"], totals=data.get("totals"))
+
+
+@router.get("/export/churned.xlsx")
+async def export_churned(
+    _user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    sort: str = Query(default="receipts:desc"),
+    search: str = Query(default=""),
+    direction: str = Query(default=""),
+    region: str = Query(default=""),
+):
+    f = Filters.parse(direction=direction, region=region)
+    data = await service.churned_ranked(session, f, sort, page=0, size=500, search=search)
+    cols = [
+        ExportColumn("name", "Client", kind="text", width=30),
+        ExportColumn("direction", "Direction"),
+        ExportColumn("region", "Region"),
+        ExportColumn("receipts", "Past receipts", kind="money"),
+        ExportColumn("last_pay", "Last pay", kind="date"),
+        ExportColumn("days_since", "Days since", kind="int"),
+    ]
+    return stream_xlsx(filename="payments-churned", sheet_title="Churned",
+                      columns=cols, rows=data["rows"], totals=data.get("totals"))
 
 
 @router.get("/churned")

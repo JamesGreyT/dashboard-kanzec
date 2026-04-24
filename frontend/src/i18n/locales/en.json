@@ -78,6 +78,7 @@
     "kirim": "Receipts",
     "dso_hint": "12-month weighted avg",
     "collection_hint": "Paid / invoiced in window",
+    "collection_prepay_hint": "above 100% = net prepayments coming in",
     "chart_timeseries": "DAILY RECEIPTS · 7-DAY MA · YoY",
     "chart_method": "METHOD SPLIT",
     "chart_weekday": "WEEKDAY PATTERN",
@@ -226,7 +227,9 @@
     "empty": "No data",
     "showing": "{{start}}–{{end}} of {{total}}",
     "prev": "Prev",
-    "next": "Next"
+    "next": "Next",
+    "total": "Total",
+    "export": "Excel"
   },
   "roles": {
     "admin": "admin",

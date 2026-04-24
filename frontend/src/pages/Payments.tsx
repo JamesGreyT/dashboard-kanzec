@@ -154,6 +154,8 @@ export default function Payments() {
           value={fmtCount(ovQ.data?.payments.current ?? 0)}
           delta={ovQ.data?.payments.mom_pct ?? null}
           deltaLabel={t("sales.vs_prior") as string}
+          href="/data/payments"
+          title={t("payments_dash.drill_payments", { defaultValue: "Open payment rows" }) as string}
         />
         <MetricCard
           label={t("payments_dash.kpi_dso")}
@@ -166,7 +168,11 @@ export default function Payments() {
           value={ovQ.data && ovQ.data.collection_ratio != null
             ? (ovQ.data.collection_ratio * 100).toFixed(1) + "%"
             : "—"}
-          hint={t("payments_dash.collection_hint") as string}
+          hint={
+            ovQ.data && ovQ.data.collection_ratio != null && ovQ.data.collection_ratio > 1.0
+              ? (t("payments_dash.collection_prepay_hint") as string)
+              : (t("payments_dash.collection_hint") as string)
+          }
         />
       </div>
 
@@ -334,6 +340,7 @@ export default function Payments() {
               columns={PAYER_COLS(t)} data={payersQ.data} loading={payersQ.isLoading}
               onChange={(n) => setPagerFor("payers", n)}
               getRowKey={(r) => r.person_id}
+              exportHref={`/api/payments/export/payers.xlsx?${mkQs("payers", "/api/payments/payers").toString()}`}
             />
           </TabsContent>
           <TabsContent value="prepayers">
@@ -341,6 +348,7 @@ export default function Payments() {
               columns={PREPAY_COLS(t)} data={prepayersQ.data} loading={prepayersQ.isLoading}
               onChange={(n) => setPagerFor("prepayers", n)}
               getRowKey={(r) => r.person_id}
+              exportHref={`/api/payments/export/prepayers.xlsx?${mkQs("prepayers", "").toString()}`}
             />
           </TabsContent>
           <TabsContent value="regularity">
@@ -348,6 +356,7 @@ export default function Payments() {
               columns={REG_COLS(t)} data={regQ.data} loading={regQ.isLoading}
               onChange={(n) => setPagerFor("regularity", n)}
               getRowKey={(r) => r.person_id}
+              exportHref={`/api/payments/export/regularity.xlsx?${mkQs("regularity", "").toString()}`}
             />
           </TabsContent>
           <TabsContent value="churned">
@@ -355,6 +364,7 @@ export default function Payments() {
               columns={CH_COLS(t)} data={chQ.data} loading={chQ.isLoading}
               onChange={(n) => setPagerFor("churned", n)}
               getRowKey={(r) => r.person_id}
+              exportHref={`/api/payments/export/churned.xlsx?${mkQs("churned", "").toString()}`}
             />
           </TabsContent>
         </Tabs>

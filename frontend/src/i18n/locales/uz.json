@@ -78,6 +78,7 @@
     "kirim": "Kirim",
     "dso_hint": "12-oylik o'rtacha",
     "collection_hint": "Davr: to'langan / faktura",
+    "collection_prepay_hint": "100% dan yuqori = sof oldindan to'lovlar kiryapti",
     "chart_timeseries": "KUNDALIK KIRIM · 7 KUNLIK O'RTA · O'TGAN YIL",
     "chart_method": "TO'LOV USULI",
     "chart_weekday": "HAFTA KUNLARI BO'YICHA",
@@ -226,7 +227,9 @@
     "empty": "Ma'lumot yo'q",
     "showing": "{{start}}–{{end}} / {{total}}",
     "prev": "Oldingi",
-    "next": "Keyingi"
+    "next": "Keyingi",
+    "total": "Jami",
+    "export": "Excel"
   },
   "roles": {
     "admin": "administrator",

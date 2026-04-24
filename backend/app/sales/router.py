@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth.deps import CurrentUser
 from ..db import get_session
+from .._analytics.export import ExportColumn, stream_xlsx
 from .._analytics.filters import Filters
 from .._analytics.windows import Granularity, resolve_window
 from . import service
@@ -126,6 +127,118 @@ async def regions(
 ) -> dict:
     window, filters = _parse(from_, to, direction, "", manager, "")
     return await service.regions_ranked(session, window, filters, sort, page, size, search)
+
+
+@router.get("/export/clients.xlsx")
+async def export_clients(
+    _user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    from_: date | None = Query(default=None, alias="from"),
+    to: date | None = Query(default=None),
+    sort: str = Query(default="revenue:desc"),
+    search: str = Query(default=""),
+    direction: str = Query(default=""),
+    region: str = Query(default=""),
+    manager: str = Query(default=""),
+):
+    window, filters = _parse(from_, to, direction, region, manager, "")
+    data = await service.clients_ranked(session, window, filters, sort, page=0, size=500, search=search)
+    cols = [
+        ExportColumn("name", "Client", kind="text", width=30),
+        ExportColumn("direction", "Direction"),
+        ExportColumn("region", "Region"),
+        ExportColumn("revenue", "Revenue", kind="money"),
+        ExportColumn("deals", "Deals", kind="int"),
+        ExportColumn("qty", "Qty", kind="qty"),
+        ExportColumn("avg_deal", "Avg deal", kind="money"),
+        ExportColumn("yoy_pct", "YoY", kind="pct"),
+        ExportColumn("last_order", "Last order", kind="date"),
+        ExportColumn("first_order", "First order", kind="date"),
+    ]
+    return stream_xlsx(
+        filename="sales-clients",
+        sheet_title="Clients",
+        columns=cols,
+        rows=data["rows"],
+        totals=data.get("totals"),
+    )
+
+
+@router.get("/export/managers.xlsx")
+async def export_managers(
+    _user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    from_: date | None = Query(default=None, alias="from"),
+    to: date | None = Query(default=None),
+    sort: str = Query(default="revenue:desc"),
+    search: str = Query(default=""),
+    direction: str = Query(default=""),
+    region: str = Query(default=""),
+):
+    window, filters = _parse(from_, to, direction, region, "", "")
+    data = await service.managers_ranked(session, window, filters, sort, page=0, size=500, search=search)
+    cols = [
+        ExportColumn("label", "Manager", kind="text", width=28),
+        ExportColumn("revenue", "Revenue", kind="money"),
+        ExportColumn("deals", "Deals", kind="int"),
+        ExportColumn("unique_clients", "Clients", kind="int"),
+        ExportColumn("qty", "Qty", kind="qty"),
+        ExportColumn("yoy_pct", "YoY", kind="pct"),
+        ExportColumn("last_active", "Last active", kind="date"),
+    ]
+    return stream_xlsx(filename="sales-managers", sheet_title="Managers",
+                      columns=cols, rows=data["rows"], totals=data.get("totals"))
+
+
+@router.get("/export/brands.xlsx")
+async def export_brands(
+    _user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    from_: date | None = Query(default=None, alias="from"),
+    to: date | None = Query(default=None),
+    sort: str = Query(default="revenue:desc"),
+    search: str = Query(default=""),
+    direction: str = Query(default=""),
+    region: str = Query(default=""),
+    manager: str = Query(default=""),
+):
+    window, filters = _parse(from_, to, direction, region, manager, "")
+    data = await service.brands_ranked(session, window, filters, sort, page=0, size=500, search=search)
+    cols = [
+        ExportColumn("label", "Brand", kind="text", width=28),
+        ExportColumn("skus", "SKUs", kind="int"),
+        ExportColumn("revenue", "Revenue", kind="money"),
+        ExportColumn("qty", "Qty", kind="qty"),
+        ExportColumn("yoy_pct", "YoY", kind="pct"),
+        ExportColumn("last_active", "Last sold", kind="date"),
+    ]
+    return stream_xlsx(filename="sales-brands", sheet_title="Brands",
+                      columns=cols, rows=data["rows"], totals=data.get("totals"))
+
+
+@router.get("/export/regions.xlsx")
+async def export_regions(
+    _user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    from_: date | None = Query(default=None, alias="from"),
+    to: date | None = Query(default=None),
+    sort: str = Query(default="revenue:desc"),
+    search: str = Query(default=""),
+    direction: str = Query(default=""),
+    manager: str = Query(default=""),
+):
+    window, filters = _parse(from_, to, direction, "", manager, "")
+    data = await service.regions_ranked(session, window, filters, sort, page=0, size=500, search=search)
+    cols = [
+        ExportColumn("label", "Region", kind="text", width=28),
+        ExportColumn("revenue", "Revenue", kind="money"),
+        ExportColumn("deals", "Deals", kind="int"),
+        ExportColumn("unique_clients", "Clients", kind="int"),
+        ExportColumn("qty", "Qty", kind="qty"),
+        ExportColumn("yoy_pct", "YoY", kind="pct"),
+    ]
+    return stream_xlsx(filename="sales-regions", sheet_title="Regions",
+                      columns=cols, rows=data["rows"], totals=data.get("totals"))
 
 
 @router.get("/seasonality")

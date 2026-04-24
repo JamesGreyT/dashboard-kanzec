@@ -1,8 +1,21 @@
 import { ReactNode, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronUp, ChevronDown, Search, Loader2, ArrowLeft, ArrowRight } from "lucide-react";
+import { ChevronUp, ChevronDown, Search, Loader2, ArrowLeft, ArrowRight, Download } from "lucide-react";
 import Sparkline from "./Sparkline";
 import { cn } from "@/lib/utils";
+import { getAccessToken } from "../lib/api";
+
+// Fallback formatter for mobile-card value cells where the column def
+// hasn't provided a render fn. Keeps zero as 0 (count-safe default —
+// the page-level formatters still override this for money cells).
+function fmtNumFallback(v: unknown): string {
+  if (v === null || v === undefined) return "—";
+  if (typeof v === "number") {
+    if (!Number.isFinite(v)) return "—";
+    return Math.round(v).toLocaleString("en-US");
+  }
+  return String(v);
+}
 
 export type SortDir = "asc" | "desc";
 
@@ -57,6 +70,7 @@ export default function RankedTable<R extends Record<string, any>>({
   eyebrow,
   empty,
   pageSizes = [25, 50, 100, 250],
+  exportHref,
 }: {
   columns: ColumnDef<R>[];
   data: Page<R> | undefined;
@@ -67,6 +81,9 @@ export default function RankedTable<R extends Record<string, any>>({
   eyebrow?: string;
   empty?: string;
   pageSizes?: number[];
+  /** If present, renders an "Excel" download link above the table.
+   *  The caller passes a fully-qualified URL (with filters baked in). */
+  exportHref?: string;
 }) {
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
@@ -126,6 +143,45 @@ export default function RankedTable<R extends Record<string, any>>({
           />
         </div>
         <div className="ml-auto flex items-center gap-2 text-[11px] text-muted-foreground">
+          {exportHref && (
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const resp = await fetch(exportHref, {
+                    headers: {
+                      Authorization: `Bearer ${getAccessToken() ?? ""}`,
+                    },
+                  });
+                  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                  // Preserve the server-provided filename
+                  const cd = resp.headers.get("Content-Disposition") ?? "";
+                  const fn = /filename="([^"]+)"/.exec(cd)?.[1] ?? "export.xlsx";
+                  const blob = await resp.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = fn;
+                  document.body.appendChild(a);
+                  a.click();
+                  a.remove();
+                  setTimeout(() => URL.revokeObjectURL(url), 1500);
+                } catch (e) {
+                  console.error("export failed", e);
+                }
+              }}
+              className={cn(
+                "inline-flex items-center gap-1 h-8 px-2.5 rounded border border-input text-foreground hover:bg-muted/40 transition",
+                "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 outline-none",
+              )}
+              aria-label={t("ranked.export") as string}
+            >
+              <Download className="h-3.5 w-3.5" aria-hidden />
+              <span className="uppercase tracking-[0.08em] text-[11px]">
+                {t("ranked.export")}
+              </span>
+            </button>
+          )}
           <span className="uppercase tracking-[0.1em]">{t("ranked.page_size")}</span>
           <select
             value={size}
@@ -141,7 +197,104 @@ export default function RankedTable<R extends Record<string, any>>({
         </div>
       </div>
 
-      <div className="overflow-x-auto border border-border/60 rounded-md bg-background/70">
+      {/* Mobile: card list. Renders at <lg (1024px). */}
+      <div className="lg:hidden space-y-2">
+        {loading && (!data || data.rows.length === 0) ? (
+          <div className="py-10 text-center text-muted-foreground italic text-sm border border-border/60 rounded-md">
+            <Loader2 className="inline h-4 w-4 animate-spin mr-2" />
+            {t("ranked.loading")}
+          </div>
+        ) : data && data.rows.length === 0 ? (
+          <div className="py-10 text-center text-muted-foreground italic text-sm border border-border/60 rounded-md">
+            {empty ?? t("ranked.empty")}
+          </div>
+        ) : (
+          data?.rows.map((r) => {
+            const primary = columns[0];
+            const secondary = columns.slice(1).filter((c) => !c.numeric).slice(0, 1);
+            const numericCols = columns.filter((c) => c.numeric);
+            const [primaryNum, ...restNums] = numericCols;
+            return (
+              <div
+                key={getRowKey(r)}
+                onClick={onRowClick ? () => onRowClick(r) : undefined}
+                onKeyDown={
+                  onRowClick
+                    ? (e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onRowClick(r);
+                        }
+                      }
+                    : undefined
+                }
+                tabIndex={onRowClick ? 0 : undefined}
+                role={onRowClick ? "button" : undefined}
+                className={cn(
+                  "border border-border/60 rounded-md bg-background/70 p-3 outline-none",
+                  onRowClick && "cursor-pointer hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring",
+                )}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[14px] text-foreground truncate font-medium">
+                      {primary.render ? primary.render(r) : String(r[primary.key] ?? "—")}
+                    </div>
+                    {secondary.map((c) => (
+                      <div key={c.key} className="text-[11px] text-muted-foreground truncate mt-0.5">
+                        {c.render ? c.render(r) : String(r[c.key] ?? "—")}
+                      </div>
+                    ))}
+                  </div>
+                  {primaryNum && (
+                    <div className="text-right shrink-0">
+                      <div className="eyebrow !tracking-[0.12em] !text-[9px] mb-0.5">
+                        {primaryNum.label}
+                      </div>
+                      <div className="font-mono tabular-nums text-[15px] text-foreground">
+                        {primaryNum.render ? primaryNum.render(r) : fmtNumFallback(r[primaryNum.key])}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {restNums.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-border/40 grid grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-1.5">
+                    {restNums.slice(0, 6).map((c) => (
+                      <div key={c.key} className="flex items-baseline gap-1.5 min-w-0">
+                        <span className="text-[9px] uppercase tracking-[0.1em] text-muted-foreground shrink-0">
+                          {c.label}
+                        </span>
+                        <span className="font-mono tabular-nums text-[12px] text-foreground truncate ml-auto">
+                          {c.render ? c.render(r) : fmtNumFallback(r[c.key])}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+        {/* Mobile total strip */}
+        {data?.totals && (
+          <div className="flex flex-wrap gap-x-4 gap-y-1 px-3 py-2.5 bg-primary/[0.04] border border-primary/20 rounded-md">
+            <div className="eyebrow !tracking-[0.14em] text-primary">
+              {t("ranked.total", { defaultValue: "Total" })}
+            </div>
+            {Object.entries(data.totals).map(([k, v]) => (
+              <div key={k} className="font-mono tabular-nums text-[12px] text-foreground">
+                <span className="text-muted-foreground text-[11px] uppercase tracking-[0.08em] mr-1">
+                  {k}
+                </span>
+                {typeof v === "number" ? v.toLocaleString("en-US") : String(v)}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Desktop: table. */}
+      <div className="hidden lg:block overflow-x-auto border border-border/60 rounded-md bg-background/70">
         <table className="w-full border-collapse text-[13px]">
           <thead className="sticky top-0 z-10 bg-muted/50 backdrop-blur">
             <tr>

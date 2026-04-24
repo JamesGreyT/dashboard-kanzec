@@ -153,12 +153,16 @@ export default function Sales() {
           value={fmtCount(overviewQ.data?.deals.current ?? 0)}
           delta={overviewQ.data?.deals.mom_pct ?? null}
           deltaLabel={t("sales.vs_prior") as string}
+          href="/data/orders"
+          title={t("sales.drill_deals", { defaultValue: "Open deal lines" }) as string}
         />
         <MetricCard
           label={t("sales.kpi_clients")}
           value={fmtCount(overviewQ.data?.unique_clients.current ?? 0)}
           delta={overviewQ.data?.unique_clients.mom_pct ?? null}
           deltaLabel={t("sales.vs_prior") as string}
+          href="/data/legal-persons"
+          title={t("sales.drill_clients", { defaultValue: "Open client list" }) as string}
         />
         <MetricCard
           label={t("sales.kpi_avg_deal")}
@@ -232,6 +236,7 @@ export default function Sales() {
               loading={clientsQ.isLoading}
               onChange={(n) => setPagerFor("clients", n)}
               getRowKey={(r) => r.person_id}
+              exportHref={`/api/sales/export/clients.xlsx?${mkRankedQs("clients").toString()}`}
             />
           </TabsContent>
           <TabsContent value="managers">
@@ -241,6 +246,7 @@ export default function Sales() {
               loading={managersQ.isLoading}
               onChange={(n) => setPagerFor("managers", n)}
               getRowKey={(r) => r.label}
+              exportHref={`/api/sales/export/managers.xlsx?${mkRankedQs("managers").toString()}`}
             />
           </TabsContent>
           <TabsContent value="brands">
@@ -250,6 +256,7 @@ export default function Sales() {
               loading={brandsQ.isLoading}
               onChange={(n) => setPagerFor("brands", n)}
               getRowKey={(r) => r.label}
+              exportHref={`/api/sales/export/brands.xlsx?${mkRankedQs("brands").toString()}`}
             />
           </TabsContent>
           <TabsContent value="regions">
@@ -259,6 +266,7 @@ export default function Sales() {
               loading={regionsQ.isLoading}
               onChange={(n) => setPagerFor("regions", n)}
               getRowKey={(r) => r.label}
+              exportHref={`/api/sales/export/regions.xlsx?${mkRankedQs("regions").toString()}`}
             />
           </TabsContent>
         </Tabs>

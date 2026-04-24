@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .. import audit
+from .._analytics.export import ExportColumn, stream_xlsx
 from ..auth.deps import CurrentUser, require_role
 from ..db import get_session
 from ..scope import ScopedUser
@@ -126,6 +127,99 @@ async def promise_stats(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> dict:
     return await dashboard_service.promise_stats(session)
+
+
+@router.get("/export/debtors.xlsx")
+async def export_debtors(
+    _user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    sort: str = Query(default="debt:desc"),
+    search: str = Query(default=""),
+    direction: str = Query(default=""),
+):
+    data = await dashboard_service.debtors_ranked(
+        session, sort=sort, page=0, size=500, search=search,
+        direction_csv=direction,
+    )
+    cols = [
+        ExportColumn("name", "Debtor", kind="text", width=30),
+        ExportColumn("direction", "Direction"),
+        ExportColumn("region", "Region"),
+        ExportColumn("debt", "Outstanding", kind="money"),
+        ExportColumn("invoiced", "Invoiced (lifetime)", kind="money"),
+        ExportColumn("paid", "Paid (lifetime)", kind="money"),
+        ExportColumn("last_order", "Last order", kind="date"),
+        ExportColumn("last_pay", "Last pay", kind="date"),
+        ExportColumn("days_since_order", "Days since order", kind="int"),
+    ]
+    return stream_xlsx(filename="debt-debtors", sheet_title="Debtors",
+                      columns=cols, rows=data["rows"], totals=data.get("totals"))
+
+
+@router.get("/export/stale-debtors.xlsx")
+async def export_stale_debtors(
+    _user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    sort: str = Query(default="days_since_order:desc"),
+    search: str = Query(default=""),
+    direction: str = Query(default=""),
+    days: int = Query(default=90),
+):
+    data = await dashboard_service.debtors_ranked(
+        session, sort=sort, page=0, size=500, search=search,
+        direction_csv=direction, stale_only=True, stale_days=days,
+    )
+    cols = [
+        ExportColumn("name", "Debtor", kind="text", width=30),
+        ExportColumn("direction", "Direction"),
+        ExportColumn("region", "Region"),
+        ExportColumn("debt", "Outstanding", kind="money"),
+        ExportColumn("days_since_order", "Days stale", kind="int"),
+        ExportColumn("last_order", "Last order", kind="date"),
+        ExportColumn("last_pay", "Last pay", kind="date"),
+    ]
+    return stream_xlsx(filename="debt-stale", sheet_title="Stale debtors",
+                      columns=cols, rows=data["rows"], totals=data.get("totals"))
+
+
+@router.get("/export/risk-scores.xlsx")
+async def export_risk(
+    _user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    search: str = Query(default=""),
+):
+    data = await dashboard_service.risk_scores(session, page=0, size=500, search=search)
+    cols = [
+        ExportColumn("name", "Debtor", kind="text", width=30),
+        ExportColumn("direction", "Direction"),
+        ExportColumn("region", "Region"),
+        ExportColumn("risk_score", "Risk 0-100", kind="qty"),
+        ExportColumn("debt", "Outstanding", kind="money"),
+        ExportColumn("aged_share", "Aged share", kind="pct"),
+        ExportColumn("days_since_pay", "Days since pay", kind="int"),
+        ExportColumn("never_paid", "Never paid"),
+    ]
+    return stream_xlsx(filename="debt-risk", sheet_title="Risk",
+                      columns=cols, rows=data["rows"], totals=data.get("totals"))
+
+
+@router.get("/export/manager-portfolios.xlsx")
+async def export_manager_portfolios(
+    _user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    rows = await dashboard_service.manager_portfolios(session)
+    cols = [
+        ExportColumn("manager", "Manager", kind="text", width=28),
+        ExportColumn("clients", "Clients", kind="int"),
+        ExportColumn("outstanding", "Outstanding", kind="money"),
+        ExportColumn("over_90_amount", "Over-90 amt", kind="money"),
+        ExportColumn("over_90_clients", "Over-90 clients", kind="int"),
+        ExportColumn("over_90_pct", "Over-90 %", kind="pct"),
+        ExportColumn("largest", "Largest", kind="money"),
+    ]
+    return stream_xlsx(filename="debt-managers", sheet_title="Managers",
+                      columns=cols, rows=rows, totals=None)
 
 
 @router.get("/broken-promise-debtors")
