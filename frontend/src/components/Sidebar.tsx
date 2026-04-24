@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   LogOut,
   CalendarRange,
+  TrendingUp,
 } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import LangToggle from "./LangToggle";
@@ -41,7 +42,8 @@ type IconKind =
   | "reports"
   | "users"
   | "audit"
-  | "calendar";
+  | "calendar"
+  | "trending";
 
 interface Item {
   to: string;
@@ -63,6 +65,7 @@ const COLLECTION: Item[] = [
   { to: "/collection/ledger", labelKey: "nav.ledger", roles: ["admin", "operator", "viewer"], icon: "ledger" },
 ];
 const ANALYTICS: Item[] = [
+  { to: "/analytics/sales",  labelKey: "nav.sales",  roles: ["admin", "operator", "viewer"], icon: "trending" },
   { to: "/analytics/yearly", labelKey: "nav.yearly", roles: ["admin", "operator", "viewer"], icon: "calendar" },
 ];
 const OPERATIONS: Item[] = [
@@ -86,6 +89,7 @@ function IconFor({ kind }: { kind: IconKind }) {
     case "users": return <Users className={size} />;
     case "audit": return <ShieldCheck className={size} />;
     case "calendar": return <CalendarRange className={size} />;
+    case "trending": return <TrendingUp className={size} />;
   }
 }
 

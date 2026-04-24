@@ -9,6 +9,7 @@ import Debt from "./pages/Debt";
 import DebtClient from "./pages/DebtClient";
 import DebtLedger from "./pages/DebtLedger";
 import Ops from "./pages/Ops";
+import Sales from "./pages/Sales";
 import YearlySnapshots from "./pages/YearlySnapshots";
 import AdminUsers from "./pages/AdminUsers";
 import AdminAudit from "./pages/AdminAudit";
@@ -34,7 +35,8 @@ export default function App() {
           <Route path="/collection/debt" element={<Debt />} />
           <Route path="/collection/debt/client/:personId" element={<DebtClient />} />
           <Route path="/collection/ledger" element={<DebtLedger />} />
-          <Route path="/analytics" element={<Navigate to="/analytics/yearly" replace />} />
+          <Route path="/analytics" element={<Navigate to="/analytics/sales" replace />} />
+          <Route path="/analytics/sales" element={<Sales />} />
           <Route path="/analytics/yearly" element={<YearlySnapshots />} />
           <Route
             path="/ops"
