@@ -129,6 +129,10 @@ export default function Sidebar() {
               </div>
             )}
           </div>
+          {/* Bell lives next to the user identity, not the bottom row —
+              keeps the footer narrow enough that the lang-toggle pills
+              never overflow the sidebar's right edge. */}
+          <AlertsBell />
         </div>
       </SidebarHeader>
 
@@ -153,7 +157,6 @@ export default function Sidebar() {
             {t("nav.signout")}
           </Button>
           <div className="flex items-center gap-1">
-            <AlertsBell />
             <ThemeToggle />
             <LangToggle />
           </div>
