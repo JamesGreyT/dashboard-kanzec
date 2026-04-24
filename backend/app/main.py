@@ -16,6 +16,7 @@ from .data.router import router as data_router
 from .db import SessionLocal, healthcheck
 from .debt.router import router as debt_router
 from .ops.router import router as ops_router
+from .payments.router import router as payments_router
 from .rooms import service as rooms_service
 from .rooms.router import router as rooms_router
 from .sales.router import router as sales_router
@@ -99,6 +100,7 @@ app.include_router(rooms_router)
 app.include_router(debt_router)
 app.include_router(snapshots_router)
 app.include_router(sales_router)
+app.include_router(payments_router)
 
 
 @app.get("/api/healthz")

@@ -17,9 +17,126 @@ from .. import audit
 from ..auth.deps import CurrentUser, require_role
 from ..db import get_session
 from ..scope import ScopedUser
-from . import service
+from . import dashboard_service, service
 
 router = APIRouter(prefix="/api/debt", tags=["debt"])
+
+
+# ---- Debt dashboard endpoints -----------------------------------------------
+# New aggregates that back the analytical Debt page. Read-only.
+
+@router.get("/dashboard")
+async def dashboard_kpis(
+    _user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict:
+    return await dashboard_service.kpi_strip(session)
+
+
+@router.get("/aging-pyramid")
+async def aging_pyramid(
+    _user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict:
+    return {"buckets": await dashboard_service.aging_pyramid(session)}
+
+
+@router.get("/aging-trend")
+async def aging_trend(
+    _user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    weeks: int = Query(default=26, ge=4, le=104),
+) -> dict:
+    return {"series": await dashboard_service.aging_trend(session, weeks=weeks)}
+
+
+@router.get("/region-aging")
+async def region_aging(
+    _user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict:
+    return await dashboard_service.region_aging_heatmap(session)
+
+
+@router.get("/debt-movement")
+async def debt_movement(
+    _user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    weeks: int = Query(default=26, ge=4, le=104),
+) -> dict:
+    return {"series": await dashboard_service.debt_movement(session, weeks=weeks)}
+
+
+@router.get("/debtors")
+async def debtors(
+    _user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    sort: str = Query(default="debt:desc"),
+    page: int = Query(default=0, ge=0),
+    size: int = Query(default=50, ge=1, le=500),
+    search: str = Query(default=""),
+    direction: str = Query(default=""),
+) -> dict:
+    return await dashboard_service.debtors_ranked(
+        session, sort=sort, page=page, size=size,
+        search=search, direction_csv=direction,
+    )
+
+
+@router.get("/stale-debtors")
+async def stale_debtors(
+    _user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    sort: str = Query(default="days_since_order:desc"),
+    page: int = Query(default=0, ge=0),
+    size: int = Query(default=50, ge=1, le=500),
+    search: str = Query(default=""),
+    direction: str = Query(default=""),
+    days: int = Query(default=90, ge=30, le=720),
+) -> dict:
+    return await dashboard_service.debtors_ranked(
+        session, sort=sort, page=page, size=size,
+        search=search, direction_csv=direction,
+        stale_only=True, stale_days=days,
+    )
+
+
+@router.get("/manager-portfolios")
+async def manager_portfolios(
+    _user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict:
+    return {"rows": await dashboard_service.manager_portfolios(session)}
+
+
+@router.get("/risk-scores")
+async def risk_scores(
+    _user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    page: int = Query(default=0, ge=0),
+    size: int = Query(default=50, ge=1, le=500),
+    search: str = Query(default=""),
+) -> dict:
+    return await dashboard_service.risk_scores(session, page=page, size=size, search=search)
+
+
+@router.get("/promise-stats")
+async def promise_stats(
+    _user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict:
+    return await dashboard_service.promise_stats(session)
+
+
+@router.get("/broken-promise-debtors")
+async def broken_promise_debtors(
+    _user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict:
+    return {"rows": await dashboard_service.broken_promise_debtors(session)}
+
+
+# ---- Worklist (existing; scope-aware action view) ---------------------------
 
 
 OutcomeLiteral = Literal[

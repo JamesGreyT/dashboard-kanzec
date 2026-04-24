@@ -8,7 +8,9 @@ import DataViewer from "./pages/DataViewer";
 import Debt from "./pages/Debt";
 import DebtClient from "./pages/DebtClient";
 import DebtLedger from "./pages/DebtLedger";
+import DebtWorklist from "./pages/DebtWorklist";
 import Ops from "./pages/Ops";
+import Payments from "./pages/Payments";
 import Sales from "./pages/Sales";
 import YearlySnapshots from "./pages/YearlySnapshots";
 import AdminUsers from "./pages/AdminUsers";
@@ -33,10 +35,12 @@ export default function App() {
           <Route path="/data/legal-persons" element={<DataViewer lockedTable="legal_person" />} />
           <Route path="/collection" element={<Navigate to="/collection/debt" replace />} />
           <Route path="/collection/debt" element={<Debt />} />
+          <Route path="/collection/worklist" element={<DebtWorklist />} />
           <Route path="/collection/debt/client/:personId" element={<DebtClient />} />
           <Route path="/collection/ledger" element={<DebtLedger />} />
           <Route path="/analytics" element={<Navigate to="/analytics/sales" replace />} />
           <Route path="/analytics/sales" element={<Sales />} />
+          <Route path="/analytics/payments" element={<Payments />} />
           <Route path="/analytics/yearly" element={<YearlySnapshots />} />
           <Route
             path="/ops"
