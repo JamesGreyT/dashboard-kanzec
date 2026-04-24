@@ -74,6 +74,8 @@
     "scope_all": "Все направления",
     "filter_direction": "Направление",
     "filter_end_year": "Конец года",
+    "filter_end_date": "Дата окончания",
+    "quick_yday": "ВЧЕРА",
     "filter_years": "Лет",
     "filter_search": "Поиск",
     "filter_empty": "Ничего не найдено",

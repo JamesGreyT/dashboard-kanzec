@@ -18,8 +18,9 @@ values() strip and groups once. Separate round-trips per dimension —
 5 queries under ~60ms total on the current dataset."""
 from __future__ import annotations
 
+import calendar
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 
 from sqlalchemy import text
@@ -38,20 +39,39 @@ class FYBounds:
     label: str  # ISO date of fy_end, used as the JSON column key
 
 
-def compute_fy_bounds(end_year: int, years: int) -> list[FYBounds]:
-    """Return [FY(end_year-years+1 → end_year)] with col_idx 0..years-1.
+def _anniversary(d: date, years_back: int) -> date:
+    """`d` shifted `years_back` years earlier, clamped for Feb 29 → Feb 28
+    in a non-leap target year. Same semantics as dateutil's `relativedelta`
+    but no extra dependency."""
+    y = d.year - years_back
+    last = calendar.monthrange(y, d.month)[1]
+    return date(y, d.month, min(d.day, last))
 
-    A fiscal year "ending 31 March YYYY" spans 1 April YYYY-1 through
-    31 March YYYY. So end_year=2026, years=4 → Apr 2022 → Mar 2023, …,
-    Apr 2025 → Mar 2026.
+
+def compute_fy_bounds(end_date: date, years: int) -> list[FYBounds]:
+    """Return `years` 12-month windows anchored on `end_date`.
+
+    The newest window ends on `end_date`; each previous window ends on
+    `end_date - N years`. Starts are the day after the previous window's
+    end, so windows are contiguous with no gap, each exactly one
+    calendar year long (apart from Feb-29 edge-cases handled in
+    `_anniversary`).
+
+    Example end_date=2026-04-30, years=3 →
+      FY0 2023-05-01 → 2024-04-30
+      FY1 2024-05-01 → 2025-04-30
+      FY2 2025-05-01 → 2026-04-30
     """
     if years < 1 or years > 8:
         raise ValueError("years must be between 1 and 8")
     out: list[FYBounds] = []
     for i in range(years):
-        end_y = end_year - (years - 1 - i)
-        fy_end = date(end_y, 3, 31)
-        fy_start = date(end_y - 1, 4, 1)
+        # i=0 is oldest, i=years-1 is newest (ends on end_date)
+        age_end = years - 1 - i
+        age_start_end = years - i   # the previous window's end (oldest neighbour)
+        fy_end = _anniversary(end_date, age_end)
+        prev_end = _anniversary(end_date, age_start_end)
+        fy_start = prev_end + timedelta(days=1)
         out.append(FYBounds(fy_start=fy_start, fy_end=fy_end, col_idx=i,
                             label=fy_end.isoformat()))
     return out
@@ -441,11 +461,11 @@ async def list_directions(session: AsyncSession) -> list[str]:
 
 async def yearly_snapshots(
     session: AsyncSession,
-    end_year: int,
+    end_date: date,
     years: int,
     direction_filter: list[str] | None,
 ) -> dict:
-    fys = compute_fy_bounds(end_year, years)
+    fys = compute_fy_bounds(end_date, years)
     managers   = await _managers(session, fys)
     aging      = await _aging(session, fys)
     directions = await _directions(session, fys, direction_filter)

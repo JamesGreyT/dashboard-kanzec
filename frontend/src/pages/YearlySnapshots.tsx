@@ -7,13 +7,6 @@ import { api } from "../lib/api";
 import PageHeading from "../components/PageHeading";
 import PivotTable, { PivotRow } from "../components/PivotTable";
 import DirectionMultiSelect from "../components/DirectionMultiSelect";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 
 interface PairTable {
@@ -38,13 +31,17 @@ interface YearlyResponse {
   };
 }
 
-/**
- * Picks a sensible default end_year: FY ends 31 March, so after 1 April
- * we've rolled into the next FY.
- */
-function defaultEndYear(): number {
-  const now = new Date();
-  return now.getMonth() >= 3 ? now.getFullYear() + 1 : now.getFullYear();
+/** ISO yyyy-mm-dd in local time. */
+function isoDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** Default anchor — today. Operator can change to any calendar day. */
+function defaultEndDate(): string {
+  return isoDate(new Date());
 }
 
 function splitPair(
@@ -62,7 +59,7 @@ function splitPair(
 export default function YearlySnapshots() {
   const { t } = useTranslation();
 
-  const [endYear, setEndYear] = useState<number>(defaultEndYear());
+  const [endDate, setEndDate] = useState<string>(defaultEndDate());
   const [years, setYears] = useState<number>(4);
   const [directionFilter, setDirectionFilter] = useState<string[]>([]);
   const [compact, setCompact] = useState<boolean>(false);
@@ -77,11 +74,11 @@ export default function YearlySnapshots() {
 
   const queryString = useMemo(() => {
     const qs = new URLSearchParams();
-    qs.set("end_year", String(endYear));
+    qs.set("end_date", endDate);
     qs.set("years", String(years));
     if (directionFilter.length) qs.set("direction", directionFilter.join(","));
     return qs.toString();
-  }, [endYear, years, directionFilter]);
+  }, [endDate, years, directionFilter]);
 
   const dataQ = useQuery({
     queryKey: ["snapshots.yearly", queryString],
@@ -89,10 +86,6 @@ export default function YearlySnapshots() {
       api<YearlyResponse>(`/api/snapshots/yearly?${queryString}`),
     staleTime: 30_000,
   });
-
-  const today = new Date();
-  const possibleEndYears: number[] = [];
-  for (let y = today.getFullYear() + 1; y >= 2023; y--) possibleEndYears.push(y);
 
   if (dataQ.isError) {
     return (
@@ -124,26 +117,42 @@ export default function YearlySnapshots() {
       <div className="stagger-1 flex flex-wrap items-center gap-4 mb-10">
         <div className="flex items-center gap-2">
           <span className="text-xs uppercase tracking-[0.1em] text-muted-foreground font-medium">
-            {t("yearly.filter_end_year")}
+            {t("yearly.filter_end_date")}
           </span>
-          <Select
-            value={String(endYear)}
-            onValueChange={(v) => setEndYear(Number(v))}
-          >
-            <SelectTrigger className="h-9 w-[108px]">
-              <div className="flex items-center gap-1.5">
-                <CalendarRange className="h-3.5 w-3.5 text-muted-foreground" />
-                <SelectValue />
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              {possibleEndYears.map((y) => (
-                <SelectItem key={y} value={String(y)}>
-                  {y}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="relative">
+            <CalendarRange className="h-3.5 w-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              max={isoDate(new Date())}
+              className="h-9 pl-8 pr-2 bg-background border border-input rounded-md text-[13px] font-mono tabular-nums focus-within:ring-2 focus-within:ring-ring/30 outline-none"
+            />
+          </div>
+          <div className="hidden md:flex items-center gap-1">
+            {[-1, -7, -30].map((offset) => {
+              const d = new Date();
+              d.setDate(d.getDate() + offset);
+              const iso = isoDate(d);
+              return (
+                <button
+                  key={offset}
+                  onClick={() => setEndDate(iso)}
+                  className={
+                    "text-[11px] uppercase tracking-[0.08em] px-1.5 py-0.5 rounded transition " +
+                    (endDate === iso
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground")
+                  }
+                  title={iso}
+                >
+                  {offset === -1 ? t("yearly.quick_yday")
+                    : offset === -7 ? "-7"
+                    : "-30"}
+                </button>
+              );
+            })}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs uppercase tracking-[0.1em] text-muted-foreground font-medium">

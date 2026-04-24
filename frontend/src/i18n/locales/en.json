@@ -74,6 +74,8 @@
     "scope_all": "All directions",
     "filter_direction": "Direction",
     "filter_end_year": "FY ending",
+    "filter_end_date": "End date",
+    "quick_yday": "YDAY",
     "filter_years": "Years",
     "filter_search": "Search",
     "filter_empty": "No matches",

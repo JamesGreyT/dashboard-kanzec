@@ -12,15 +12,24 @@ function fmt(n: number, compact: boolean): string {
   return Math.round(n).toLocaleString("en-US");
 }
 
-/** Year header: editorial "31 Mart / 2026" stack. */
+// Uzbek (Latin) month abbreviations — not shouty, just enough to read
+// "30 APR" or "15 IYUN" in the editorial header.
+const UZ_MONTH_ABBR = [
+  "YAN", "FEV", "MART", "APR", "MAY", "IYUN",
+  "IYUL", "AVG", "SEN", "OKT", "NOY", "DEK",
+] as const;
+
+/** Column header: editorial "DD MMM / YYYY" stack — renders whatever day
+ * and month the operator picked, not just 31 March. */
 function YearHeader({ iso }: { iso: string }) {
-  const d = new Date(iso);
+  const d = new Date(iso + "T00:00:00Z");
+  const day = d.getUTCDate();
+  const mon = UZ_MONTH_ABBR[d.getUTCMonth()];
   const year = d.getUTCFullYear();
-  // All columns are 31 March; print "31 Mart" on top, year under.
   return (
     <div className="flex flex-col items-end leading-tight">
       <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-medium">
-        31 Mart
+        {day} {mon}
       </span>
       <span className="font-display-italic text-[17px] text-foreground/85">
         {year}

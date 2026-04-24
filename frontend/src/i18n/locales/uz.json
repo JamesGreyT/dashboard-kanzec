@@ -74,6 +74,8 @@
     "scope_all": "Barcha yo'nalishlar",
     "filter_direction": "Yo'nalish",
     "filter_end_year": "Yakunlangan yil",
+    "filter_end_date": "Tugash sanasi",
+    "quick_yday": "KECHA",
     "filter_years": "Yillar soni",
     "filter_search": "Qidirish",
     "filter_empty": "Topilmadi",

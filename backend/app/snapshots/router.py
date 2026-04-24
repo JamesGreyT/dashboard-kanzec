@@ -15,27 +15,21 @@ from . import service
 router = APIRouter(prefix="/api/snapshots", tags=["snapshots"])
 
 
-def _default_end_year() -> int:
-    # Fiscal year ending 31 March — if today is April or later, the current FY
-    # ends next March (i.e. end_year = this_year + 1). Jan-Mar is still the
-    # previous FY (end_year = this_year).
-    today = date.today()
-    return today.year + 1 if today.month >= 4 else today.year
-
-
 @router.get("/yearly")
 async def yearly(
     _user: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
-    end_year: int = Query(default=None, ge=2020, le=2040,
-                          description="Latest FY end year (31 March of this year)."),
+    end_date: date | None = Query(default=None,
+        description="Anchor date for the newest 12-month window (ISO). "
+                    "Defaults to today. Each prior column ends on the same "
+                    "calendar day 1, 2, … years earlier."),
     years: int = Query(default=4, ge=1, le=8,
-                       description="How many FYs to include (ending end_year)."),
+                       description="How many 12-month windows to include."),
     direction: str = Query(default="",
                            description="Comma-separated direction filter (empty = all)."),
 ) -> dict:
-    if end_year is None:
-        end_year = _default_end_year()
+    if end_date is None:
+        end_date = date.today()
     dirs: list[str] | None = None
     if direction.strip():
         dirs = [s.strip() for s in direction.split(",") if s.strip()]
@@ -43,7 +37,7 @@ async def yearly(
             dirs = None
     try:
         return await service.yearly_snapshots(
-            session, end_year=end_year, years=years, direction_filter=dirs,
+            session, end_date=end_date, years=years, direction_filter=dirs,
         )
     except ValueError as e:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e)) from None
