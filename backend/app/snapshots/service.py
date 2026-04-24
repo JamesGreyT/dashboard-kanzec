@@ -202,66 +202,71 @@ async def _aging(session: AsyncSession, fys: list[FYBounds]) -> dict:
     fy_values = _values_clause(fys)
     n = len(fys)
 
+    # Sotuv: compute prev_delivery per (person, order) with LAG, then filter
+    # the windowed rows to the FY ranges. LAG on the full history avoids the
+    # O(N²) scalar subquery and uses the idx_deal_order_client + delivery_date
+    # indexes for the window scan.
     sotuv_sql = f"""
-      WITH orders AS (
-        SELECT d.person_id, d.delivery_date, d.product_amount, fy.col_idx
+      WITH all_orders AS (
+        SELECT d.person_id, d.delivery_date, d.product_amount,
+               LAG(d.delivery_date) OVER (
+                 PARTITION BY d.person_id ORDER BY d.delivery_date
+               ) AS prev_date
           FROM smartup_rep.deal_order d
-          {_lp_join()}
-          JOIN (VALUES {fy_values}) AS fy(fy_start, fy_end, col_idx)
-            ON d.delivery_date BETWEEN fy.fy_start AND fy.fy_end
+          JOIN smartup_rep.legal_person lp
+            ON lp.person_id::text = d.person_id
          WHERE lp.direction = 'B2B'
-      ),
-      with_prev AS (
-        SELECT o.*,
-               (SELECT MAX(d2.delivery_date)
-                  FROM smartup_rep.deal_order d2
-                 WHERE d2.person_id = o.person_id
-                   AND d2.delivery_date < o.delivery_date) AS prev_date
-          FROM orders o
       )
       SELECT CASE
                WHEN prev_date IS NULL THEN 'Yangi'
-               WHEN (delivery_date - prev_date) <= 15 THEN '0-15'
-               WHEN (delivery_date - prev_date) <= 30 THEN '16-30'
-               WHEN (delivery_date - prev_date) <= 60 THEN '31-60'
-               WHEN (delivery_date - prev_date) <= 90 THEN '61-90'
+               WHEN (o.delivery_date - prev_date) <= 15 THEN '0-15'
+               WHEN (o.delivery_date - prev_date) <= 30 THEN '16-30'
+               WHEN (o.delivery_date - prev_date) <= 60 THEN '31-60'
+               WHEN (o.delivery_date - prev_date) <= 90 THEN '61-90'
                ELSE '91+'
              END AS label,
-             col_idx,
-             SUM(product_amount) AS amt
-        FROM with_prev
+             fy.col_idx,
+             SUM(o.product_amount) AS amt
+        FROM all_orders o
+        JOIN (VALUES {fy_values}) AS fy(fy_start, fy_end, col_idx)
+          ON o.delivery_date BETWEEN fy.fy_start AND fy.fy_end
        GROUP BY 1, 2
     """
     sotuv_rows = (await session.execute(text(sotuv_sql))).mappings().all()
 
+    # Kirim: pre-aggregate distinct delivery dates per B2B person (via DISTINCT
+    # window materialization), then for each payment find the most recent
+    # prior delivery. Using a LEFT JOIN LATERAL still, but scoped to the
+    # per-person delivery index — this is 30k payments × small lookup each.
     kirim_sql = f"""
-      WITH pays AS (
-        SELECT p.person_id, p.payment_date, p.amount, fy.col_idx
-          FROM smartup_rep.payment p
-          {_lp_join_payment()}
-          JOIN (VALUES {fy_values}) AS fy(fy_start, fy_end, col_idx)
-            ON p.payment_date::date BETWEEN fy.fy_start AND fy.fy_end
-         WHERE lp.direction = 'B2B'
+      WITH b2b_person AS (
+        SELECT person_id FROM smartup_rep.legal_person
+         WHERE direction = 'B2B'
       ),
-      with_prev AS (
-        SELECT pp.*,
-               (SELECT MAX(d2.delivery_date)
-                  FROM smartup_rep.deal_order d2
-                 WHERE d2.person_id = pp.person_id::text
-                   AND d2.delivery_date < pp.payment_date::date) AS prev_date
-          FROM pays pp
+      b2b_pays AS (
+        SELECT p.person_id, p.payment_date::date AS pd, p.amount
+          FROM smartup_rep.payment p
+          JOIN b2b_person bp ON bp.person_id = p.person_id
       )
       SELECT CASE
                WHEN prev_date IS NULL THEN 'Yangi'
-               WHEN (payment_date::date - prev_date) <= 15 THEN '0-15'
-               WHEN (payment_date::date - prev_date) <= 30 THEN '16-30'
-               WHEN (payment_date::date - prev_date) <= 60 THEN '31-60'
-               WHEN (payment_date::date - prev_date) <= 90 THEN '61-90'
+               WHEN (pd - prev_date) <= 15 THEN '0-15'
+               WHEN (pd - prev_date) <= 30 THEN '16-30'
+               WHEN (pd - prev_date) <= 60 THEN '31-60'
+               WHEN (pd - prev_date) <= 90 THEN '61-90'
                ELSE '91+'
              END AS label,
-             col_idx,
+             fy.col_idx,
              SUM(amount) AS amt
-        FROM with_prev
+        FROM b2b_pays bp
+        JOIN (VALUES {fy_values}) AS fy(fy_start, fy_end, col_idx)
+          ON bp.pd BETWEEN fy.fy_start AND fy.fy_end
+        LEFT JOIN LATERAL (
+          SELECT MAX(d2.delivery_date) AS prev_date
+            FROM smartup_rep.deal_order d2
+           WHERE d2.person_id = bp.person_id::text
+             AND d2.delivery_date < bp.pd
+        ) pv ON TRUE
        GROUP BY 1, 2
     """
     kirim_rows = (await session.execute(text(kirim_sql))).mappings().all()
