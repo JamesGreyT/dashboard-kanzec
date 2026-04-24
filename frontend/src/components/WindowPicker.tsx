@@ -123,21 +123,27 @@ export default function WindowPicker({
           aria-label={t("window.to") as string}
         />
       </div>
-      <div className="flex items-center gap-1 flex-wrap">
-        {PRESETS.map((p) => (
-          <button
-            key={p.alias}
-            onClick={() => onChange(windowFor(p.alias))}
-            className={cn(
-              "text-[11px] uppercase tracking-[0.08em] px-2 py-1 rounded transition",
-              value.alias === p.alias
-                ? "bg-primary/10 text-primary font-medium"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-            )}
-          >
-            {t(p.key)}
-          </button>
-        ))}
+      <div className="flex items-center gap-1 flex-wrap" role="group" aria-label={t("window.presets", { defaultValue: "Date range presets" }) as string}>
+        {PRESETS.map((p) => {
+          const active = value.alias === p.alias;
+          return (
+            <button
+              key={p.alias}
+              type="button"
+              onClick={() => onChange(windowFor(p.alias))}
+              aria-pressed={active}
+              className={cn(
+                "text-[11px] uppercase tracking-[0.08em] px-2 py-1 rounded transition outline-none",
+                "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
+                active
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+              )}
+            >
+              {t(p.key)}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import PageHeading from "../components/PageHeading";
 import WindowPicker, { defaultWindow, type WindowState } from "../components/WindowPicker";
-import MetricCard, { fmtNum } from "../components/MetricCard";
+import MetricCard, { fmtNum, fmtCount } from "../components/MetricCard";
 import TimeSeriesChart, { type SeriesPoint } from "../components/TimeSeriesChart";
 import Heatmap from "../components/Heatmap";
 import RankedTable, { type ColumnDef, type Page } from "../components/RankedTable";
@@ -150,13 +150,13 @@ export default function Sales() {
         />
         <MetricCard
           label={t("sales.kpi_deals")}
-          value={fmtNum(overviewQ.data?.deals.current ?? 0)}
+          value={fmtCount(overviewQ.data?.deals.current ?? 0)}
           delta={overviewQ.data?.deals.mom_pct ?? null}
           deltaLabel={t("sales.vs_prior") as string}
         />
         <MetricCard
           label={t("sales.kpi_clients")}
-          value={fmtNum(overviewQ.data?.unique_clients.current ?? 0)}
+          value={fmtCount(overviewQ.data?.unique_clients.current ?? 0)}
           delta={overviewQ.data?.unique_clients.mom_pct ?? null}
           deltaLabel={t("sales.vs_prior") as string}
         />
@@ -171,7 +171,7 @@ export default function Sales() {
 
       {/* Primary time series */}
       <section className="mb-12 stagger-3">
-        <div className="eyebrow !tracking-[0.18em] mb-2 text-primary/70">
+        <div className="eyebrow !tracking-[0.18em] mb-2 text-primary">
           {t("sales.chart_timeseries")}
         </div>
         <TimeSeriesChart

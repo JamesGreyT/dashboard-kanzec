@@ -6,12 +6,16 @@ export default function Sparkline({
   height = 18,
   positiveColor = "hsl(var(--primary))",
   negativeColor = "hsl(var(--destructive))",
+  ariaLabel,
 }: {
   values: number[];
   width?: number;
   height?: number;
   positiveColor?: string;
   negativeColor?: string;
+  /** Accessible description of the trend (WCAG 1.1.1). If omitted, a
+   *  generic "trend going up/down" label is generated. */
+  ariaLabel?: string;
 }) {
   if (!values.length) {
     return (
@@ -31,12 +35,16 @@ export default function Sparkline({
   const area = `${path} L${width},${height} L0,${height} Z`;
   const up = values[values.length - 1] >= values[0];
   const color = up ? positiveColor : negativeColor;
+  const label =
+    ariaLabel ??
+    `Trend ${up ? "up" : "down"}, ${values.length} points, min ${min.toFixed(0)}, max ${max.toFixed(0)}`;
   return (
     <svg
       width={width}
       height={height}
       viewBox={`0 0 ${width} ${height}`}
-      aria-hidden
+      role="img"
+      aria-label={label}
       className="inline-block align-middle"
     >
       <path d={area} fill={color} opacity={0.14} />

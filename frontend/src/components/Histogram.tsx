@@ -29,7 +29,7 @@ export default function Histogram({
   return (
     <div className="min-w-0">
       {label && (
-        <div className="eyebrow !tracking-[0.18em] mb-2 text-primary/70">
+        <div className="eyebrow !tracking-[0.18em] mb-2 text-primary">
           {label}
         </div>
       )}

@@ -70,7 +70,7 @@ export default function PivotTable({
 
   return (
     <div className="min-w-0">
-      <div className="eyebrow !tracking-[0.18em] mb-3 text-primary/70">
+      <div className="eyebrow !tracking-[0.18em] mb-3 text-primary">
         {eyebrow}
       </div>
       <div className="overflow-x-auto">

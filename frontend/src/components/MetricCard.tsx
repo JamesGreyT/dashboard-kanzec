@@ -2,10 +2,22 @@ import { ReactNode } from "react";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import Sparkline from "./Sparkline";
 
-/** Format a number in Quarto house style: zero → em-dash, optional compact. */
+/** Format a number in Quarto house style: zero → em-dash, optional compact.
+ *  Best for in-table money/qty cells where "—" visually dedupes zero rows. */
 export function fmtNum(n: number | null | undefined, compact = false): string {
   if (n === null || n === undefined || Number.isNaN(n)) return "—";
   if (n === 0) return "—";
+  if (compact && Math.abs(n) >= 1000) {
+    if (Math.abs(n) >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
+    return Math.round(n / 1000).toLocaleString("en-US") + "k";
+  }
+  return Math.round(n).toLocaleString("en-US");
+}
+
+/** Format a count for a KPI card. Unlike `fmtNum`, zero is rendered as
+ *  "0" because for a count metric 0 is a valid answer, not "no data". */
+export function fmtCount(n: number | null | undefined, compact = false): string {
+  if (n === null || n === undefined || Number.isNaN(n)) return "—";
   if (compact && Math.abs(n) >= 1000) {
     if (Math.abs(n) >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
     return Math.round(n / 1000).toLocaleString("en-US") + "k";
@@ -58,7 +70,7 @@ export default function MetricCard({
       : "text-muted-foreground";
 
   return (
-    <div className="flex flex-col gap-1.5 min-w-0">
+    <div className="flex flex-col gap-1.5 min-w-0" role="group" aria-label={label}>
       <div className="eyebrow !tracking-[0.18em]">{label}</div>
       <div className="flex items-baseline gap-2 flex-wrap">
         <div className="font-display text-[36px] md:text-[40px] font-medium leading-[1] tracking-tight text-foreground tabular-nums">
@@ -70,8 +82,11 @@ export default function MetricCard({
       </div>
       <div className="flex items-center gap-3 min-h-[18px]">
         {delta !== undefined && delta !== null && (
-          <div className={`flex items-center gap-1 text-[12px] font-mono tabular-nums ${deltaClass}`}>
-            <DeltaIcon className="h-3 w-3" />
+          <div
+            className={`flex items-center gap-1 text-[12px] font-mono tabular-nums ${deltaClass}`}
+            aria-label={`${deltaTone === "up" ? "Increased" : deltaTone === "down" ? "Decreased" : "Unchanged"} by ${fmtPct(delta)} ${deltaLabel ?? ""}`.trim()}
+          >
+            <DeltaIcon className="h-3 w-3" aria-hidden />
             <span>{fmtPct(delta)}</span>
             {deltaLabel && (
               <span className="text-muted-foreground italic text-[11px] ml-1">{deltaLabel}</span>

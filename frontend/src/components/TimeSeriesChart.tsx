@@ -141,7 +141,7 @@ export default function TimeSeriesChart({
             name={primaryLabel}
             stroke={primaryColor}
             fill={primaryColor}
-            fillOpacity={0.08}
+            fillOpacity={0.18}
             strokeWidth={1.75}
             dot={false}
           />

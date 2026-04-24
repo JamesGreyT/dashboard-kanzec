@@ -109,7 +109,7 @@ export default function RankedTable<R extends Record<string, any>>({
     <div className="min-w-0">
       {eyebrow && (
         <div className="flex items-baseline justify-between mb-3">
-          <div className="eyebrow !tracking-[0.18em] text-primary/70">{eyebrow}</div>
+          <div className="eyebrow !tracking-[0.18em] text-primary">{eyebrow}</div>
           <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
             {total.toLocaleString("en-US")} {t("ranked.rows")}
           </div>
@@ -149,26 +149,46 @@ export default function RankedTable<R extends Record<string, any>>({
                 const isSorted = sortKey === c.key;
                 const align = c.align ?? (c.numeric ? "right" : "left");
                 const clickable = c.sortable !== false;
+                const ariaSort = !clickable
+                  ? undefined
+                  : isSorted
+                    ? (sortDir === "asc" ? "ascending" : "descending")
+                    : "none";
                 return (
                   <th
                     key={c.key}
                     style={{ width: c.width, textAlign: align }}
+                    aria-sort={ariaSort as any}
+                    scope="col"
                     className={cn(
                       "px-3 py-2 text-[10px] uppercase tracking-[0.14em] font-medium text-muted-foreground select-none border-b border-border/80",
-                      clickable && "cursor-pointer hover:text-foreground",
                     )}
-                    onClick={clickable ? () => toggleSort(c.key) : undefined}
                   >
-                    <span className="inline-flex items-center gap-1" style={{ justifyContent: align === "right" ? "flex-end" : "flex-start" }}>
-                      {c.label}
-                      {clickable && isSorted && (
-                        sortDir === "asc" ? (
-                          <ChevronUp className="h-3 w-3" />
-                        ) : (
-                          <ChevronDown className="h-3 w-3" />
-                        )
-                      )}
-                    </span>
+                    {clickable ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleSort(c.key)}
+                        className={cn(
+                          "inline-flex items-center gap-1 outline-none rounded px-1 -mx-1",
+                          "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
+                          "hover:text-foreground",
+                        )}
+                        style={{ justifyContent: align === "right" ? "flex-end" : "flex-start" }}
+                      >
+                        {c.label}
+                        {isSorted && (
+                          sortDir === "asc" ? (
+                            <ChevronUp className="h-3 w-3" aria-hidden />
+                          ) : (
+                            <ChevronDown className="h-3 w-3" aria-hidden />
+                          )
+                        )}
+                      </button>
+                    ) : (
+                      <span className="inline-flex items-center gap-1" style={{ justifyContent: align === "right" ? "flex-end" : "flex-start" }}>
+                        {c.label}
+                      </span>
+                    )}
                   </th>
                 );
               })}
@@ -193,9 +213,21 @@ export default function RankedTable<R extends Record<string, any>>({
                 <tr
                   key={getRowKey(r)}
                   onClick={onRowClick ? () => onRowClick(r) : undefined}
+                  onKeyDown={
+                    onRowClick
+                      ? (e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            onRowClick(r);
+                          }
+                        }
+                      : undefined
+                  }
+                  tabIndex={onRowClick ? 0 : undefined}
+                  role={onRowClick ? "button" : undefined}
                   className={cn(
-                    "border-b border-border/40 last:border-b-0 transition-colors",
-                    onRowClick && "cursor-pointer hover:bg-muted/30",
+                    "border-b border-border/40 last:border-b-0 transition-colors outline-none",
+                    onRowClick && "cursor-pointer hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
                     i % 2 === 1 && "bg-muted/[0.02]",
                   )}
                 >
@@ -245,7 +277,7 @@ export default function RankedTable<R extends Record<string, any>>({
 
       {/* Pagination */}
       <div className="flex items-center justify-between mt-3 text-[12px] text-muted-foreground">
-        <div>
+        <div aria-live="polite" aria-atomic="true">
           {total > 0
             ? t("ranked.showing", { start: startRow, end: endRow, total: total.toLocaleString("en-US") })
             : ""}

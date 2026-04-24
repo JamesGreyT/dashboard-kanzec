@@ -9,7 +9,7 @@ import {
 
 import { api } from "../lib/api";
 import PageHeading from "../components/PageHeading";
-import MetricCard, { fmtNum } from "../components/MetricCard";
+import MetricCard, { fmtNum, fmtCount } from "../components/MetricCard";
 import Heatmap from "../components/Heatmap";
 import AgingBar from "../components/AgingBar";
 import RankedTable, { type ColumnDef, type Page } from "../components/RankedTable";
@@ -161,17 +161,17 @@ export default function Debt() {
         />
         <MetricCard
           label={t("debt_dash.kpi_debtors")}
-          value={fmtNum(kpiQ.data?.debtors ?? 0)}
+          value={fmtCount(kpiQ.data?.debtors ?? 0)}
           hint={kpiQ.data ? `${t("debt_dash.wavg_age")}: ${kpiQ.data.wavg_age_days.toFixed(0)}d` : undefined}
         />
         <MetricCard
           label={t("debt_dash.kpi_over_90")}
-          value={fmtNum(kpiQ.data?.over_90 ?? 0)}
+          value={fmtCount(kpiQ.data?.over_90 ?? 0)}
           hint={t("debt_dash.over_90_hint") as string}
         />
         <MetricCard
           label={t("debt_dash.kpi_promises")}
-          value={fmtNum(kpiQ.data?.overdue_promises ?? 0)}
+          value={fmtCount(kpiQ.data?.overdue_promises ?? 0)}
           hint={t("debt_dash.promises_hint") as string}
         />
       </div>
@@ -179,7 +179,7 @@ export default function Debt() {
       {/* Aging pyramid + trend */}
       <section className="mb-12 stagger-3 grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-10">
         <div>
-          <div className="eyebrow !tracking-[0.18em] mb-2 text-primary/70">
+          <div className="eyebrow !tracking-[0.18em] mb-2 text-primary">
             {t("debt_dash.chart_pyramid")}
           </div>
           {pyramidData.length > 0 && (
@@ -214,7 +214,7 @@ export default function Debt() {
           )}
         </div>
         <div>
-          <div className="eyebrow !tracking-[0.18em] mb-2 text-primary/70">
+          <div className="eyebrow !tracking-[0.18em] mb-2 text-primary">
             {t("debt_dash.chart_trend")}
           </div>
           {trendQ.data && (
@@ -237,7 +237,7 @@ export default function Debt() {
       {/* Region × aging heatmap + debt movement */}
       <section className="mb-12 stagger-4 grid grid-cols-1 lg:grid-cols-2 gap-10">
         <div>
-          <div className="eyebrow !tracking-[0.18em] mb-3 text-primary/70">
+          <div className="eyebrow !tracking-[0.18em] mb-3 text-primary">
             {t("debt_dash.chart_heatmap")}
           </div>
           {heatQ.data && (
@@ -250,7 +250,7 @@ export default function Debt() {
           )}
         </div>
         <div>
-          <div className="eyebrow !tracking-[0.18em] mb-2 text-primary/70">
+          <div className="eyebrow !tracking-[0.18em] mb-2 text-primary">
             {t("debt_dash.chart_movement")}
           </div>
           {moveQ.data && (

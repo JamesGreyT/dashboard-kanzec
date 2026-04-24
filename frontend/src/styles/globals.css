@@ -168,7 +168,29 @@
     letter-spacing: 0.14em;
     text-transform: uppercase;
     font-weight: 600;
+    /* muted-foreground at full strength — clears WCAG AA (~5.6:1 on ivory) */
     color: hsl(var(--muted-foreground));
+  }
+  /* Visually-hidden for skip-link + aria-live regions. Pixel-tight per WCAG
+     technique H17; becomes visible on focus (skip-link). */
+  .sr-only-focusable {
+    position: absolute;
+    left: -9999px;
+    top: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+  .sr-only-focusable:focus-visible {
+    left: 1rem;
+    top: 1rem;
+    width: auto;
+    height: auto;
+    padding: 0.5rem 0.875rem;
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border-radius: 4px;
+    z-index: 100;
   }
   .mark-rule {
     height: 1px;

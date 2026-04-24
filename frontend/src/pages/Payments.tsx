@@ -6,7 +6,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis
 import { api } from "../lib/api";
 import PageHeading from "../components/PageHeading";
 import WindowPicker, { defaultWindow, type WindowState } from "../components/WindowPicker";
-import MetricCard, { fmtNum } from "../components/MetricCard";
+import MetricCard, { fmtNum, fmtCount } from "../components/MetricCard";
 import TimeSeriesChart, { type SeriesPoint } from "../components/TimeSeriesChart";
 import Histogram from "../components/Histogram";
 import RankedTable, { type ColumnDef, type Page } from "../components/RankedTable";
@@ -151,7 +151,7 @@ export default function Payments() {
         />
         <MetricCard
           label={t("payments_dash.kpi_payments")}
-          value={fmtNum(ovQ.data?.payments.current ?? 0)}
+          value={fmtCount(ovQ.data?.payments.current ?? 0)}
           delta={ovQ.data?.payments.mom_pct ?? null}
           deltaLabel={t("sales.vs_prior") as string}
         />
@@ -172,7 +172,7 @@ export default function Payments() {
 
       {/* Primary timeseries */}
       <section className="mb-12 stagger-3">
-        <div className="eyebrow !tracking-[0.18em] mb-2 text-primary/70">
+        <div className="eyebrow !tracking-[0.18em] mb-2 text-primary">
           {t("payments_dash.chart_timeseries")}
         </div>
         <TimeSeriesChart
@@ -191,7 +191,7 @@ export default function Payments() {
       {/* Two-column: method donut + weekday pattern */}
       <section className="mb-12 stagger-4 grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div>
-          <div className="eyebrow !tracking-[0.18em] mb-2 text-primary/70">
+          <div className="eyebrow !tracking-[0.18em] mb-2 text-primary">
             {t("payments_dash.chart_method")}
           </div>
           {methodQ.data && (
@@ -241,7 +241,7 @@ export default function Payments() {
           )}
         </div>
         <div>
-          <div className="eyebrow !tracking-[0.18em] mb-2 text-primary/70">
+          <div className="eyebrow !tracking-[0.18em] mb-2 text-primary">
             {t("payments_dash.chart_weekday")}
           </div>
           {weekdayQ.data && (
@@ -278,7 +278,7 @@ export default function Payments() {
       {/* Velocity + collection ratio */}
       <section className="mb-12 stagger-5 grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div>
-          <div className="eyebrow !tracking-[0.18em] mb-2 text-primary/70">
+          <div className="eyebrow !tracking-[0.18em] mb-2 text-primary">
             {t("payments_dash.chart_velocity")}
           </div>
           <Histogram
@@ -290,7 +290,7 @@ export default function Payments() {
           />
         </div>
         <div>
-          <div className="eyebrow !tracking-[0.18em] mb-2 text-primary/70">
+          <div className="eyebrow !tracking-[0.18em] mb-2 text-primary">
             {t("payments_dash.chart_collection")}
           </div>
           {crQ.data && crQ.data.series.length > 0 && (

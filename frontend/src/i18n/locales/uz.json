@@ -202,6 +202,10 @@
       "brands": "Marka bo'yicha"
     }
   },
+  "a11y": {
+    "skip_to_main": "Asosiy kontentga o'tish",
+    "main_landmark": "Asosiy kontent"
+  },
   "window": {
     "today": "Bugun",
     "last7": "7 kun",

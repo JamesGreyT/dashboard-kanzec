@@ -202,6 +202,10 @@
       "brands": "By brand"
     }
   },
+  "a11y": {
+    "skip_to_main": "Skip to main content",
+    "main_landmark": "Main content"
+  },
   "window": {
     "today": "Today",
     "last7": "7 days",
