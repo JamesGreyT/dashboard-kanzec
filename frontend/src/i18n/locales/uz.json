@@ -91,6 +91,28 @@
       "brands": "Marka bo'yicha"
     }
   },
+  "window": {
+    "today": "Bugun",
+    "last7": "7 kun",
+    "last30": "30 kun",
+    "last90": "90 kun",
+    "mtd": "Oy",
+    "qtd": "Chorak",
+    "ytd": "Yil",
+    "fy": "Moliya yil",
+    "from": "Dan",
+    "to": "Gacha"
+  },
+  "ranked": {
+    "rows": "qator",
+    "search": "Qidirish",
+    "page_size": "Sahifa",
+    "loading": "Yuklanmoqda…",
+    "empty": "Ma'lumot yo'q",
+    "showing": "{{start}}–{{end}} / {{total}}",
+    "prev": "Oldingi",
+    "next": "Keyingi"
+  },
   "roles": {
     "admin": "administrator",
     "operator": "operator",
