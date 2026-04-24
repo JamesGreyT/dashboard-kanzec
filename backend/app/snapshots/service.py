@@ -156,7 +156,7 @@ async def _managers(session: AsyncSession, fys: list[FYBounds]) -> dict:
 
     # Kirim with lateral manager lookup
     kirim_sql = f"""
-      SELECT COALESCE(NULLIF(TRIM(mgr.sales_manager), ''), '__none__') AS label,
+      SELECT COALESCE(NULLIF(TRIM(mgr.sales_manager), ''), '(menejersiz)') AS label,
              fy.col_idx, SUM(p.amount) AS amt
         FROM smartup_rep.payment p
         {_lp_join_payment()}
