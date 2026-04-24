@@ -561,16 +561,19 @@ async def cross_sell(session: AsyncSession, window: Window, f: Filters,
 
 async def rfm_segmentation(session: AsyncSession, window: Window,
                            f: Filters, page: int = 0, size: int = 50,
-                           sort: str = "revenue:desc", search: str = "") -> dict:
+                           sort: str = "revenue:desc", search: str = "",
+                           segment: str = "") -> dict:
     """Return RFM-scored clients for the window, paginated. Uses the
     helper in _analytics.rfm.py (NTILE(5) over R / F / M)."""
     sql = build_rfm_sql(window_start=window.start, window_end=window.end)
     rows_all = (await session.execute(text(sql))).mappings().all()
 
-    # Post-filter by Filters (R/F/M SQL already scopes to the window). We do
-    # this in Python because the RFM SQL is a self-contained string; adding
-    # filter clauses in the middle would break the NTILE windows.
-    def passes(r: dict) -> bool:
+    # Direction / region / search filter the table view AND the chip
+    # counts (so chips reflect what the user is currently looking at).
+    # The segment filter, however, only narrows the table — chip counts
+    # stay full so the user can still see "Loyal 69" while viewing only
+    # Champions.
+    def passes_view(r: dict) -> bool:
         if f.direction and (r.get("direction") not in f.direction):
             return False
         if f.region and (r.get("region_name") not in f.region):
@@ -579,7 +582,12 @@ async def rfm_segmentation(session: AsyncSession, window: Window,
             return False
         return True
 
-    rows = [r for r in rows_all if passes(r)]
+    view_rows = [r for r in rows_all if passes_view(r)]
+
+    if segment:
+        rows = [r for r in view_rows if (r.get("segment") or "") == segment]
+    else:
+        rows = view_rows
     total = len(rows)
 
     # Sort
@@ -600,10 +608,12 @@ async def rfm_segmentation(session: AsyncSession, window: Window,
 
     page_rows = rows[page * size : page * size + size]
 
-    # Segment distribution for the stacked bar / pie
+    # Segment distribution reflects the un-segment-filtered view so the
+    # chips always show the full population for the current direction /
+    # region / search filters.
     segment_counts: dict[str, int] = {}
     segment_revenue: dict[str, float] = {}
-    for r in rows:
+    for r in view_rows:
         seg = r.get("segment") or "—"
         segment_counts[seg] = segment_counts.get(seg, 0) + 1
         segment_revenue[seg] = segment_revenue.get(seg, 0.0) + float(r.get("revenue") or 0)

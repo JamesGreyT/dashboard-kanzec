@@ -162,6 +162,8 @@
     "tab_brands": "Marka",
     "tab_regions": "Hudud",
     "tab_rfm": "RFM",
+    "rfm_segment_filter": "Segment bo'yicha filtr",
+    "rfm_clear": "Barchasi",
     "col_segment": "Segment",
     "col_days_since": "Kun (so'ngidan)",
     "col_name": "Nomi",

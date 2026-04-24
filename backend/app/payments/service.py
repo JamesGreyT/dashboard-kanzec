@@ -520,18 +520,23 @@ async def regularity(session: AsyncSession, f: Filters,
 
 async def rfm_payments(session: AsyncSession, window: Window, f: Filters,
                        page: int = 0, size: int = 50,
-                       sort: str = "receipts:desc", search: str = "") -> dict:
+                       sort: str = "receipts:desc", search: str = "",
+                       segment: str = "") -> dict:
     """Payment-side RFM segmentation."""
     sql = build_rfm_payments_sql(window_start=window.start, window_end=window.end)
     rows_all = (await session.execute(text(sql))).mappings().all()
 
-    def passes(r):
+    def passes_view(r):
         if f.direction and (r.get("direction") not in f.direction): return False
         if f.region and (r.get("region_name") not in f.region): return False
         if search and (search.lower() not in (r.get("name") or "").lower()): return False
         return True
 
-    rows = [r for r in rows_all if passes(r)]
+    view_rows = [r for r in rows_all if passes_view(r)]
+    if segment:
+        rows = [r for r in view_rows if (r.get("segment") or "") == segment]
+    else:
+        rows = view_rows
     total = len(rows)
 
     sort_key, _, sort_dir_raw = sort.partition(":")
@@ -551,9 +556,10 @@ async def rfm_payments(session: AsyncSession, window: Window, f: Filters,
 
     page_rows = rows[page * size : page * size + size]
 
+    # Chip distribution stays based on the un-segment-filtered population.
     segment_counts: dict[str, int] = {}
     segment_revenue: dict[str, float] = {}
-    for r in rows:
+    for r in view_rows:
         seg = r.get("segment") or "—"
         segment_counts[seg] = segment_counts.get(seg, 0) + 1
         segment_revenue[seg] = segment_revenue.get(seg, 0.0) + float(r.get("receipts") or 0)

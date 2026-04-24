@@ -162,6 +162,8 @@
     "tab_brands": "Бренды",
     "tab_regions": "Регионы",
     "tab_rfm": "RFM",
+    "rfm_segment_filter": "Фильтр по сегменту",
+    "rfm_clear": "Все",
     "col_segment": "Сегмент",
     "col_days_since": "Дней с последней",
     "col_name": "Имя",

@@ -162,6 +162,8 @@
     "tab_brands": "Brands",
     "tab_regions": "Regions",
     "tab_rfm": "RFM",
+    "rfm_segment_filter": "Filter by segment",
+    "rfm_clear": "All",
     "col_segment": "Segment",
     "col_days_since": "Days since",
     "col_name": "Name",

@@ -275,9 +275,12 @@ async def rfm(
     search: str = Query(default=""),
     direction: str = Query(default=""),
     region: str = Query(default=""),
+    segment: str = Query(default=""),
 ) -> dict:
     window, filters = _parse(from_, to, direction, region, "", "", scope=scope)
-    return await service.rfm_segmentation(session, window, filters, page, size, sort, search)
+    return await service.rfm_segmentation(
+        session, window, filters, page, size, sort, search, segment=segment,
+    )
 
 
 @router.get("/seasonality")

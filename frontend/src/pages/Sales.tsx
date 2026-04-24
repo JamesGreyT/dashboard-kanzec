@@ -113,14 +113,15 @@ export default function Sales() {
   });
 
   // Ranked tables state (one shared control per tab, reset on tab switch)
-  const [pager, setPager] = useState<Record<string, { page: number; size: number; sort: string; search: string }>>({
+  type PagerState = { page: number; size: number; sort: string; search: string; segment?: string };
+  const [pager, setPager] = useState<Record<string, PagerState>>({
     clients:  { page: 0, size: 50, sort: "revenue:desc", search: "" },
     managers: { page: 0, size: 50, sort: "revenue:desc", search: "" },
     brands:   { page: 0, size: 50, sort: "revenue:desc", search: "" },
     regions:  { page: 0, size: 50, sort: "revenue:desc", search: "" },
-    rfm:      { page: 0, size: 50, sort: "revenue:desc", search: "" },
+    rfm:      { page: 0, size: 50, sort: "revenue:desc", search: "", segment: "" },
   });
-  const setPagerFor = (k: keyof typeof pager, next: typeof pager["clients"]) =>
+  const setPagerFor = (k: keyof typeof pager, next: PagerState) =>
     setPager((p) => ({ ...p, [k]: next }));
 
   const mkRankedQs = (k: keyof typeof pager) => {
@@ -130,6 +131,7 @@ export default function Sales() {
     q.set("size", String(p.size));
     q.set("sort", p.sort);
     if (p.search) q.set("search", p.search);
+    if (p.segment) q.set("segment", p.segment);
     // Request per-row sparkline only for the Clients tab — it's the
     // most useful and avoids needlessly fetching timeseries for brand
     // / region / manager aggregates.
@@ -362,31 +364,67 @@ export default function Sales() {
           </TabsContent>
           <TabsContent value="rfm">
             {rfmQ.data?.segment_distribution && (
-              <div className="mb-4 flex flex-wrap gap-2">
-                {rfmQ.data.segment_distribution.map((s) => (
-                  <div
-                    key={s.segment}
-                    className="inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-full border border-border/60 bg-muted/40"
-                    title={`${s.segment} — ${s.clients} clients, $${Math.round(s.revenue).toLocaleString("en-US")}`}
+              <div
+                className="mb-4 flex flex-wrap gap-2"
+                role="group"
+                aria-label={t("sales.rfm_segment_filter", { defaultValue: "Filter by segment" }) as string}
+              >
+                {pager.rfm.segment && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPagerFor("rfm", { ...pager.rfm, page: 0, segment: "" })
+                    }
+                    className="inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-full border border-foreground/40 bg-foreground text-background hover:bg-foreground/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   >
-                    <span
-                      className="inline-block w-2 h-2 rounded-full"
-                      style={{ backgroundColor: rfmSegmentColor(s.segment) }}
-                      aria-hidden
-                    />
-                    <span className="text-[12px] text-foreground">{s.segment}</span>
-                    <span className="font-mono tabular-nums text-[11px] text-muted-foreground">
-                      {s.clients}
+                    <span className="text-[12px]">
+                      {t("sales.rfm_clear", { defaultValue: "All" })}
                     </span>
-                  </div>
-                ))}
+                  </button>
+                )}
+                {rfmQ.data.segment_distribution.map((s) => {
+                  const active = pager.rfm.segment === s.segment;
+                  return (
+                    <button
+                      key={s.segment}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() =>
+                        setPagerFor("rfm", {
+                          ...pager.rfm,
+                          page: 0,
+                          segment: active ? "" : s.segment,
+                        })
+                      }
+                      className={
+                        "inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background " +
+                        (active
+                          ? "border-foreground/70 bg-background ring-2 ring-foreground/30"
+                          : "border-border/60 bg-muted/40 hover:bg-muted/60")
+                      }
+                      title={`${s.segment} — ${s.clients} clients, $${Math.round(s.revenue).toLocaleString("en-US")}`}
+                    >
+                      <span
+                        className="inline-block w-2 h-2 rounded-full"
+                        style={{ backgroundColor: rfmSegmentColor(s.segment) }}
+                        aria-hidden
+                      />
+                      <span className={"text-[12px] " + (active ? "text-foreground font-medium" : "text-foreground")}>
+                        {s.segment}
+                      </span>
+                      <span className="font-mono tabular-nums text-[11px] text-muted-foreground">
+                        {s.clients}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             )}
             <RankedTable
               columns={RFM_COLUMNS(t)}
               data={rfmQ.data}
               loading={rfmQ.isLoading}
-              onChange={(n) => setPagerFor("rfm", n)}
+              onChange={(n) => setPagerFor("rfm", { ...pager.rfm, ...n })}
               getRowKey={(r) => r.person_id}
             />
           </TabsContent>

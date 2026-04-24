@@ -262,9 +262,10 @@ async def rfm(
     search: str = Query(default=""),
     direction: str = Query(default=""),
     region: str = Query(default=""),
+    segment: str = Query(default=""),
 ) -> dict:
     w, f = _parse(from_, to, direction, region, scope=scope)
-    return await service.rfm_payments(session, w, f, page, size, sort, search)
+    return await service.rfm_payments(session, w, f, page, size, sort, search, segment=segment)
 
 
 @router.get("/churned")

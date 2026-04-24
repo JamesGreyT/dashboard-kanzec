@@ -90,14 +90,15 @@ export default function Payments() {
     staleTime: 30_000,
   });
 
-  const [pager, setPager] = useState<Record<string, { page: number; size: number; sort: string; search: string }>>({
+  type PayPagerState = { page: number; size: number; sort: string; search: string; segment?: string };
+  const [pager, setPager] = useState<Record<string, PayPagerState>>({
     payers:     { page: 0, size: 50, sort: "receipts:desc", search: "" },
     prepayers:  { page: 0, size: 50, sort: "credit:desc", search: "" },
     regularity: { page: 0, size: 50, sort: "receipts:desc", search: "" },
     churned:    { page: 0, size: 50, sort: "receipts:desc", search: "" },
-    rfm:        { page: 0, size: 50, sort: "receipts:desc", search: "" },
+    rfm:        { page: 0, size: 50, sort: "receipts:desc", search: "", segment: "" },
   });
-  const setPagerFor = (k: keyof typeof pager, next: typeof pager["payers"]) =>
+  const setPagerFor = (k: keyof typeof pager, next: PayPagerState) =>
     setPager((p) => ({ ...p, [k]: next }));
 
   const mkQs = (k: keyof typeof pager, path: string) => {
@@ -105,6 +106,7 @@ export default function Payments() {
     const p = pager[k];
     q.set("page", String(p.page)); q.set("size", String(p.size)); q.set("sort", p.sort);
     if (p.search) q.set("search", p.search);
+    if (p.segment) q.set("segment", p.segment);
     if (directions.length) q.set("direction", directions.join(","));
     return q;
   };
@@ -404,23 +406,59 @@ export default function Payments() {
           </TabsContent>
           <TabsContent value="rfm">
             {rfmPayQ.data?.segment_distribution && (
-              <div className="mb-4 flex flex-wrap gap-2">
-                {rfmPayQ.data.segment_distribution.map((s) => (
-                  <div
-                    key={s.segment}
-                    className="inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-full border border-border/60 bg-muted/40"
-                    title={`${s.segment} — ${s.clients} clients, $${Math.round(s.receipts).toLocaleString("en-US")} receipts`}
+              <div
+                className="mb-4 flex flex-wrap gap-2"
+                role="group"
+                aria-label={t("sales.rfm_segment_filter", { defaultValue: "Filter by segment" }) as string}
+              >
+                {pager.rfm.segment && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPagerFor("rfm", { ...pager.rfm, page: 0, segment: "" })
+                    }
+                    className="inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-full border border-foreground/40 bg-foreground text-background hover:bg-foreground/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   >
-                    <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: rfmPaySegColor(s.segment) }} aria-hidden />
-                    <span className="text-[12px] text-foreground">{s.segment}</span>
-                    <span className="font-mono tabular-nums text-[11px] text-muted-foreground">{s.clients}</span>
-                  </div>
-                ))}
+                    <span className="text-[12px]">
+                      {t("sales.rfm_clear", { defaultValue: "All" })}
+                    </span>
+                  </button>
+                )}
+                {rfmPayQ.data.segment_distribution.map((s) => {
+                  const active = pager.rfm.segment === s.segment;
+                  return (
+                    <button
+                      key={s.segment}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() =>
+                        setPagerFor("rfm", {
+                          ...pager.rfm,
+                          page: 0,
+                          segment: active ? "" : s.segment,
+                        })
+                      }
+                      className={
+                        "inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background " +
+                        (active
+                          ? "border-foreground/70 bg-background ring-2 ring-foreground/30"
+                          : "border-border/60 bg-muted/40 hover:bg-muted/60")
+                      }
+                      title={`${s.segment} — ${s.clients} clients, $${Math.round(s.receipts).toLocaleString("en-US")} receipts`}
+                    >
+                      <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: rfmPaySegColor(s.segment) }} aria-hidden />
+                      <span className={"text-[12px] " + (active ? "text-foreground font-medium" : "text-foreground")}>
+                        {s.segment}
+                      </span>
+                      <span className="font-mono tabular-nums text-[11px] text-muted-foreground">{s.clients}</span>
+                    </button>
+                  );
+                })}
               </div>
             )}
             <RankedTable
               columns={PAY_RFM_COLS(t)} data={rfmPayQ.data} loading={rfmPayQ.isLoading}
-              onChange={(n) => setPagerFor("rfm", n)}
+              onChange={(n) => setPagerFor("rfm", { ...pager.rfm, ...n })}
               getRowKey={(r) => r.person_id}
             />
           </TabsContent>
