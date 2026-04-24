@@ -20,7 +20,14 @@ from . import service
 router = APIRouter(prefix="/api/alerts", tags=["alerts"])
 
 
-RuleKind = Literal["dso_gt", "debt_total_gt", "single_debtor_gt", "over_90_count_gt"]
+RuleKind = Literal[
+    "dso_gt",
+    "debt_total_gt",
+    "single_debtor_gt",
+    "over_90_count_gt",
+    "revenue_drop_pct",
+    "deal_count_drop_pct",
+]
 
 
 class RuleIn(BaseModel):

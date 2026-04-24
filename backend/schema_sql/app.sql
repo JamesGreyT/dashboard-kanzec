@@ -131,14 +131,21 @@ CREATE INDEX IF NOT EXISTS idx_chart_ann_chart ON app.chart_annotation (chart_ke
 CREATE TABLE IF NOT EXISTS app.alert_rule (
     id          BIGSERIAL PRIMARY KEY,
     user_id     BIGINT REFERENCES app.user(id) ON DELETE CASCADE,
-    kind        TEXT        NOT NULL CHECK (kind IN (
-                  'dso_gt','debt_total_gt','single_debtor_gt','over_90_count_gt')),
+    kind        TEXT        NOT NULL,
     threshold   NUMERIC(18,4) NOT NULL,
     label       TEXT,
     enabled     BOOLEAN     NOT NULL DEFAULT true,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- Relax the kind CHECK to allow new kinds without a migration dance.
+-- Validation lives at the application layer (Pydantic Literal).
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'alert_rule_kind_check') THEN
+    ALTER TABLE app.alert_rule DROP CONSTRAINT alert_rule_kind_check;
+  END IF;
+END $$;
 CREATE INDEX IF NOT EXISTS idx_alert_rule_user ON app.alert_rule (user_id) WHERE enabled = true;
 
 -- `alert_event` = a fact that a rule crossed its threshold at a point in time.

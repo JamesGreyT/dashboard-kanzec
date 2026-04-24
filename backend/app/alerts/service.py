@@ -21,10 +21,12 @@ DEBOUNCE_HOURS = 6
 
 
 KIND_LABELS: dict[str, str] = {
-    "dso_gt":           "DSO exceeds",
-    "debt_total_gt":    "Total outstanding exceeds",
-    "single_debtor_gt": "Any single debtor exceeds",
-    "over_90_count_gt": "Debtors over 90 days exceeds",
+    "dso_gt":              "DSO exceeds",
+    "debt_total_gt":       "Total outstanding exceeds",
+    "single_debtor_gt":    "Any single debtor exceeds",
+    "over_90_count_gt":    "Debtors over 90 days exceeds",
+    "revenue_drop_pct":    "Revenue (30d vs prior 30d) drop exceeds",
+    "deal_count_drop_pct": "Deal count (30d vs prior 30d) drop exceeds",
 }
 
 
@@ -76,6 +78,35 @@ async def current_value(session: AsyncSession, kind: str) -> float | None:
               LEFT JOIN p ON p.pid = lp.person_id::text
         """))).mappings().first()
         return float(row["m"] or 0) if row else None
+    if kind in ("revenue_drop_pct", "deal_count_drop_pct"):
+        # Compare last 30 days vs prior 30 days. Drop percentage is
+        # always positive: (prior - current) / prior when current < prior;
+        # zero otherwise. Fires when the drop exceeds the threshold
+        # (stored as percentage, e.g. 15 = 15%).
+        sum_col = "SUM(d.product_amount)" if kind == "revenue_drop_pct" \
+            else "COUNT(DISTINCT d.deal_id)"
+        row = (await session.execute(text(f"""
+            WITH w AS (
+              SELECT 'current' AS lbl, (CURRENT_DATE - INTERVAL '30 days')::date AS s,
+                     CURRENT_DATE AS e
+              UNION ALL
+              SELECT 'prior', (CURRENT_DATE - INTERVAL '60 days')::date,
+                     (CURRENT_DATE - INTERVAL '31 days')::date
+            )
+            SELECT w.lbl, COALESCE({sum_col}, 0)::numeric(18,2) AS v
+              FROM w
+              LEFT JOIN smartup_rep.deal_order d
+                ON d.delivery_date BETWEEN w.s AND w.e
+             GROUP BY w.lbl
+        """))).mappings().all()
+        by = {r["lbl"]: float(r["v"]) for r in row}
+        prior = by.get("prior", 0)
+        current = by.get("current", 0)
+        if prior <= 0:
+            return 0.0
+        drop_pct = ((prior - current) / prior) * 100.0
+        return max(0.0, drop_pct)
+
     if kind == "over_90_count_gt":
         row = (await session.execute(text("""
             WITH o AS (SELECT person_id, SUM(product_amount) inv, MAX(delivery_date) lo

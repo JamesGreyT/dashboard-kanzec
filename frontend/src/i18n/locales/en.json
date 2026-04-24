@@ -211,6 +211,10 @@
     "skip_to_main": "Skip to main content",
     "main_landmark": "Main content"
   },
+  "scope": {
+    "label": "Scope",
+    "tooltip": "Your view is restricted to these rooms by your admin"
+  },
   "window": {
     "today": "Today",
     "last7": "7 days",

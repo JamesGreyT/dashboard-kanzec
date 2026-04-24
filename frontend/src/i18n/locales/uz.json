@@ -211,6 +211,10 @@
     "skip_to_main": "Asosiy kontentga o'tish",
     "main_landmark": "Asosiy kontent"
   },
+  "scope": {
+    "label": "Chegara",
+    "tooltip": "Sizning kurinishingiz administrator tomonidan ushbu filiallar bilan cheklangan"
+  },
   "window": {
     "today": "Bugun",
     "last7": "7 kun",

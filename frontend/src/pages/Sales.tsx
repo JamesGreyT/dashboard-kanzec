@@ -11,6 +11,13 @@ import TimeSeriesChart, { type SeriesPoint } from "../components/TimeSeriesChart
 import Heatmap from "../components/Heatmap";
 import RankedTable, { type ColumnDef, type Page } from "../components/RankedTable";
 import DirectionMultiSelect from "../components/DirectionMultiSelect";
+import ScopeChip from "../components/ScopeChip";
+import {
+  useChartAnnotations,
+  AnnotationMarkers,
+  AnnotationList,
+  AddAnnotationButton,
+} from "../components/ChartAnnotations";
 import {
   Tabs,
   TabsList,
@@ -154,6 +161,7 @@ export default function Sales() {
           value={directions}
           onChange={setDirections}
         />
+        <ScopeChip />
       </div>
 
       {/* KPI strip */}
@@ -191,22 +199,7 @@ export default function Sales() {
       </div>
 
       {/* Primary time series */}
-      <section className="mb-12 stagger-3">
-        <div className="eyebrow !tracking-[0.18em] mb-2 text-primary">
-          {t("sales.chart_timeseries")}
-        </div>
-        <TimeSeriesChart
-          data={series}
-          showArea
-          showMA
-          showYoY
-          highlightAnomalies
-          primaryLabel={t("sales.sotuv") as string}
-          yoyLabel={t("sales.yoy") as string}
-          maLabel="7d MA"
-          height={280}
-        />
-      </section>
+      <SalesTimeseries series={series} />
 
       <hr className="mark-rule mb-12" aria-hidden />
 
@@ -443,4 +436,45 @@ function RFM_COLUMNS(t: any): ColumnDef<any>[] {
     { key: "last_order_date", label: t("sales.col_last_order"), numeric: true,
       render: (r) => r.last_order_date ?? "—" },
   ];
+}
+
+function SalesTimeseries({ series }: { series: SeriesPoint[] }) {
+  const { t } = useTranslation();
+  const { rows, add, del } = useChartAnnotations("sales.timeseries");
+  const latest = series[series.length - 1]?.date;
+  return (
+    <section className="mb-12 stagger-3">
+      <div className="flex items-baseline justify-between mb-2">
+        <div className="eyebrow !tracking-[0.18em] text-primary">
+          {t("sales.chart_timeseries")}
+        </div>
+        <AddAnnotationButton
+          latestDate={latest}
+          onAdd={(x_date, note) => add.mutate({ x_date, note })}
+        />
+      </div>
+      <TimeSeriesChart
+        data={series}
+        showArea
+        showMA
+        showYoY
+        highlightAnomalies
+        primaryLabel={t("sales.sotuv") as string}
+        yoyLabel={t("sales.yoy") as string}
+        maLabel="7d MA"
+        height={280}
+        overlays={
+          <AnnotationMarkers
+            rows={rows}
+            xMatcher={(iso) => iso}
+          />
+        }
+      />
+      <AnnotationList
+        rows={rows}
+        onDelete={(id) => del.mutate(id)}
+        xLabel={(iso) => iso.slice(5)}
+      />
+    </section>
+  );
 }

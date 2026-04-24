@@ -16,6 +16,7 @@ import Heatmap from "../components/Heatmap";
 import AgingBar from "../components/AgingBar";
 import RankedTable, { type ColumnDef, type Page } from "../components/RankedTable";
 import DirectionMultiSelect from "../components/DirectionMultiSelect";
+import ScopeChip from "../components/ScopeChip";
 import { usePreferences } from "../lib/preferences";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
@@ -186,6 +187,7 @@ export default function Debt() {
           value={directions}
           onChange={setDirections}
         />
+        <ScopeChip />
         <Link
           to="/collection/worklist"
           className="text-[11px] uppercase tracking-[0.14em] text-primary hover:underline ml-auto"

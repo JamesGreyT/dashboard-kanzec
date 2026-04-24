@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth.deps import CurrentUser
+from ..scope import ScopedUser
 from ..db import get_session
 from .._analytics.export import ExportColumn, stream_xlsx
 from .._analytics.filters import Filters
@@ -17,26 +18,27 @@ from . import service
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 
 
-def _parse(from_: date | None, to: date | None, direction: str, region: str):
-    return resolve_window(from_=from_, to=to), Filters.parse(direction=direction, region=region)
+def _parse(from_: date | None, to: date | None, direction: str, region: str,
+           scope: ScopedUser | None = None):
+    return resolve_window(from_=from_, to=to), Filters.parse(direction=direction, region=region, scope_rooms=scope.room_ids)
 
 
 @router.get("/overview")
 async def overview(
-    _user: CurrentUser,
+    scope: ScopedUser,
     session: Annotated[AsyncSession, Depends(get_session)],
     from_: date | None = Query(default=None, alias="from"),
     to: date | None = Query(default=None),
     direction: str = Query(default=""),
     region: str = Query(default=""),
 ) -> dict:
-    w, f = _parse(from_, to, direction, region)
+    w, f = _parse(from_, to, direction, region, scope=scope)
     return await service.overview(session, w, f)
 
 
 @router.get("/timeseries")
 async def timeseries(
-    _user: CurrentUser,
+    scope: ScopedUser,
     session: Annotated[AsyncSession, Depends(get_session)],
     from_: date | None = Query(default=None, alias="from"),
     to: date | None = Query(default=None),
@@ -44,66 +46,66 @@ async def timeseries(
     direction: str = Query(default=""),
     region: str = Query(default=""),
 ) -> dict:
-    w, f = _parse(from_, to, direction, region)
+    w, f = _parse(from_, to, direction, region, scope=scope)
     g: Granularity = granularity  # type: ignore[assignment]
     return {"series": await service.timeseries(session, w, g, f)}
 
 
 @router.get("/method-split")
 async def method_split(
-    _user: CurrentUser,
+    scope: ScopedUser,
     session: Annotated[AsyncSession, Depends(get_session)],
     from_: date | None = Query(default=None, alias="from"),
     to: date | None = Query(default=None),
     direction: str = Query(default=""),
     region: str = Query(default=""),
 ) -> dict:
-    w, f = _parse(from_, to, direction, region)
+    w, f = _parse(from_, to, direction, region, scope=scope)
     return {"split": await service.method_split(session, w, f)}
 
 
 @router.get("/weekday")
 async def weekday(
-    _user: CurrentUser,
+    scope: ScopedUser,
     session: Annotated[AsyncSession, Depends(get_session)],
     from_: date | None = Query(default=None, alias="from"),
     to: date | None = Query(default=None),
     direction: str = Query(default=""),
     region: str = Query(default=""),
 ) -> dict:
-    w, f = _parse(from_, to, direction, region)
+    w, f = _parse(from_, to, direction, region, scope=scope)
     return {"pattern": await service.weekday_pattern(session, w, f)}
 
 
 @router.get("/velocity")
 async def velocity(
-    _user: CurrentUser,
+    scope: ScopedUser,
     session: Annotated[AsyncSession, Depends(get_session)],
     from_: date | None = Query(default=None, alias="from"),
     to: date | None = Query(default=None),
     direction: str = Query(default=""),
     region: str = Query(default=""),
 ) -> dict:
-    w, f = _parse(from_, to, direction, region)
+    w, f = _parse(from_, to, direction, region, scope=scope)
     return {"histogram": await service.velocity(session, w, f)}
 
 
 @router.get("/collection-ratio")
 async def collection_ratio(
-    _user: CurrentUser,
+    scope: ScopedUser,
     session: Annotated[AsyncSession, Depends(get_session)],
     from_: date | None = Query(default=None, alias="from"),
     to: date | None = Query(default=None),
     direction: str = Query(default=""),
     region: str = Query(default=""),
 ) -> dict:
-    w, f = _parse(from_, to, direction, region)
+    w, f = _parse(from_, to, direction, region, scope=scope)
     return {"series": await service.collection_ratio_trend(session, w, f)}
 
 
 @router.get("/payers")
 async def payers(
-    _user: CurrentUser,
+    scope: ScopedUser,
     session: Annotated[AsyncSession, Depends(get_session)],
     from_: date | None = Query(default=None, alias="from"),
     to: date | None = Query(default=None),
@@ -114,13 +116,13 @@ async def payers(
     direction: str = Query(default=""),
     region: str = Query(default=""),
 ) -> dict:
-    w, f = _parse(from_, to, direction, region)
+    w, f = _parse(from_, to, direction, region, scope=scope)
     return await service.payers_ranked(session, w, f, sort, page, size, search)
 
 
 @router.get("/prepayers")
 async def prepayers(
-    _user: CurrentUser,
+    scope: ScopedUser,
     session: Annotated[AsyncSession, Depends(get_session)],
     sort: str = Query(default="credit:desc"),
     page: int = Query(default=0, ge=0),
@@ -129,13 +131,13 @@ async def prepayers(
     direction: str = Query(default=""),
     region: str = Query(default=""),
 ) -> dict:
-    f = Filters.parse(direction=direction, region=region)
+    f = Filters.parse(direction=direction, region=region, scope_rooms=scope.room_ids)
     return await service.prepayers_ranked(session, f, sort, page, size, search)
 
 
 @router.get("/regularity")
 async def regularity(
-    _user: CurrentUser,
+    scope: ScopedUser,
     session: Annotated[AsyncSession, Depends(get_session)],
     sort: str = Query(default="receipts:desc"),
     page: int = Query(default=0, ge=0),
@@ -144,13 +146,13 @@ async def regularity(
     direction: str = Query(default=""),
     region: str = Query(default=""),
 ) -> dict:
-    f = Filters.parse(direction=direction, region=region)
+    f = Filters.parse(direction=direction, region=region, scope_rooms=scope.room_ids)
     return await service.regularity(session, f, sort, page, size, search)
 
 
 @router.get("/export/payers.xlsx")
 async def export_payers(
-    _user: CurrentUser,
+    scope: ScopedUser,
     session: Annotated[AsyncSession, Depends(get_session)],
     from_: date | None = Query(default=None, alias="from"),
     to: date | None = Query(default=None),
@@ -159,7 +161,7 @@ async def export_payers(
     direction: str = Query(default=""),
     region: str = Query(default=""),
 ):
-    w, f = _parse(from_, to, direction, region)
+    w, f = _parse(from_, to, direction, region, scope=scope)
     data = await service.payers_ranked(session, w, f, sort, page=0, size=500, search=search)
     cols = [
         ExportColumn("name", "Payer", kind="text", width=30),
@@ -178,14 +180,14 @@ async def export_payers(
 
 @router.get("/export/prepayers.xlsx")
 async def export_prepayers(
-    _user: CurrentUser,
+    scope: ScopedUser,
     session: Annotated[AsyncSession, Depends(get_session)],
     sort: str = Query(default="credit:desc"),
     search: str = Query(default=""),
     direction: str = Query(default=""),
     region: str = Query(default=""),
 ):
-    f = Filters.parse(direction=direction, region=region)
+    f = Filters.parse(direction=direction, region=region, scope_rooms=scope.room_ids)
     data = await service.prepayers_ranked(session, f, sort, page=0, size=500, search=search)
     cols = [
         ExportColumn("name", "Client", kind="text", width=30),
@@ -202,14 +204,14 @@ async def export_prepayers(
 
 @router.get("/export/regularity.xlsx")
 async def export_regularity(
-    _user: CurrentUser,
+    scope: ScopedUser,
     session: Annotated[AsyncSession, Depends(get_session)],
     sort: str = Query(default="receipts:desc"),
     search: str = Query(default=""),
     direction: str = Query(default=""),
     region: str = Query(default=""),
 ):
-    f = Filters.parse(direction=direction, region=region)
+    f = Filters.parse(direction=direction, region=region, scope_rooms=scope.room_ids)
     data = await service.regularity(session, f, sort, page=0, size=500, search=search)
     cols = [
         ExportColumn("name", "Client", kind="text", width=30),
@@ -227,14 +229,14 @@ async def export_regularity(
 
 @router.get("/export/churned.xlsx")
 async def export_churned(
-    _user: CurrentUser,
+    scope: ScopedUser,
     session: Annotated[AsyncSession, Depends(get_session)],
     sort: str = Query(default="receipts:desc"),
     search: str = Query(default=""),
     direction: str = Query(default=""),
     region: str = Query(default=""),
 ):
-    f = Filters.parse(direction=direction, region=region)
+    f = Filters.parse(direction=direction, region=region, scope_rooms=scope.room_ids)
     data = await service.churned_ranked(session, f, sort, page=0, size=500, search=search)
     cols = [
         ExportColumn("name", "Client", kind="text", width=30),
@@ -248,9 +250,26 @@ async def export_churned(
                       columns=cols, rows=data["rows"], totals=data.get("totals"))
 
 
+@router.get("/rfm")
+async def rfm(
+    scope: ScopedUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    from_: date | None = Query(default=None, alias="from"),
+    to: date | None = Query(default=None),
+    sort: str = Query(default="receipts:desc"),
+    page: int = Query(default=0, ge=0),
+    size: int = Query(default=50, ge=1, le=500),
+    search: str = Query(default=""),
+    direction: str = Query(default=""),
+    region: str = Query(default=""),
+) -> dict:
+    w, f = _parse(from_, to, direction, region, scope=scope)
+    return await service.rfm_payments(session, w, f, page, size, sort, search)
+
+
 @router.get("/churned")
 async def churned(
-    _user: CurrentUser,
+    scope: ScopedUser,
     session: Annotated[AsyncSession, Depends(get_session)],
     sort: str = Query(default="receipts:desc"),
     page: int = Query(default=0, ge=0),
@@ -259,5 +278,5 @@ async def churned(
     direction: str = Query(default=""),
     region: str = Query(default=""),
 ) -> dict:
-    f = Filters.parse(direction=direction, region=region)
+    f = Filters.parse(direction=direction, region=region, scope_rooms=scope.room_ids)
     return await service.churned_ranked(session, f, sort, page, size, search)

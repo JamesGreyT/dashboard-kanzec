@@ -16,7 +16,13 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-type Kind = "dso_gt" | "debt_total_gt" | "single_debtor_gt" | "over_90_count_gt";
+type Kind =
+  | "dso_gt"
+  | "debt_total_gt"
+  | "single_debtor_gt"
+  | "over_90_count_gt"
+  | "revenue_drop_pct"
+  | "deal_count_drop_pct";
 
 interface Rule {
   id: number;
@@ -30,10 +36,12 @@ interface Rule {
 }
 
 const KIND_LABELS: Record<Kind, { en: string; uz: string; ru: string }> = {
-  dso_gt:           { en: "DSO exceeds (days)",                    uz: "DSO oshsa (kun)",                ru: "DSO превышает (дней)" },
-  debt_total_gt:    { en: "Total outstanding exceeds ($)",         uz: "Umumiy qarz oshsa ($)",          ru: "Общий долг превышает ($)" },
-  single_debtor_gt: { en: "Any single debtor exceeds ($)",         uz: "Bitta qarzdor oshsa ($)",        ru: "Один должник превышает ($)" },
-  over_90_count_gt: { en: "# of debtors over 90 days exceeds",     uz: "90+ qarzdorlar soni oshsa",      ru: "Кол-во 90+ должников превышает" },
+  dso_gt:              { en: "DSO exceeds (days)",                    uz: "DSO oshsa (kun)",                ru: "DSO превышает (дней)" },
+  debt_total_gt:       { en: "Total outstanding exceeds ($)",         uz: "Umumiy qarz oshsa ($)",          ru: "Общий долг превышает ($)" },
+  single_debtor_gt:    { en: "Any single debtor exceeds ($)",         uz: "Bitta qarzdor oshsa ($)",        ru: "Один должник превышает ($)" },
+  over_90_count_gt:    { en: "# of debtors over 90 days exceeds",     uz: "90+ qarzdorlar soni oshsa",      ru: "Кол-во 90+ должников превышает" },
+  revenue_drop_pct:    { en: "Revenue drop (30d vs prior) exceeds (%)", uz: "Sotuv pasaytishi (30k) oshsa (%)", ru: "Падение выручки (30д) превышает (%)" },
+  deal_count_drop_pct: { en: "Deal count drop (30d vs prior) exceeds (%)", uz: "Shartnoma soni pasayishi (30k) oshsa (%)", ru: "Падение сделок (30д) превышает (%)" },
 };
 
 export default function AdminAlerts() {

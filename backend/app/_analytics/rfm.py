@@ -17,6 +17,54 @@ from __future__ import annotations
 from datetime import date
 
 
+def build_rfm_payments_sql(*, window_start: date, window_end: date) -> str:
+    """Payment-side RFM: Recency = days since last PAYMENT; Frequency =
+    count of payments in window; Monetary = sum of amount in window.
+
+    Returns: person_id, name, direction, region_name, last_pay_date,
+    days_since, payments, receipts, r, f, m, score, segment."""
+    return f"""
+WITH base AS (
+  SELECT p.person_id::text AS person_id,
+         MAX(p.payment_date)::date AS last_pay_date,
+         ('{window_end.isoformat()}'::date - MAX(p.payment_date)::date) AS days_since,
+         COUNT(*) AS payments,
+         SUM(p.amount)::numeric(18,2) AS receipts
+    FROM smartup_rep.payment p
+   WHERE p.payment_date BETWEEN '{window_start.isoformat()}' AND '{window_end.isoformat()}'
+     AND p.person_id IS NOT NULL
+   GROUP BY 1
+),
+scored AS (
+  SELECT b.*,
+         (6 - NTILE(5) OVER (ORDER BY b.days_since ASC))    AS r,
+         NTILE(5) OVER (ORDER BY b.payments ASC)            AS f,
+         NTILE(5) OVER (ORDER BY b.receipts ASC)            AS m
+    FROM base b
+)
+SELECT s.person_id, lp.name, lp.direction, lp.region_name,
+       s.last_pay_date, s.days_since, s.payments, s.receipts,
+       s.r, s.f, s.m,
+       (s.r::text || s.f::text || s.m::text) AS score,
+       CASE
+         WHEN s.r = 5 AND s.f >= 4 AND s.m >= 4 THEN 'Champions'
+         WHEN s.r >= 4 AND s.f >= 3 AND s.m >= 3 THEN 'Loyal'
+         WHEN s.r = 5 AND s.f <= 2                THEN 'New customers'
+         WHEN s.r >= 3 AND s.f <= 2 AND s.m <= 2  THEN 'Promising'
+         WHEN s.r = 3 AND s.f = 3                 THEN 'Need attention'
+         WHEN s.r = 3 AND s.f <= 2                THEN 'About to sleep'
+         WHEN s.r <= 2 AND s.f >= 3 AND s.m >= 3  THEN 'At risk'
+         WHEN s.r <= 2 AND s.f = 5 AND s.m = 5    THEN 'Cannot lose them'
+         WHEN s.r = 2 AND s.f <= 2                THEN 'Hibernating'
+         WHEN s.r = 1                              THEN 'Lost'
+         ELSE 'Potential loyalists'
+       END AS segment
+  FROM scored s
+  JOIN smartup_rep.legal_person lp ON lp.person_id::text = s.person_id
+ ORDER BY s.receipts DESC
+"""
+
+
 def build_rfm_sql(*, window_start: date, window_end: date) -> str:
     """Return a query that yields columns: person_id, name, last_order_date,
     days_since, deals, revenue, r, f, m, score (concat), segment."""

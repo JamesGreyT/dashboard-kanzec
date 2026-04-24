@@ -1,7 +1,7 @@
 import {
   LineChart, Line, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, ReferenceLine,
 } from "recharts";
-import { useMemo } from "react";
+import { ReactNode, useMemo } from "react";
 
 export interface SeriesPoint {
   /** ISO date for the bucket start */
@@ -69,6 +69,7 @@ export default function TimeSeriesChart({
   primaryColor = "hsl(var(--foreground))",
   yoyColor = "hsl(var(--muted-foreground))",
   maColor = "hsl(var(--primary))",
+  overlays,
 }: {
   data: SeriesPoint[];
   height?: number;
@@ -82,6 +83,8 @@ export default function TimeSeriesChart({
   primaryColor?: string;
   yoyColor?: string;
   maColor?: string;
+  /** Additional recharts children (e.g. AnnotationMarkers). */
+  overlays?: ReactNode;
 }) {
   const { anomalies } = useMemo(() => {
     if (!highlightAnomalies) return { anomalies: [] as SeriesPoint[] };
@@ -176,6 +179,7 @@ export default function TimeSeriesChart({
               strokeOpacity={0.5}
             />
           ))}
+        {overlays}
       </Component>
     </ResponsiveContainer>
   );

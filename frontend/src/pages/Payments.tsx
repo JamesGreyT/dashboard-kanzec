@@ -12,6 +12,13 @@ import TimeSeriesChart, { type SeriesPoint } from "../components/TimeSeriesChart
 import Histogram from "../components/Histogram";
 import RankedTable, { type ColumnDef, type Page } from "../components/RankedTable";
 import DirectionMultiSelect from "../components/DirectionMultiSelect";
+import ScopeChip from "../components/ScopeChip";
+import {
+  useChartAnnotations,
+  AnnotationMarkers,
+  AnnotationList,
+  AddAnnotationButton,
+} from "../components/ChartAnnotations";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 interface OverviewResp {
@@ -29,7 +36,8 @@ export default function Payments() {
   const { t } = useTranslation();
   const [window, setWindow] = useState<WindowState>(defaultWindow());
   const [directions, setDirections] = useState<string[]>([]);
-  const [tab, setTab] = useState<"payers" | "prepayers" | "regularity" | "churned">("payers");
+  const [tab, setTab] = useState<"payers" | "prepayers" | "regularity" | "churned" | "rfm">("payers");
+  const ann = useChartAnnotations("payments.timeseries");
   const prefsQ = usePreferences();
   const [prefsApplied, setPrefsApplied] = useState(false);
   if (!prefsApplied && prefsQ.data) {
@@ -88,6 +96,7 @@ export default function Payments() {
     prepayers:  { page: 0, size: 50, sort: "credit:desc", search: "" },
     regularity: { page: 0, size: 50, sort: "receipts:desc", search: "" },
     churned:    { page: 0, size: 50, sort: "receipts:desc", search: "" },
+    rfm:        { page: 0, size: 50, sort: "receipts:desc", search: "" },
   });
   const setPagerFor = (k: keyof typeof pager, next: typeof pager["payers"]) =>
     setPager((p) => ({ ...p, [k]: next }));
@@ -125,6 +134,14 @@ export default function Payments() {
     staleTime: 30_000,
     enabled: tab === "churned",
   });
+  const rfmPayQ = useQuery({
+    queryKey: ["pay.rfm", mkQs("rfm", "/api/payments/payers").toString()],
+    queryFn: () => api<Page<any> & { segment_distribution?: Array<{ segment: string; clients: number; receipts: number }> }>(
+      `/api/payments/rfm?${mkQs("rfm", "/api/payments/payers").toString()}`,
+    ),
+    staleTime: 30_000,
+    enabled: tab === "rfm",
+  });
 
   useEffect(() => {
     document.title = t("payments_dash.title") + " · Kanzec";
@@ -147,6 +164,7 @@ export default function Payments() {
           value={directions}
           onChange={setDirections}
         />
+        <ScopeChip />
       </div>
 
       {/* KPI strip */}
@@ -187,8 +205,14 @@ export default function Payments() {
 
       {/* Primary timeseries */}
       <section className="mb-12 stagger-3">
-        <div className="eyebrow !tracking-[0.18em] mb-2 text-primary">
-          {t("payments_dash.chart_timeseries")}
+        <div className="flex items-baseline justify-between mb-2">
+          <div className="eyebrow !tracking-[0.18em] text-primary">
+            {t("payments_dash.chart_timeseries")}
+          </div>
+          <AddAnnotationButton
+            latestDate={tsQ.data?.series[tsQ.data.series.length - 1]?.date}
+            onAdd={(x_date, note) => ann.add.mutate({ x_date, note })}
+          />
         </div>
         <TimeSeriesChart
           data={tsQ.data?.series ?? []}
@@ -198,6 +222,12 @@ export default function Payments() {
           primaryColor="#047857"     // emerald-700 — cash inflow accent
           maColor="hsl(var(--primary))"
           height={280}
+          overlays={<AnnotationMarkers rows={ann.rows} xMatcher={(iso) => iso} />}
+        />
+        <AnnotationList
+          rows={ann.rows}
+          onDelete={(id) => ann.del.mutate(id)}
+          xLabel={(iso) => iso.slice(5)}
         />
       </section>
 
@@ -343,6 +373,7 @@ export default function Payments() {
             <TabsTrigger value="prepayers">{t("payments_dash.tab_prepayers")}</TabsTrigger>
             <TabsTrigger value="regularity">{t("payments_dash.tab_regularity")}</TabsTrigger>
             <TabsTrigger value="churned">{t("payments_dash.tab_churned")}</TabsTrigger>
+            <TabsTrigger value="rfm">{t("sales.tab_rfm")}</TabsTrigger>
           </TabsList>
           <TabsContent value="payers">
             <RankedTable
@@ -374,6 +405,28 @@ export default function Payments() {
               onChange={(n) => setPagerFor("churned", n)}
               getRowKey={(r) => r.person_id}
               exportHref={`/api/payments/export/churned.xlsx?${mkQs("churned", "").toString()}`}
+            />
+          </TabsContent>
+          <TabsContent value="rfm">
+            {rfmPayQ.data?.segment_distribution && (
+              <div className="mb-4 flex flex-wrap gap-2">
+                {rfmPayQ.data.segment_distribution.map((s) => (
+                  <div
+                    key={s.segment}
+                    className="inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-full border border-border/60 bg-muted/40"
+                    title={`${s.segment} — ${s.clients} clients, $${Math.round(s.receipts).toLocaleString("en-US")} receipts`}
+                  >
+                    <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: rfmPaySegColor(s.segment) }} aria-hidden />
+                    <span className="text-[12px] text-foreground">{s.segment}</span>
+                    <span className="font-mono tabular-nums text-[11px] text-muted-foreground">{s.clients}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <RankedTable
+              columns={PAY_RFM_COLS(t)} data={rfmPayQ.data} loading={rfmPayQ.isLoading}
+              onChange={(n) => setPagerFor("rfm", n)}
+              getRowKey={(r) => r.person_id}
             />
           </TabsContent>
         </Tabs>
@@ -457,5 +510,45 @@ function CH_COLS(t: any): ColumnDef<any>[] {
       footer: (tt) => "$" + fmtNum(tt.receipts) },
     { key: "last_pay",   label: t("payments_dash.col_last_pay"), numeric: true, render: (r) => r.last_pay ?? "—" },
     { key: "days_since", label: t("payments_dash.col_days_since"), numeric: true, render: (r) => fmtNum(r.days_since) + "d" },
+  ];
+}
+
+function rfmPaySegColor(seg: string): string {
+  const m: Record<string, string> = {
+    "Champions": "#047857", "Loyal": "#10b981", "Potential loyalists": "#0891b2",
+    "New customers": "#3b82f6", "Promising": "#6366f1", "Need attention": "#a16207",
+    "About to sleep": "#ca8a04", "At risk": "#dc2626", "Cannot lose them": "#7c2d12",
+    "Hibernating": "#6b7280", "Lost": "#111827",
+  };
+  return m[seg] ?? "#6b7280";
+}
+
+function PAY_RFM_COLS(t: any): ColumnDef<any>[] {
+  return [
+    { key: "name",      label: t("sales.col_name"),      width: "22%" },
+    { key: "segment",   label: t("sales.col_segment"),   width: "14%", sortable: false,
+      render: (r) => (
+        <span
+          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-[0.06em] text-white"
+          style={{ backgroundColor: rfmPaySegColor(r.segment ?? "") }}
+        >
+          {r.segment ?? "—"}
+        </span>
+      ) },
+    { key: "direction", label: t("sales.col_direction"), width: "10%" },
+    { key: "region",    label: t("sales.col_region"),    width: "12%" },
+    { key: "receipts",  label: t("payments_dash.col_receipts"), numeric: true,
+      render: (r) => "$" + fmtNum(r.receipts),
+      footer: (tt) => "$" + fmtNum(tt.receipts) },
+    { key: "payments",  label: t("payments_dash.col_payments"), numeric: true,
+      render: (r) => fmtNum(r.payments),
+      footer: (tt) => fmtNum(tt.payments) },
+    { key: "r", label: "R", numeric: true, render: (r) => String(r.r ?? "—") },
+    { key: "f", label: "F", numeric: true, render: (r) => String(r.f ?? "—") },
+    { key: "m", label: "M", numeric: true, render: (r) => String(r.m ?? "—") },
+    { key: "days_since", label: t("sales.col_days_since"), numeric: true,
+      render: (r) => (r.days_since != null ? r.days_since + "d" : "—") },
+    { key: "last_pay_date", label: t("payments_dash.col_last_pay"), numeric: true,
+      render: (r) => r.last_pay_date ?? "—" },
   ];
 }

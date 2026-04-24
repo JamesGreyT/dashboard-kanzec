@@ -11,6 +11,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .._analytics.filters import Filters, clause
+from .._analytics.rfm import build_rfm_payments_sql
 from .._analytics.windows import Granularity, Window, compare_periods
 
 
@@ -21,7 +22,7 @@ from .._analytics.windows import Granularity, Window, compare_periods
 
 async def overview(session: AsyncSession, window: Window, f: Filters) -> dict:
     cmp = compare_periods(window)
-    f_sql, f_params = clause(f, manager_table="lp")  # no manager filter on payment
+    f_sql, f_params = clause(f, manager_table="lp", room_on="")  # no manager filter on payment
     # Kirim + simple stats across current/mom/yoy
     sql = f"""
     WITH w AS (
@@ -129,7 +130,7 @@ async def overview(session: AsyncSession, window: Window, f: Filters) -> dict:
 
 async def timeseries(session: AsyncSession, window: Window, granularity: Granularity,
                      f: Filters) -> list[dict]:
-    f_sql, f_params = clause(f, manager_table="lp")
+    f_sql, f_params = clause(f, manager_table="lp", room_on="")
     trunc = {"day": "day", "week": "week", "month": "month", "quarter": "quarter"}[granularity]
     sql = f"""
     WITH buckets AS (
@@ -183,7 +184,7 @@ async def timeseries(session: AsyncSession, window: Window, granularity: Granula
 
 
 async def method_split(session: AsyncSession, window: Window, f: Filters) -> list[dict]:
-    f_sql, f_params = clause(f, manager_table="lp")
+    f_sql, f_params = clause(f, manager_table="lp", room_on="")
     rows = (await session.execute(text(f"""
         SELECT COALESCE(p.payment_method, '(—)') AS method,
                COUNT(*) AS cnt,
@@ -198,7 +199,7 @@ async def method_split(session: AsyncSession, window: Window, f: Filters) -> lis
 
 
 async def weekday_pattern(session: AsyncSession, window: Window, f: Filters) -> list[dict]:
-    f_sql, f_params = clause(f, manager_table="lp")
+    f_sql, f_params = clause(f, manager_table="lp", room_on="")
     rows = (await session.execute(text(f"""
         SELECT EXTRACT(ISODOW FROM p.payment_date)::int AS dow,
                COUNT(*) AS cnt,
@@ -214,7 +215,7 @@ async def weekday_pattern(session: AsyncSession, window: Window, f: Filters) -> 
 
 
 async def dom_pattern(session: AsyncSession, window: Window, f: Filters) -> list[dict]:
-    f_sql, f_params = clause(f, manager_table="lp")
+    f_sql, f_params = clause(f, manager_table="lp", room_on="")
     rows = (await session.execute(text(f"""
         SELECT EXTRACT(DAY FROM p.payment_date)::int AS d,
                COALESCE(SUM(p.amount), 0)::numeric(18,2) AS amt
@@ -232,7 +233,7 @@ async def dom_pattern(session: AsyncSession, window: Window, f: Filters) -> list
 
 
 async def velocity(session: AsyncSession, window: Window, f: Filters) -> list[dict]:
-    f_sql, f_params = clause(f, manager_table="lp")
+    f_sql, f_params = clause(f, manager_table="lp", room_on="")
     rows = (await session.execute(text(f"""
         WITH paid AS (
           SELECT p.amount,
@@ -274,7 +275,7 @@ async def velocity(session: AsyncSession, window: Window, f: Filters) -> list[di
 
 
 async def collection_ratio_trend(session: AsyncSession, window: Window, f: Filters) -> list[dict]:
-    f_sql, f_params = clause(f, manager_table="lp")
+    f_sql, f_params = clause(f, manager_table="lp", room_on="")
     rows = (await session.execute(text(f"""
         WITH months AS (
           SELECT generate_series(
@@ -319,7 +320,7 @@ async def collection_ratio_trend(session: AsyncSession, window: Window, f: Filte
 
 async def payers_ranked(session: AsyncSession, window: Window, f: Filters,
                         sort: str, page: int, size: int, search: str) -> dict:
-    f_sql, f_params = clause(f, manager_table="lp")
+    f_sql, f_params = clause(f, manager_table="lp", room_on="")
     sort_key, _, dirraw = sort.partition(":")
     sort_dir = "ASC" if dirraw.lower() == "asc" else "DESC"
     order_col = {"receipts": "receipts", "payments": "payments",
@@ -400,7 +401,7 @@ async def prepayers_ranked(session: AsyncSession, f: Filters,
                            sort: str, page: int, size: int, search: str) -> dict:
     """Clients with net CREDIT balance (more paid than invoiced across
     all time). Ranked by credit magnitude descending."""
-    f_sql, f_params = clause(f, manager_table="lp")
+    f_sql, f_params = clause(f, manager_table="lp", room_on="")
     sort_dir = "ASC" if sort.endswith(":asc") else "DESC"
     search_clause = "AND lp.name ILIKE :q" if search else ""
     sql = f"""
@@ -452,7 +453,7 @@ async def regularity(session: AsyncSession, f: Filters,
     """Classify every payer by their inter-payment gap pattern over the
     last 180 days. Class labels: daily (<2d), weekly (<10d), monthly
     (<35d), sporadic (<90d), churned (≥90d or no recent payment)."""
-    f_sql, f_params = clause(f, manager_table="lp")
+    f_sql, f_params = clause(f, manager_table="lp", room_on="")
     sort_dir = "ASC" if sort.endswith(":asc") else "DESC"
     order_col = {"avg_gap": "avg_gap", "payments": "payments",
                  "last_pay": "last_pay", "name": "name",
@@ -517,11 +518,78 @@ async def regularity(session: AsyncSession, f: Filters,
     }
 
 
+async def rfm_payments(session: AsyncSession, window: Window, f: Filters,
+                       page: int = 0, size: int = 50,
+                       sort: str = "receipts:desc", search: str = "") -> dict:
+    """Payment-side RFM segmentation."""
+    sql = build_rfm_payments_sql(window_start=window.start, window_end=window.end)
+    rows_all = (await session.execute(text(sql))).mappings().all()
+
+    def passes(r):
+        if f.direction and (r.get("direction") not in f.direction): return False
+        if f.region and (r.get("region_name") not in f.region): return False
+        if search and (search.lower() not in (r.get("name") or "").lower()): return False
+        return True
+
+    rows = [r for r in rows_all if passes(r)]
+    total = len(rows)
+
+    sort_key, _, sort_dir_raw = sort.partition(":")
+    sort_dir = "asc" if sort_dir_raw.lower() == "asc" else "desc"
+    key_map = {
+        "name": lambda r: (r.get("name") or "").lower(),
+        "receipts": lambda r: float(r.get("receipts") or 0),
+        "payments": lambda r: int(r.get("payments") or 0),
+        "last_pay_date": lambda r: r.get("last_pay_date") or date.min,
+        "days_since": lambda r: int(r.get("days_since") or 0),
+        "r": lambda r: int(r.get("r") or 0),
+        "f": lambda r: int(r.get("f") or 0),
+        "m": lambda r: int(r.get("m") or 0),
+    }
+    key_fn = key_map.get(sort_key, key_map["receipts"])
+    rows.sort(key=key_fn, reverse=(sort_dir == "desc"))
+
+    page_rows = rows[page * size : page * size + size]
+
+    segment_counts: dict[str, int] = {}
+    segment_revenue: dict[str, float] = {}
+    for r in rows:
+        seg = r.get("segment") or "—"
+        segment_counts[seg] = segment_counts.get(seg, 0) + 1
+        segment_revenue[seg] = segment_revenue.get(seg, 0.0) + float(r.get("receipts") or 0)
+
+    return {
+        "rows": [{
+            "person_id": str(r["person_id"]),
+            "name": r.get("name"),
+            "direction": r.get("direction"),
+            "region": r.get("region_name"),
+            "last_pay_date": r["last_pay_date"].isoformat() if r.get("last_pay_date") else None,
+            "days_since": int(r.get("days_since") or 0),
+            "payments": int(r.get("payments") or 0),
+            "receipts": float(r.get("receipts") or 0),
+            "r": int(r.get("r") or 0),
+            "f": int(r.get("f") or 0),
+            "m": int(r.get("m") or 0),
+            "score": r.get("score"),
+            "segment": r.get("segment"),
+        } for r in page_rows],
+        "total": total, "page": page, "size": size,
+        "sort": f"{sort_key}:{sort_dir}",
+        "totals": {"receipts": sum(float(r.get("receipts") or 0) for r in rows),
+                   "payments": sum(int(r.get("payments") or 0) for r in rows)},
+        "segment_distribution": [
+            {"segment": k, "clients": v, "receipts": round(segment_revenue.get(k, 0), 2)}
+            for k, v in sorted(segment_counts.items(), key=lambda kv: -kv[1])
+        ],
+    }
+
+
 async def churned_ranked(session: AsyncSession, f: Filters,
                          sort: str, page: int, size: int, search: str) -> dict:
     """Clients who paid in the trailing 12-24 months but NOT in the
     trailing 12 months. Ranked by how much they USED to pay."""
-    f_sql, f_params = clause(f, manager_table="lp")
+    f_sql, f_params = clause(f, manager_table="lp", room_on="")
     sort_dir = "ASC" if sort.endswith(":asc") else "DESC"
     search_clause = "AND lp.name ILIKE :q" if search else ""
     sql = f"""
