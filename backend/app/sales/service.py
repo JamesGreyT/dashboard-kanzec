@@ -28,9 +28,9 @@ async def overview(session: AsyncSession, window: Window, f: Filters) -> dict:
     sql = f"""
     WITH w AS (
       SELECT * FROM (VALUES
-        ('current', :cur_s::date, :cur_e::date),
-        ('mom',     :mom_s::date, :mom_e::date),
-        ('yoy',     :yoy_s::date, :yoy_e::date)
+        ('current', CAST(:cur_s AS date), CAST(:cur_e AS date)),
+        ('mom',     CAST(:mom_s AS date), CAST(:mom_e AS date)),
+        ('yoy',     CAST(:yoy_s AS date), CAST(:yoy_e AS date))
       ) AS t(label, w_start, w_end)
     )
     SELECT w.label,
