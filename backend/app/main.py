@@ -18,6 +18,7 @@ from .debt.router import router as debt_router
 from .ops.router import router as ops_router
 from .rooms import service as rooms_service
 from .rooms.router import router as rooms_router
+from .snapshots.router import router as snapshots_router
 from .users.router import router as users_router
 
 log = logging.getLogger("kanzec")
@@ -95,6 +96,7 @@ app.include_router(users_router)
 app.include_router(audit_router)
 app.include_router(rooms_router)
 app.include_router(debt_router)
+app.include_router(snapshots_router)
 
 
 @app.get("/api/healthz")

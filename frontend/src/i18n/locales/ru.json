@@ -60,7 +60,34 @@
     "users": "Пользователи",
     "audit": "Аудит",
     "signout": "Выход",
-    "ledger": "Реестр"
+    "ledger": "Реестр",
+    "analytics": "Аналитика",
+    "yearly": "Годовой срез"
+  },
+  "yearly": {
+    "title": "Годовые срезы",
+    "subtitle": "Продажи и поступления по фискальным годам с окончанием 31 марта.",
+    "jami": "Итого",
+    "jami_produce": "Всего производство",
+    "jami_sold": "Всего продажи",
+    "scope_b2b": "B2B",
+    "scope_all": "Все направления",
+    "filter_direction": "Направление",
+    "filter_end_year": "Конец года",
+    "filter_years": "Лет",
+    "filter_search": "Поиск",
+    "filter_empty": "Ничего не найдено",
+    "filter_all": "Все",
+    "compact_digits": "1к",
+    "full_digits": "1 000",
+    "footer_note": "Значения берутся напрямую из smartup_rep.deal_order (Sotuv, после переоценки) и smartup_rep.payment (Kirim, по дате платежа). Платежи без менеджера привязываются к торговому представителю последнего заказа клиента.",
+    "tbl": {
+      "managers": "Менеджеры",
+      "aging": "Окно активности",
+      "directions": "По направлению",
+      "regions": "По региону",
+      "brands": "По бренду"
+    }
   },
   "roles": {
     "admin": "администратор",

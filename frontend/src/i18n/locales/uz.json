@@ -60,7 +60,34 @@
     "users": "Foydalanuvchilar",
     "audit": "Audit",
     "signout": "Chiqish",
-    "ledger": "Reestr"
+    "ledger": "Reestr",
+    "analytics": "Analitika",
+    "yearly": "Yillik kesim"
+  },
+  "yearly": {
+    "title": "Yillik kesimlar",
+    "subtitle": "Har bir 31 Martda yakunlanadigan moliyaviy yillarda Sotuv va Kirim ko'rsatkichlari.",
+    "jami": "Jami",
+    "jami_produce": "Jami ishlab chiqarish",
+    "jami_sold": "Jami savdo",
+    "scope_b2b": "B2B",
+    "scope_all": "Barcha yo'nalishlar",
+    "filter_direction": "Yo'nalish",
+    "filter_end_year": "Yakunlangan yil",
+    "filter_years": "Yillar soni",
+    "filter_search": "Qidirish",
+    "filter_empty": "Topilmadi",
+    "filter_all": "Barchasi",
+    "compact_digits": "1k",
+    "full_digits": "1 000",
+    "footer_note": "Qiymatlar smartup_rep.deal_order (Sotuv, post-переоценка summalari) va smartup_rep.payment (Kirim, to'lov sanasi bo'yicha) dan to'g'ridan-to'g'ri olinadi. Menejersiz to'lovlar klientning so'nggi buyurtmasidagi sotuvchi menejerga bog'lanadi.",
+    "tbl": {
+      "managers": "Sotuvchi menejerlar",
+      "aging": "Faoliyat oynasi",
+      "directions": "Yo'nalish bo'yicha",
+      "regions": "Hudud bo'yicha",
+      "brands": "Marka bo'yicha"
+    }
   },
   "roles": {
     "admin": "administrator",

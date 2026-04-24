@@ -11,6 +11,7 @@ import {
   Users,
   ShieldCheck,
   LogOut,
+  CalendarRange,
 } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import LangToggle from "./LangToggle";
@@ -39,7 +40,8 @@ type IconKind =
   | "ledger"
   | "reports"
   | "users"
-  | "audit";
+  | "audit"
+  | "calendar";
 
 interface Item {
   to: string;
@@ -59,6 +61,9 @@ const DATA: Item[] = [
 const COLLECTION: Item[] = [
   { to: "/collection/debt", labelKey: "nav.debt", roles: ["admin", "operator", "viewer"], icon: "scales" },
   { to: "/collection/ledger", labelKey: "nav.ledger", roles: ["admin", "operator", "viewer"], icon: "ledger" },
+];
+const ANALYTICS: Item[] = [
+  { to: "/analytics/yearly", labelKey: "nav.yearly", roles: ["admin", "operator", "viewer"], icon: "calendar" },
 ];
 const OPERATIONS: Item[] = [
   { to: "/ops", labelKey: "nav.reports", roles: ["admin", "operator"], icon: "reports" },
@@ -80,6 +85,7 @@ function IconFor({ kind }: { kind: IconKind }) {
     case "reports": return <FileBarChart className={size} />;
     case "users": return <Users className={size} />;
     case "audit": return <ShieldCheck className={size} />;
+    case "calendar": return <CalendarRange className={size} />;
   }
 }
 
@@ -122,6 +128,7 @@ export default function Sidebar() {
         <NavGroup titleKey="nav.registry" items={REGISTRY} role={user.role} />
         <NavGroup titleKey="nav.data_group" items={DATA} role={user.role} />
         <NavGroup titleKey="nav.collection" items={COLLECTION} role={user.role} />
+        <NavGroup titleKey="nav.analytics" items={ANALYTICS} role={user.role} />
         <NavGroup titleKey="nav.operations" items={OPERATIONS} role={user.role} />
         <NavGroup titleKey="nav.admin" items={ADMIN} role={user.role} />
       </SidebarContent>
