@@ -7,8 +7,9 @@ Five endpoints:
   GET  /api/dayslice/plan             monthly plan (rows)
   PUT  /api/dayslice/plan             whole-month replace (admin)
 
-Direction filter defaults to B2B+Export server-side (matches the
-Excel `kunsotuvkirim` convention — excludes Цех / DOKON / MATERIAL).
+No direction filter is applied unless the operator explicitly picks one
+— matches the Excel Dashborad convention (Excel SUMIFS filters by
+manager + delivery_date only, no direction predicate).
 """
 from __future__ import annotations
 
@@ -42,9 +43,8 @@ def _admin_or_403(user) -> None:
 
 
 def _parse_filters(scope: ScopedUser, direction: str) -> Filters:
-    """Default to B2B+Export when no explicit direction is passed."""
-    eff = direction.strip() or "B2B,Export"
-    return Filters.parse(direction=eff, scope_rooms=scope.room_ids)
+    """No direction filter when none is passed — matches Excel Dashborad."""
+    return Filters.parse(direction=direction.strip(), scope_rooms=scope.room_ids)
 
 
 class PlanRow(BaseModel):
