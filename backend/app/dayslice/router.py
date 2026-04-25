@@ -15,6 +15,8 @@ from __future__ import annotations
 from datetime import date
 from typing import Annotated
 
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -118,6 +120,29 @@ async def region_pivot(
     filters = _parse_filters(scope, direction)
     sl = _slice_from_params(as_of, slice_start, slice_end)
     return await service.region_pivot(session, as_of=as_of, f=filters, sl=sl)
+
+
+@router.get("/drill")
+async def drill(
+    user: CurrentUser,
+    scope: ScopedUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    measure: Literal["sotuv", "kirim"] = Query(...),
+    manager: str = Query(...),
+    year: int = Query(..., ge=2020, le=2100),
+    as_of: date = Query(default_factory=date.today),
+    direction: str = Query(default=""),
+    slice_start: date | None = Query(default=None),
+    slice_end: date | None = Query(default=None),
+    limit: int = Query(default=500, ge=1, le=5000),
+) -> dict:
+    _admin_or_403(user)
+    filters = _parse_filters(scope, direction)
+    sl = _slice_from_params(as_of, slice_start, slice_end) or Slice.anchor(as_of)
+    return await service.drill(
+        session, measure=measure, manager=manager, year=year,
+        sl=sl, f=filters, limit=limit,
+    )
 
 
 @router.get("/plan")

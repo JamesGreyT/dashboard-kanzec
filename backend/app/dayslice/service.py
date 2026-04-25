@@ -490,3 +490,167 @@ async def put_plan(
         })
     await session.commit()
     return await get_plan(session, year=year, month=month)
+
+
+# ---------------------------------------------------------------------------
+# Drill — line items behind a single (manager, year, slice) cell
+# ---------------------------------------------------------------------------
+
+
+# `(—)` is our null-bucket label; convert back to "manager IS NULL or empty"
+# so the SQL filter actually finds the rows.
+_NULL_MGR = "(—)"
+
+
+async def drill(
+    session: AsyncSession, *,
+    measure: str,            # "sotuv" or "kirim"
+    manager: str,
+    year: int,
+    sl: Slice,
+    f: Filters,
+    limit: int = 500,
+) -> dict[str, Any]:
+    """Line-item lookup behind a single cell of the scoreboard. Returns
+    the same rows that summed into that cell, ordered by date desc.
+
+    For Sotuv: deal_order rows (date, deal_id, client, brand, product, qty, amount).
+    For Kirim: payment rows (date, client, method, amount) plus the
+    attributed manager (most-recent prior order).
+    """
+    # Resolve the slice for this specific year (same clamping as the grid)
+    s, e = sl.label_for_year(year)
+
+    if measure == "sotuv":
+        f_sql, f_params = clause(f)
+        if manager == _NULL_MGR:
+            mgr_sql = "AND (d.sales_manager IS NULL OR TRIM(d.sales_manager) = '')"
+            mgr_params: dict[str, Any] = {}
+        else:
+            mgr_sql = "AND TRIM(d.sales_manager) = :mgr"
+            mgr_params = {"mgr": manager}
+        sql = f"""
+        SELECT d.delivery_date::date AS dt,
+               d.deal_id,
+               lp.name AS client_name,
+               lp.region_name,
+               lp.direction,
+               d.brand,
+               d.product_name,
+               d.sold_quant::numeric(18,2) AS qty,
+               d.product_amount::numeric(18,2) AS amount
+          FROM smartup_rep.deal_order d
+          JOIN smartup_rep.legal_person lp ON lp.person_id::text = d.person_id
+         WHERE d.delivery_date BETWEEN (:s)::date AND (:e)::date
+           AND d.product_amount > 0
+           {mgr_sql}
+           {f_sql}
+         ORDER BY d.delivery_date DESC, d.deal_id
+         LIMIT :limit
+        """
+        params = {"s": s, "e": e, "limit": limit, **f_params, **mgr_params}
+        rows = (await session.execute(text(sql), params)).mappings().all()
+        # Total across the full slice (not capped by LIMIT) so the user
+        # sees how much they're seeing vs how much exists.
+        total_sql = f"""
+        SELECT COALESCE(SUM(d.product_amount), 0)::numeric(18,2) AS total,
+               COUNT(*) AS n
+          FROM smartup_rep.deal_order d
+          JOIN smartup_rep.legal_person lp ON lp.person_id::text = d.person_id
+         WHERE d.delivery_date BETWEEN (:s)::date AND (:e)::date
+           AND d.product_amount > 0
+           {mgr_sql}
+           {f_sql}
+        """
+        total = (await session.execute(text(total_sql), params)).mappings().first() or {}
+        return {
+            "measure": "sotuv",
+            "manager": manager, "year": year,
+            "slice": {"from": s.isoformat(), "to": e.isoformat()},
+            "total": float(total.get("total") or 0),
+            "row_count": int(total.get("n") or 0),
+            "rows": [{
+                "date": r["dt"].isoformat(),
+                "deal_id": r["deal_id"],
+                "client": r["client_name"],
+                "region": r["region_name"],
+                "direction": r["direction"],
+                "brand": r["brand"],
+                "product": r["product_name"],
+                "qty": float(r["qty"] or 0),
+                "amount": float(r["amount"] or 0),
+            } for r in rows],
+            "limit": limit,
+        }
+
+    # measure == "kirim"
+    f_sql, f_params = clause(f, manager_table="lp", room_on="")
+    if manager == _NULL_MGR:
+        mgr_sql = "AND (rm.manager IS NULL OR TRIM(rm.manager) = '')"
+        mgr_params = {}
+    else:
+        mgr_sql = "AND TRIM(rm.manager) = :mgr"
+        mgr_params = {"mgr": manager}
+    sql = f"""
+    SELECT p.payment_date::date AS dt,
+           p.payment_id,
+           lp.name AS client_name,
+           lp.region_name,
+           lp.direction,
+           p.payment_method,
+           p.amount::numeric(18,2) AS amount,
+           rm.manager AS attributed_manager
+      FROM smartup_rep.payment p
+      JOIN smartup_rep.legal_person lp ON lp.person_id = p.person_id
+      LEFT JOIN LATERAL (
+        SELECT d.sales_manager AS manager
+          FROM smartup_rep.deal_order d
+         WHERE d.person_id = p.person_id::text
+           AND d.delivery_date <= p.payment_date::date
+         ORDER BY d.delivery_date DESC
+         LIMIT 1
+      ) rm ON TRUE
+     WHERE p.payment_date BETWEEN (:s)::date AND (:e)::date
+       {mgr_sql}
+       {f_sql}
+     ORDER BY p.payment_date DESC, p.payment_id
+     LIMIT :limit
+    """
+    params = {"s": s, "e": e, "limit": limit, **f_params, **mgr_params}
+    rows = (await session.execute(text(sql), params)).mappings().all()
+    total_sql = f"""
+    SELECT COALESCE(SUM(p.amount), 0)::numeric(18,2) AS total,
+           COUNT(*) AS n
+      FROM smartup_rep.payment p
+      JOIN smartup_rep.legal_person lp ON lp.person_id = p.person_id
+      LEFT JOIN LATERAL (
+        SELECT d.sales_manager AS manager
+          FROM smartup_rep.deal_order d
+         WHERE d.person_id = p.person_id::text
+           AND d.delivery_date <= p.payment_date::date
+         ORDER BY d.delivery_date DESC
+         LIMIT 1
+      ) rm ON TRUE
+     WHERE p.payment_date BETWEEN (:s)::date AND (:e)::date
+       {mgr_sql}
+       {f_sql}
+    """
+    total = (await session.execute(text(total_sql), params)).mappings().first() or {}
+    return {
+        "measure": "kirim",
+        "manager": manager, "year": year,
+        "slice": {"from": s.isoformat(), "to": e.isoformat()},
+        "total": float(total.get("total") or 0),
+        "row_count": int(total.get("n") or 0),
+        "rows": [{
+            "date": r["dt"].isoformat(),
+            "payment_id": r["payment_id"],
+            "client": r["client_name"],
+            "region": r["region_name"],
+            "direction": r["direction"],
+            "method": r["payment_method"],
+            "amount": float(r["amount"] or 0),
+            "attributed_manager": r["attributed_manager"],
+        } for r in rows],
+        "limit": limit,
+    }

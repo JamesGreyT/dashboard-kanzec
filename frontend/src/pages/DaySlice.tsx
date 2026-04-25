@@ -6,6 +6,7 @@ import { api } from "../lib/api";
 import PageHeading from "../components/PageHeading";
 import AsOfPicker, { type AsOfPickerValue } from "../components/AsOfPicker";
 import YearMatrix, { type YearMatrixRow } from "../components/YearMatrix";
+import DrillPanel from "../components/DrillPanel";
 import ProjectionStrip from "../components/ProjectionStrip";
 import PlanGridEditable from "../components/PlanGridEditable";
 import Heatmap from "../components/Heatmap";
@@ -161,6 +162,9 @@ export default function DaySlice() {
             rows={sbQ.data.sotuv.rows}
             totals={sbQ.data.sotuv.totals}
             currentYear={asOfDate.getFullYear()}
+            renderDrill={(manager, year) => (
+              <DrillPanel measure="sotuv" manager={manager} year={year} baseQs={baseQs} />
+            )}
           />
         )}
       </div>
@@ -173,6 +177,9 @@ export default function DaySlice() {
             rows={sbQ.data.kirim.rows}
             totals={sbQ.data.kirim.totals}
             currentYear={asOfDate.getFullYear()}
+            renderDrill={(manager, year) => (
+              <DrillPanel measure="kirim" manager={manager} year={year} baseQs={baseQs} />
+            )}
           />
         )}
       </div>

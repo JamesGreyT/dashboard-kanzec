@@ -1,3 +1,4 @@
+import { ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { fmtNum } from "./MetricCard";
 import Sparkline from "./Sparkline";
@@ -14,8 +15,13 @@ export interface YearMatrixRow {
  * sheet's primary scoreboard, with a current-year column tinted
  * subtly for emphasis and a sparkline+YoY chip on each row.
  *
- * Mobile (`<lg`): collapses into a card list — one card per manager,
- * year columns stacked inside the card. Same pattern as RankedTable.
+ * Drill: when `renderDrill` is supplied, every non-zero cell becomes a
+ * clickable button. Clicking opens an expanded panel beneath the row
+ * with the line items behind that cell's number — for verifying the
+ * total against the source data.
+ *
+ * Mobile (`<lg`): collapses into a card list — one card per manager.
+ * Drill is hidden on mobile to keep the surface compact.
  */
 export default function YearMatrix({
   title,
@@ -23,14 +29,32 @@ export default function YearMatrix({
   rows,
   totals,
   currentYear,
+  renderDrill,
 }: {
   title: string;
   yearColumns: number[];
   rows: YearMatrixRow[];
   totals: { by_year: number[]; yoy_pct: number | null };
   currentYear: number;
+  renderDrill?: (manager: string, year: number) => ReactNode;
 }) {
   const { t } = useTranslation();
+  const [openCell, setOpenCell] = useState<{ manager: string; year: number } | null>(null);
+
+  const toggle = (manager: string, year: number) => {
+    if (!renderDrill) return;
+    if (openCell && openCell.manager === manager && openCell.year === year) {
+      setOpenCell(null);
+    } else {
+      setOpenCell({ manager, year });
+    }
+  };
+
+  const isOpen = (manager: string, year: number) =>
+    !!openCell && openCell.manager === manager && openCell.year === year;
+
+  // +1 (manager) + N (years) + 2 (yoy + sparkline)
+  const totalCols = 1 + yearColumns.length + 2;
 
   return (
     <section className="mb-10">
@@ -69,32 +93,66 @@ export default function YearMatrix({
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.manager} className="border-t border-border/40">
-                <td className="px-3 py-1.5 text-foreground">{r.manager}</td>
-                {r.by_year.map((v, i) => (
-                  <td
-                    key={i}
-                    className={
+              <FragmentLike key={r.manager}>
+                <tr className="border-t border-border/40">
+                  <td className="px-3 py-1.5 text-foreground">{r.manager}</td>
+                  {r.by_year.map((v, i) => {
+                    const y = yearColumns[i];
+                    const open = isOpen(r.manager, y);
+                    const drillable = !!renderDrill && v > 0;
+                    const baseClass =
                       "px-3 py-1.5 text-right font-mono tabular-nums " +
-                      (yearColumns[i] === currentYear
+                      (y === currentYear
                         ? "bg-primary/[0.04] text-foreground"
-                        : "text-muted-foreground")
+                        : "text-muted-foreground");
+                    if (drillable) {
+                      return (
+                        <td key={i} className={baseClass + (open ? " ring-1 ring-inset ring-primary/40" : "")}>
+                          <button
+                            type="button"
+                            aria-expanded={open}
+                            aria-label={t("dayslice.drill_open_cell", {
+                              defaultValue: "Open line items for {{manager}}, {{year}}",
+                              manager: r.manager,
+                              year: y,
+                            }) as string}
+                            onClick={() => toggle(r.manager, y)}
+                            className="inline-block hover:underline decoration-dotted underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                          >
+                            ${fmtNum(v)}
+                          </button>
+                        </td>
+                      );
                     }
-                  >
-                    {v === 0 ? (
-                      <span className="text-muted-foreground/60">—</span>
-                    ) : (
-                      "$" + fmtNum(v)
-                    )}
+                    return (
+                      <td key={i} className={baseClass}>
+                        {v === 0 ? (
+                          <span className="text-muted-foreground/60">—</span>
+                        ) : (
+                          "$" + fmtNum(v)
+                        )}
+                      </td>
+                    );
+                  })}
+                  <td className="px-3 py-1.5 text-right font-mono tabular-nums">
+                    {yoyChip(r.yoy_pct)}
                   </td>
-                ))}
-                <td className="px-3 py-1.5 text-right font-mono tabular-nums">
-                  {yoyChip(r.yoy_pct)}
-                </td>
-                <td className="px-3 py-1.5">
-                  <Sparkline values={r.by_year} width={60} height={16} />
-                </td>
-              </tr>
+                  <td className="px-3 py-1.5">
+                    <Sparkline values={r.by_year} width={60} height={16} />
+                  </td>
+                </tr>
+                {openCell &&
+                  openCell.manager === r.manager &&
+                  renderDrill && (
+                    <tr className="bg-muted/20 border-t border-border/40">
+                      <td colSpan={totalCols} className="p-0">
+                        <div className="p-4">
+                          {renderDrill(openCell.manager, openCell.year)}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+              </FragmentLike>
             ))}
             <tr className="border-t-2 border-border bg-muted/20">
               <td className="px-3 py-2 font-medium text-foreground">
@@ -120,7 +178,7 @@ export default function YearMatrix({
         </table>
       </div>
 
-      {/* Mobile card list */}
+      {/* Mobile card list — drill is hidden here for compactness */}
       <div className="lg:hidden space-y-2">
         {rows.map((r) => (
           <div
@@ -166,6 +224,11 @@ export default function YearMatrix({
       </div>
     </section>
   );
+}
+
+// React fragments inside <tbody> need to be a Fragment, not a div.
+function FragmentLike({ children }: { children: ReactNode }) {
+  return <>{children}</>;
 }
 
 function yoyChip(v: number | null) {
