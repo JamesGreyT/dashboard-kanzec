@@ -21,7 +21,7 @@ interface ScoreboardResp {
 }
 
 interface ProjectionResp {
-  slice: { day_n: number };
+  slice: { day_n: number; month_days: number };
   history: Array<{ year: number; ratio: number }>;
   current_mtd: { sotuv: number; kirim: number };
   projection: {
@@ -154,11 +154,10 @@ export default function DaySlice() {
         )}
       </div>
 
-      <hr className="mark-rule mb-8" aria-hidden />
-
-      <div className="stagger-4">
-        {projQ.data && (
-          <>
+      {projQ.data && projQ.data.slice.day_n < projQ.data.slice.month_days && (
+        <>
+          <hr className="mark-rule mb-8" aria-hidden />
+          <div className="stagger-4">
             <ProjectionStrip
               kind="sotuv"
               current_mtd={projQ.data.current_mtd.sotuv}
@@ -173,9 +172,9 @@ export default function DaySlice() {
               history={projQ.data.history}
               dayN={projQ.data.slice.day_n}
             />
-          </>
-        )}
-      </div>
+          </div>
+        </>
+      )}
 
       <hr className="mark-rule mb-8" aria-hidden />
 
