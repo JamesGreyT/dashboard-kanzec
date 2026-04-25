@@ -160,3 +160,21 @@ CREATE TABLE IF NOT EXISTS app.alert_event (
 );
 CREATE INDEX IF NOT EXISTS idx_alert_event_rule_time ON app.alert_event (rule_id, triggered_at DESC);
 CREATE INDEX IF NOT EXISTS idx_alert_event_unread    ON app.alert_event (triggered_at DESC) WHERE read_at IS NULL;
+
+-- ============================================================================
+-- dayslice_plan = monthly per-manager Sotuv/Kirim plan, edited from /dayslice.
+-- Whole-month replace semantics: PUT /api/dayslice/plan?year=Y&month=M deletes
+-- rows in that (year,month) not present in the payload, then upserts the rest.
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS app.dayslice_plan (
+    year       INT  NOT NULL,
+    month      INT  NOT NULL,
+    manager    TEXT NOT NULL,
+    plan_sotuv NUMERIC(14,2),
+    plan_kirim NUMERIC(14,2),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_by TEXT,
+    PRIMARY KEY (year, month, manager),
+    CHECK (month BETWEEN 1 AND 12)
+);
+GRANT SELECT, INSERT, UPDATE, DELETE ON app.dayslice_plan TO dashboard_api;
