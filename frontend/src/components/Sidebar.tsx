@@ -13,6 +13,7 @@ import {
   LogOut,
   CalendarRange,
   TrendingUp,
+  Undo2,
 } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import AlertsBell from "./AlertsBell";
@@ -44,7 +45,8 @@ type IconKind =
   | "users"
   | "audit"
   | "calendar"
-  | "trending";
+  | "trending"
+  | "returns";
 
 interface Item {
   to: string;
@@ -69,6 +71,7 @@ const COLLECTION: Item[] = [
 const ANALYTICS: Item[] = [
   { to: "/analytics/sales",    labelKey: "nav.sales",    roles: ["admin", "operator", "viewer"], icon: "trending" },
   { to: "/analytics/payments", labelKey: "nav.payments_dash", roles: ["admin", "operator", "viewer"], icon: "payments" },
+  { to: "/analytics/returns",  labelKey: "nav.returns",  roles: ["admin", "operator", "viewer"], icon: "returns" },
   { to: "/analytics/yearly",   labelKey: "nav.yearly",   roles: ["admin", "operator", "viewer"], icon: "calendar" },
 ];
 const OPERATIONS: Item[] = [
@@ -94,6 +97,7 @@ function IconFor({ kind }: { kind: IconKind }) {
     case "audit": return <ShieldCheck className={size} />;
     case "calendar": return <CalendarRange className={size} />;
     case "trending": return <TrendingUp className={size} />;
+    case "returns": return <Undo2 className={size} />;
   }
 }
 

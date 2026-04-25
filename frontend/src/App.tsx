@@ -11,6 +11,7 @@ import DebtLedger from "./pages/DebtLedger";
 import DebtWorklist from "./pages/DebtWorklist";
 import Ops from "./pages/Ops";
 import Payments from "./pages/Payments";
+import Returns from "./pages/Returns";
 import Sales from "./pages/Sales";
 import YearlySnapshots from "./pages/YearlySnapshots";
 import AdminAlerts from "./pages/AdminAlerts";
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="/analytics" element={<Navigate to="/analytics/sales" replace />} />
           <Route path="/analytics/sales" element={<Sales />} />
           <Route path="/analytics/payments" element={<Payments />} />
+          <Route path="/analytics/returns" element={<Returns />} />
           <Route path="/analytics/yearly" element={<YearlySnapshots />} />
           <Route
             path="/ops"
