@@ -1,12 +1,18 @@
 """Day-slice scoreboard — recreates the Excel `Dashborad` sheet natively.
 
-The shape is "for the calendar slice month-start → as-of date,
-replayed across each year, sum revenue per (manager, year)".
+Two modes of slicing the calendar:
+
+  Anchor mode (default): "month-start (1st of as_of's month) → as_of",
+  replayed across each year. Same shape the Excel uses.
+
+  Custom mode: explicit (start_month, start_day) → (end_month, end_day),
+  replayed across each year. Lets the operator ask "what did 1–10
+  March look like across 4 years" or "1 Feb → 15 March across 4 years".
 
 Sotuv: groups by `deal_order.sales_manager`, sums `product_amount > 0`.
 Kirim: payments have no `sales_manager` column, so we attribute each
 payment to the **most-recent prior deal_order's** sales manager
-(LATERAL DISTINCT ON pattern — same idiom YearlySnapshots used).
+(LATERAL DISTINCT ON pattern).
 
 All functions are admin-gated upstream in router.py; ScopedUser
 restriction flows through `_analytics.filters.clause()`.
@@ -14,6 +20,7 @@ restriction flows through `_analytics.filters.clause()`.
 from __future__ import annotations
 
 import calendar
+from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
@@ -23,29 +30,86 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .._analytics.filters import Filters, clause
 
 
+@dataclass(frozen=True)
+class Slice:
+    """A calendar window replayed across years.
+
+    For each year `y`, the actual range is:
+      start = make_date(y, start_month, start_day_clamped_to_month_end)
+      end   = make_date(y, end_month,   end_day_clamped_to_month_end)
+    """
+    start_month: int
+    start_day: int
+    end_month: int
+    end_day: int
+
+    @classmethod
+    def anchor(cls, as_of: date) -> "Slice":
+        """Default slice: 1st of as_of's month → as_of's day, that month."""
+        return cls(as_of.month, 1, as_of.month, as_of.day)
+
+    @classmethod
+    def custom(cls, start: date, end: date) -> "Slice":
+        """Custom (month, day) slice — year is irrelevant; we use only
+        the month-and-day across each year."""
+        return cls(start.month, start.day, end.month, end.day)
+
+    def label_for_year(self, y: int) -> tuple[date, date]:
+        last_s = calendar.monthrange(y, self.start_month)[1]
+        last_e = calendar.monthrange(y, self.end_month)[1]
+        s = date(y, self.start_month, min(self.start_day, last_s))
+        e = date(y, self.end_month,   min(self.end_day,   last_e))
+        return s, e
+
+
 # ---------------------------------------------------------------------------
-# Scoreboard — manager × year matrix for the as-of slice
+# Helpers — slice CTE builder, used by every endpoint
+# ---------------------------------------------------------------------------
+
+
+def _slices_cte() -> str:
+    """SQL fragment that builds a (year, s, e) row per year in
+    [:y_start, :y_end] for the parametric slice. Days are clamped to
+    each year's actual month-end (Feb 29 → Feb 28 in non-leap years)."""
+    return """
+    WITH years AS (SELECT generate_series((:y_start)::int, (:y_end)::int) AS y),
+    slices AS (
+      SELECT y,
+             make_date(y, (:start_month)::int, LEAST((:start_day)::int,
+               EXTRACT(DAY FROM (make_date(y, (:start_month)::int, 1)
+                                 + INTERVAL '1 month - 1 day'))::int)) AS s,
+             make_date(y, (:end_month)::int, LEAST((:end_day)::int,
+               EXTRACT(DAY FROM (make_date(y, (:end_month)::int, 1)
+                                 + INTERVAL '1 month - 1 day'))::int)) AS e
+        FROM years
+    )
+    """
+
+
+def _slice_params(year_start: int, year_end: int, sl: Slice) -> dict[str, int]:
+    return {
+        "y_start": year_start,
+        "y_end":   year_end,
+        "start_month": sl.start_month,
+        "start_day":   sl.start_day,
+        "end_month":   sl.end_month,
+        "end_day":     sl.end_day,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Scoreboard — manager × year matrix for the slice
 # ---------------------------------------------------------------------------
 
 
 async def _grid_sotuv(
-    session: AsyncSession,
-    *,
+    session: AsyncSession, *,
     year_start: int, year_end: int,
-    month: int, day_n: int,
-    f: Filters,
+    sl: Slice, f: Filters,
 ) -> dict[str, dict[int, float]]:
     f_sql, f_params = clause(f)
     sql = f"""
-    WITH years AS (SELECT generate_series((:y_start)::int, (:y_end)::int) AS y),
-    slices AS (
-      SELECT y,
-             make_date(y, (:month)::int, 1) AS s,
-             make_date(y, (:month)::int, LEAST((:day_n)::int,
-               EXTRACT(DAY FROM (make_date(y, (:month)::int, 1)
-                                 + INTERVAL '1 month - 1 day'))::int)) AS e
-        FROM years
-    )
+    {_slices_cte()}
     SELECT COALESCE(NULLIF(TRIM(d.sales_manager), ''), '(—)') AS manager,
            sl.y AS year,
            SUM(d.product_amount)::numeric(18,2) AS revenue
@@ -58,8 +122,7 @@ async def _grid_sotuv(
      GROUP BY 1, 2
     """
     rows = (await session.execute(text(sql), {
-        "y_start": year_start, "y_end": year_end,
-        "month": month, "day_n": day_n,
+        **_slice_params(year_start, year_end, sl),
         **f_params,
     })).mappings().all()
     out: dict[str, dict[int, float]] = {}
@@ -69,32 +132,14 @@ async def _grid_sotuv(
 
 
 async def _grid_kirim(
-    session: AsyncSession,
-    *,
+    session: AsyncSession, *,
     year_start: int, year_end: int,
-    month: int, day_n: int,
-    f: Filters,
+    sl: Slice, f: Filters,
 ) -> dict[str, dict[int, float]]:
-    """Kirim grouped by *manager-of-most-recent-prior-order*. payment
-    table has no sales_manager column, so we look up each payment's
-    person_id in deal_order, take the manager of that client's latest
-    deal_order at-or-before the payment date.
-
-    Implementation: LATERAL JOIN per payment row. Postgres's planner
-    keeps this fast because of idx_deal_order_person_date (composite)
-    and idx_payment_date.
-    """
+    """Kirim grouped by manager-of-most-recent-prior-order (LATERAL)."""
     f_sql, f_params = clause(f, manager_table="lp", room_on="")
     sql = f"""
-    WITH years AS (SELECT generate_series((:y_start)::int, (:y_end)::int) AS y),
-    slices AS (
-      SELECT y,
-             make_date(y, (:month)::int, 1) AS s,
-             make_date(y, (:month)::int, LEAST((:day_n)::int,
-               EXTRACT(DAY FROM (make_date(y, (:month)::int, 1)
-                                 + INTERVAL '1 month - 1 day'))::int)) AS e
-        FROM years
-    )
+    {_slices_cte()}
     SELECT COALESCE(NULLIF(TRIM(rm.manager), ''), '(—)') AS manager,
            sl.y AS year,
            SUM(p.amount)::numeric(18,2) AS revenue
@@ -114,8 +159,7 @@ async def _grid_kirim(
      GROUP BY 1, 2
     """
     rows = (await session.execute(text(sql), {
-        "y_start": year_start, "y_end": year_end,
-        "month": month, "day_n": day_n,
+        **_slice_params(year_start, year_end, sl),
         **f_params,
     })).mappings().all()
     out: dict[str, dict[int, float]] = {}
@@ -128,7 +172,6 @@ def _shape_grid(
     grid: dict[str, dict[int, float]],
     year_columns: list[int],
 ) -> dict[str, Any]:
-    """Pivot grid → row-major, sorted by current-year desc, with totals + YoY."""
     year_end = year_columns[-1]
     managers = sorted(grid.keys(), key=lambda m: -grid[m].get(year_end, 0))
     rows: list[dict[str, Any]] = []
@@ -152,31 +195,32 @@ def _shape_grid(
 
 
 async def scoreboard(
-    session: AsyncSession,
-    *,
-    as_of: date,
-    years: int,
-    f: Filters,
+    session: AsyncSession, *,
+    as_of: date, years: int, f: Filters,
+    sl: Slice | None = None,
 ) -> dict[str, Any]:
+    sl = sl or Slice.anchor(as_of)
     year_end = as_of.year
     year_start = year_end - years + 1
     year_columns = list(range(year_start, year_end + 1))
-    # NOTE: must serialize — asyncpg can't run two queries in parallel
-    # on the same connection (an AsyncSession holds one).
     sotuv_grid = await _grid_sotuv(
-        session, year_start=year_start, year_end=year_end,
-        month=as_of.month, day_n=as_of.day, f=f,
+        session, year_start=year_start, year_end=year_end, sl=sl, f=f,
     )
     kirim_grid = await _grid_kirim(
-        session, year_start=year_start, year_end=year_end,
-        month=as_of.month, day_n=as_of.day, f=f,
+        session, year_start=year_start, year_end=year_end, sl=sl, f=f,
     )
+    s_cur, e_cur = sl.label_for_year(year_end)
     return {
         "slice": {
-            "month_start": date(as_of.year, as_of.month, 1).isoformat(),
-            "as_of": as_of.isoformat(),
-            "day_n": as_of.day,
-            "month_days": calendar.monthrange(as_of.year, as_of.month)[1],
+            "month_start": s_cur.isoformat(),
+            "as_of": e_cur.isoformat(),
+            "day_n": e_cur.day,
+            "month_days": calendar.monthrange(e_cur.year, e_cur.month)[1],
+            "start_month": sl.start_month,
+            "start_day":   sl.start_day,
+            "end_month":   sl.end_month,
+            "end_day":     sl.end_day,
+            "is_custom":   not (sl.start_day == 1 and sl.start_month == sl.end_month),
         },
         "year_columns": year_columns,
         "sotuv": _shape_grid(sotuv_grid, year_columns),
@@ -190,15 +234,10 @@ async def scoreboard(
 
 
 async def _per_year_mtd_and_full(
-    session: AsyncSession,
-    *,
-    measure: str,            # "sotuv" or "kirim"
-    year_start: int, year_end: int,
-    month: int, day_n: int,
-    f: Filters,
+    session: AsyncSession, *,
+    measure: str, year_start: int, year_end: int,
+    month: int, day_n: int, f: Filters,
 ) -> dict[int, dict[str, float]]:
-    """For each year in [start, end], return {mtd, month_total} for the
-    given measure. mtd = sum through day-N; month_total = sum through end of month."""
     if measure == "sotuv":
         f_sql, f_params = clause(f)
         sql = f"""
@@ -228,7 +267,7 @@ async def _per_year_mtd_and_full(
          GROUP BY sl.y
          ORDER BY sl.y
         """
-    else:  # kirim
+    else:
         f_sql, f_params = clause(f, manager_table="lp", room_on="")
         sql = f"""
         WITH years AS (SELECT generate_series((:y_start)::int, (:y_end)::int) AS y),
@@ -268,28 +307,23 @@ async def _per_year_mtd_and_full(
 
 
 def _project(cur_mtd: float, ratios: list[float]) -> dict[str, float]:
-    """Given the current month-to-date and a list of historical
-    (MTD/month_total) ratios, project month-end as (cur_mtd / ratio).
-    Higher ratio → lower projection (more of the month was already done by day-N)."""
     if not ratios or cur_mtd == 0:
         return {"min": cur_mtd, "mean": cur_mtd, "max": cur_mtd}
     return {
-        "min":  cur_mtd / max(ratios),                 # tightest: assumes day-N captured the most
+        "min":  cur_mtd / max(ratios),
         "mean": cur_mtd / (sum(ratios) / len(ratios)),
-        "max":  cur_mtd / min(ratios),                 # loosest: assumes day-N captured the least
+        "max":  cur_mtd / min(ratios),
     }
 
 
 async def projection(
-    session: AsyncSession,
-    *,
-    as_of: date,
-    years: int,
-    f: Filters,
+    session: AsyncSession, *,
+    as_of: date, years: int, f: Filters,
 ) -> dict[str, Any]:
+    """Projection always uses the anchor slice (month-start → as-of) —
+    custom-range projection isn't a meaningful concept."""
     year_end = as_of.year
     year_start = year_end - years + 1
-    # Serialize for asyncpg single-connection-per-session.
     sotuv_per_year = await _per_year_mtd_and_full(
         session, measure="sotuv",
         year_start=year_start, year_end=year_end,
@@ -300,11 +334,10 @@ async def projection(
         year_start=year_start, year_end=year_end,
         month=as_of.month, day_n=as_of.day, f=f,
     )
-
     history: list[dict[str, Any]] = []
     sotuv_ratios: list[float] = []
     kirim_ratios: list[float] = []
-    for y in range(year_start, year_end):  # exclude current year
+    for y in range(year_start, year_end):
         s = sotuv_per_year.get(y, {"mtd": 0, "month_total": 0})
         k = kirim_per_year.get(y, {"mtd": 0, "month_total": 0})
         if s["month_total"] > 0:
@@ -317,10 +350,8 @@ async def projection(
             })
         if k["month_total"] > 0:
             kirim_ratios.append(k["mtd"] / k["month_total"])
-
     cur_sotuv = sotuv_per_year.get(year_end, {"mtd": 0})["mtd"]
     cur_kirim = kirim_per_year.get(year_end, {"mtd": 0})["mtd"]
-
     return {
         "slice": {
             "month_start": date(as_of.year, as_of.month, 1).isoformat(),
@@ -343,11 +374,12 @@ async def projection(
 
 
 async def region_pivot(
-    session: AsyncSession,
-    *,
-    as_of: date,
-    f: Filters,
+    session: AsyncSession, *,
+    as_of: date, f: Filters,
+    sl: Slice | None = None,
 ) -> dict[str, Any]:
+    sl = sl or Slice.anchor(as_of)
+    s, e = sl.label_for_year(as_of.year)
     f_sql, f_params = clause(f)
     sql = f"""
     SELECT COALESCE(NULLIF(TRIM(lp.region_name), ''), '(—)') AS region,
@@ -360,9 +392,8 @@ async def region_pivot(
        {f_sql}
      GROUP BY 1, 2
     """
-    s = date(as_of.year, as_of.month, 1)
     rows = (await session.execute(text(sql), {
-        "s": s, "e": as_of, **f_params,
+        "s": s, "e": e, **f_params,
     })).mappings().all()
 
     grand_total = sum(float(r["revenue"] or 0) for r in rows)
@@ -389,7 +420,7 @@ async def region_pivot(
         for t in manager_totals
     ]
     return {
-        "slice": {"month_start": s.isoformat(), "as_of": as_of.isoformat()},
+        "slice": {"month_start": s.isoformat(), "as_of": e.isoformat()},
         "row_labels": row_labels,
         "col_labels": col_labels,
         "values": values,
@@ -405,10 +436,7 @@ async def region_pivot(
 
 
 async def get_plan(
-    session: AsyncSession,
-    *,
-    year: int,
-    month: int,
+    session: AsyncSession, *, year: int, month: int,
 ) -> dict[str, Any]:
     sql = """
     SELECT manager, plan_sotuv, plan_kirim, updated_at, updated_by
@@ -430,15 +458,10 @@ async def get_plan(
 
 
 async def put_plan(
-    session: AsyncSession,
-    *,
-    year: int,
-    month: int,
-    rows: list[dict[str, Any]],
-    updated_by: str,
+    session: AsyncSession, *,
+    year: int, month: int,
+    rows: list[dict[str, Any]], updated_by: str,
 ) -> dict[str, Any]:
-    """Whole-month replace: delete rows in (year, month) not in payload,
-    then upsert the rest."""
     payload_managers = [r["manager"] for r in rows]
     if payload_managers:
         await session.execute(text("""

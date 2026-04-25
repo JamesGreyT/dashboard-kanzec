@@ -24,6 +24,7 @@ from ..db import get_session
 from ..scope import ScopedUser
 from .._analytics.filters import Filters
 from . import service
+from .service import Slice
 
 router = APIRouter(prefix="/api/dayslice", tags=["dayslice"])
 
@@ -59,6 +60,19 @@ class PlanPayload(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+def _slice_from_params(
+    as_of: date,
+    slice_start: date | None,
+    slice_end: date | None,
+) -> Slice | None:
+    """When both slice_start and slice_end are provided, return a custom
+    Slice using their (month, day). Otherwise None → service uses
+    Slice.anchor(as_of) (month-start → as-of)."""
+    if slice_start is not None and slice_end is not None:
+        return Slice.custom(slice_start, slice_end)
+    return None
+
+
 @router.get("/scoreboard")
 async def scoreboard(
     user: CurrentUser,
@@ -67,10 +81,13 @@ async def scoreboard(
     as_of: date = Query(default_factory=date.today),
     years: int = Query(default=4, ge=2, le=6),
     direction: str = Query(default=""),
+    slice_start: date | None = Query(default=None),
+    slice_end: date | None = Query(default=None),
 ) -> dict:
     _admin_or_403(user)
     filters = _parse_filters(scope, direction)
-    return await service.scoreboard(session, as_of=as_of, years=years, f=filters)
+    sl = _slice_from_params(as_of, slice_start, slice_end)
+    return await service.scoreboard(session, as_of=as_of, years=years, f=filters, sl=sl)
 
 
 @router.get("/projection")
@@ -94,10 +111,13 @@ async def region_pivot(
     session: Annotated[AsyncSession, Depends(get_session)],
     as_of: date = Query(default_factory=date.today),
     direction: str = Query(default=""),
+    slice_start: date | None = Query(default=None),
+    slice_end: date | None = Query(default=None),
 ) -> dict:
     _admin_or_403(user)
     filters = _parse_filters(scope, direction)
-    return await service.region_pivot(session, as_of=as_of, f=filters)
+    sl = _slice_from_params(as_of, slice_start, slice_end)
+    return await service.region_pivot(session, as_of=as_of, f=filters, sl=sl)
 
 
 @router.get("/plan")

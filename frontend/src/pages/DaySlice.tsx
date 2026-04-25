@@ -43,15 +43,31 @@ function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+function monthStartIso(): string {
+  const d = new Date();
+  d.setDate(1);
+  return d.toISOString().slice(0, 10);
+}
+
 export default function DaySlice() {
   const { t } = useTranslation();
-  const [picker, setPicker] = useState<AsOfPickerValue>({ asOf: todayIso(), years: 4 });
+  const [picker, setPicker] = useState<AsOfPickerValue>({
+    mode: "anchor",
+    asOf: todayIso(),
+    sliceStart: monthStartIso(),
+    sliceEnd: todayIso(),
+    years: 4,
+  });
   const [directions, setDirections] = useState<string[]>([]);
 
   const baseQs = useMemo(() => {
     const qs = new URLSearchParams();
     qs.set("as_of", picker.asOf);
     qs.set("years", String(picker.years));
+    if (picker.mode === "custom") {
+      qs.set("slice_start", picker.sliceStart);
+      qs.set("slice_end", picker.sliceEnd);
+    }
     if (directions.length) qs.set("direction", directions.join(","));
     return qs;
   }, [picker, directions]);
@@ -71,6 +87,7 @@ export default function DaySlice() {
     queryKey: ["dayslice.projection", baseQs.toString()],
     queryFn: () => api<ProjectionResp>(`/api/dayslice/projection?${baseQs.toString()}`),
     staleTime: 30_000,
+    enabled: picker.mode === "anchor",
   });
   const pivotQ = useQuery({
     queryKey: ["dayslice.pivot", baseQs.toString()],
@@ -154,7 +171,7 @@ export default function DaySlice() {
         )}
       </div>
 
-      {projQ.data && projQ.data.slice.day_n < projQ.data.slice.month_days && (
+      {picker.mode === "anchor" && projQ.data && projQ.data.slice.day_n < projQ.data.slice.month_days && (
         <>
           <hr className="mark-rule mb-8" aria-hidden />
           <div className="stagger-4">

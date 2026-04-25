@@ -707,6 +707,19 @@
     "saving": "saqlanmoqda…",
     "last_edit": "so'ngi tahrir",
     "region_label": "Hudud",
-    "grand_total": "Jami"
+    "grand_total": "Jami",
+    "from": "Boshi",
+    "to": "Oxiri",
+    "slice_mode": "Kesim turi",
+    "mode_anchor": "Oy",
+    "mode_custom": "Maxsus",
+    "custom_eyebrow": "Maxsus kesim: {{s}} → {{e}}, {{n}} yil bo'yicha",
+    "preset_today": "BUGUN",
+    "preset_yesterday": "KECHA",
+    "preset_month_end": "OY OXIRI",
+    "preset_mtd": "OY",
+    "preset_qtd": "CHORAK",
+    "preset_ytd": "YIL",
+    "preset_fy": "MOLIYA YIL"
   }
 }

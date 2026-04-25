@@ -707,6 +707,19 @@
     "saving": "сохранение…",
     "last_edit": "последнее ред.",
     "region_label": "Регион",
-    "grand_total": "Итого"
+    "grand_total": "Итого",
+    "from": "С",
+    "to": "По",
+    "slice_mode": "Тип среза",
+    "mode_anchor": "Месяц",
+    "mode_custom": "Произвольный",
+    "custom_eyebrow": "Срез: {{s}} → {{e}}, по {{n}} годам",
+    "preset_today": "СЕГОДНЯ",
+    "preset_yesterday": "ВЧЕРА",
+    "preset_month_end": "КОНЕЦ МЕСЯЦА",
+    "preset_mtd": "МЕСЯЦ",
+    "preset_qtd": "КВАРТАЛ",
+    "preset_ytd": "ГОД",
+    "preset_fy": "ФИН. ГОД"
   }
 }

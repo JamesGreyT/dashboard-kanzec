@@ -707,6 +707,19 @@
     "saving": "saving…",
     "last_edit": "last edit",
     "region_label": "Region",
-    "grand_total": "Grand total"
+    "grand_total": "Grand total",
+    "from": "From",
+    "to": "To",
+    "slice_mode": "Slice mode",
+    "mode_anchor": "Anchor",
+    "mode_custom": "Custom",
+    "custom_eyebrow": "Custom slice: {{s}} → {{e}}, replayed across {{n}} years",
+    "preset_today": "TODAY",
+    "preset_yesterday": "YDAY",
+    "preset_month_end": "MONTH END",
+    "preset_mtd": "MTD",
+    "preset_qtd": "QTD",
+    "preset_ytd": "YTD",
+    "preset_fy": "FY"
   }
 }
