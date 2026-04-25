@@ -142,7 +142,9 @@ async def timeseries(session: AsyncSession, window: Window, granularity: Granula
        GROUP BY 1
     ),
     yoy AS (
-      SELECT (DATE_TRUNC('{trunc}', p.payment_date - INTERVAL '1 year') + INTERVAL '1 year')::date AS b,
+      -- Bucket on prior-year date, then shift the bucket forward by
+      -- one year so it lines up with the current-window axis.
+      SELECT (DATE_TRUNC('{trunc}', p.payment_date)::date + INTERVAL '1 year')::date AS b,
              SUM(p.amount)::numeric(18,2) AS receipts
         FROM smartup_rep.payment p
         JOIN smartup_rep.legal_person lp ON lp.person_id = p.person_id
@@ -155,6 +157,7 @@ async def timeseries(session: AsyncSession, window: Window, granularity: Granula
            COALESCE(y.receipts, 0)::numeric(18,2) AS yoy
       FROM buckets b
       FULL OUTER JOIN yoy y ON b.b = y.b
+     WHERE COALESCE(b.b, y.b) BETWEEN :w_s AND :w_e
      ORDER BY 1
     """
     rows = (await session.execute(text(sql), {
