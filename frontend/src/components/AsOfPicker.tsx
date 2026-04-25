@@ -50,8 +50,19 @@ function fyStart(): string {
   return new Date(fy, 3, 1).toISOString().slice(0, 10);
 }
 
+function isValidIso(s: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const d = new Date(s + "T00:00:00");
+  return !Number.isNaN(d.getTime());
+}
+
+/** Parse an ISO yyyy-mm-dd into a Date, falling back to today if invalid. */
+function parseIsoOrToday(s: string): Date {
+  return isValidIso(s) ? new Date(s + "T00:00:00") : new Date();
+}
+
 function monthEnd(asOf: string): string {
-  const d = new Date(asOf + "T00:00:00");
+  const d = parseIsoOrToday(asOf);
   return new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
 }
 
@@ -144,10 +155,12 @@ export default function AsOfPicker({
     if (next !== value.years) onChange({ ...value, years: next });
   };
 
-  // Eyebrow that describes the active slice in plain language.
+  // Eyebrow that describes the active slice in plain language. All
+  // date parsing routes through parseIsoOrToday() so an empty / invalid
+  // input never throws.
   const eyebrow = (() => {
     if (value.mode === "anchor") {
-      const d = new Date(value.asOf + "T00:00:00");
+      const d = parseIsoOrToday(value.asOf);
       const monthName = d.toLocaleDateString("en-US", { month: "long" });
       const monthDays = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
       return t("dayslice.slice_eyebrow", {
@@ -158,8 +171,8 @@ export default function AsOfPicker({
         total: monthDays,
       }) as string;
     }
-    const s = new Date(value.sliceStart + "T00:00:00");
-    const e = new Date(value.sliceEnd + "T00:00:00");
+    const s = parseIsoOrToday(value.sliceStart);
+    const e = parseIsoOrToday(value.sliceEnd);
     const fmtSimple = (dd: Date) =>
       `${dd.getDate()} ${dd.toLocaleDateString("en-US", { month: "long" })}`;
     return t("dayslice.custom_eyebrow", {
@@ -194,9 +207,10 @@ export default function AsOfPicker({
             <input
               type="date"
               value={value.asOf}
-              onChange={(e) =>
-                onChange({ ...value, asOf: e.target.value })
-              }
+              onChange={(e) => {
+                const next = e.target.value;
+                if (isValidIso(next)) onChange({ ...value, asOf: next });
+              }}
               className="border border-border/60 rounded px-2 py-1 text-[13px] font-mono tabular-nums text-foreground bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label={t("dayslice.as_of") as string}
             />
@@ -208,9 +222,10 @@ export default function AsOfPicker({
               <input
                 type="date"
                 value={value.sliceStart}
-                onChange={(e) =>
-                  onChange({ ...value, sliceStart: e.target.value })
-                }
+                onChange={(e) => {
+                  const next = e.target.value;
+                  if (isValidIso(next)) onChange({ ...value, sliceStart: next });
+                }}
                 className="border border-border/60 rounded px-2 py-1 text-[13px] font-mono tabular-nums text-foreground bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </label>
@@ -220,13 +235,12 @@ export default function AsOfPicker({
               <input
                 type="date"
                 value={value.sliceEnd}
-                onChange={(e) =>
-                  onChange({
-                    ...value,
-                    sliceEnd: e.target.value,
-                    asOf: e.target.value,
-                  })
-                }
+                onChange={(e) => {
+                  const next = e.target.value;
+                  if (isValidIso(next)) {
+                    onChange({ ...value, sliceEnd: next, asOf: next });
+                  }
+                }}
                 className="border border-border/60 rounded px-2 py-1 text-[13px] font-mono tabular-nums text-foreground bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </label>
@@ -278,8 +292,8 @@ export default function AsOfPicker({
             aria-pressed={value.mode === "custom"}
             onClick={() => {
               // Preserve the user's selections — switching to custom uses asOf as the end
-              const eAsCustom = value.asOf;
-              const dStart = new Date(eAsCustom + "T00:00:00");
+              const eAsCustom = isValidIso(value.asOf) ? value.asOf : todayIso();
+              const dStart = parseIsoOrToday(eAsCustom);
               dStart.setDate(1);
               onChange({
                 ...value,

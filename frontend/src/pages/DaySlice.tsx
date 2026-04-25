@@ -99,7 +99,13 @@ export default function DaySlice() {
     document.title = t("dayslice.title") + " · Kanzec";
   }, [t]);
 
-  const asOfDate = new Date(picker.asOf + "T00:00:00");
+  // Defensive: an empty/cleared date input would make `new Date("T00:00:00")`
+  // = Invalid Date and downstream getFullYear() returns NaN. Fall back to
+  // today so the page never crashes mid-edit.
+  const asOfDate = (() => {
+    const d = new Date(picker.asOf + "T00:00:00");
+    return Number.isNaN(d.getTime()) ? new Date() : d;
+  })();
   const planYear = asOfDate.getFullYear();
   const planMonth = asOfDate.getMonth() + 1;
 
