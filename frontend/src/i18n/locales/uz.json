@@ -68,6 +68,7 @@
     "returns": "Qaytarishlar",
     "worklist": "Qarzlar ro'yxati",
     "executive": "Strategik kesim",
+    "dayslice": "Kunlik kesim",
     "executive_group": "Strategik"
   },
   "payments_dash": {
@@ -676,5 +677,36 @@
     "kind_manager_aged_book": "Eski qarzlar",
     "kind_lost_clients": "Yo'qolgan mijozlar",
     "kind_overextended": "Ortiqcha qarz"
+  },
+  "dayslice": {
+    "crumb": "Strategik",
+    "title": "Kunlik kesim",
+    "subtitle": "Tanlangan sanaga anker qilingan oy ichidagi kun-N bo'yicha menejer × yil tablosi.",
+    "section_sotuv": "Sotuv",
+    "section_kirim": "Kirim",
+    "section_projection_sotuv": "Sotuv prognozi",
+    "section_projection_kirim": "Kirim prognozi",
+    "section_plan": "Plan vs Fakt",
+    "section_region": "Hudud × menejer",
+    "as_of": "Sana",
+    "years": "Yillar",
+    "slice_eyebrow": "Kesim: 1 {{month}} → {{day}} {{month}} {{year}} · {{day}}/{{total}}-kun",
+    "col_manager": "Menejer",
+    "col_jami": "Jami",
+    "col_yoy": "YoY",
+    "proj_min": "Min",
+    "proj_mean": "O'rta",
+    "proj_max": "Max",
+    "proj_hint": "{{day}}-kuniga oyning ~{{pct}}% to'planadi ({{n}} yil tarix)",
+    "proj_hint_no_history": "tarixiy ma'lumot yo'q",
+    "mtd_label": "Oy boshidan",
+    "plan_sotuv": "Plan sotuv",
+    "plan_kirim": "Plan kirim",
+    "fakt_label": "Fakt",
+    "index_label": "Indeks",
+    "saving": "saqlanmoqda…",
+    "last_edit": "so'ngi tahrir",
+    "region_label": "Hudud",
+    "grand_total": "Jami"
   }
 }

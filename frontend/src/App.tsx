@@ -5,6 +5,7 @@ import RequireAuth from "./components/RequireAuth";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import DataViewer from "./pages/DataViewer";
+import DaySlice from "./pages/DaySlice";
 import Debt from "./pages/Debt";
 import DebtClient from "./pages/DebtClient";
 import DebtLedger from "./pages/DebtLedger";
@@ -36,6 +37,14 @@ export default function App() {
             element={
               <RequireAuth roles={["admin"]}>
                 <Executive />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/dayslice"
+            element={
+              <RequireAuth roles={["admin"]}>
+                <DaySlice />
               </RequireAuth>
             }
           />

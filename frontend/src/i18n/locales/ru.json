@@ -68,6 +68,7 @@
     "returns": "Возвраты",
     "worklist": "Список долгов",
     "executive": "Стратегический обзор",
+    "dayslice": "Дневной срез",
     "executive_group": "Стратегия"
   },
   "payments_dash": {
@@ -676,5 +677,36 @@
     "kind_manager_aged_book": "Старые долги",
     "kind_lost_clients": "Потерянные клиенты",
     "kind_overextended": "Перекред."
+  },
+  "dayslice": {
+    "crumb": "Стратегия",
+    "title": "Дневной срез",
+    "subtitle": "Менеджер × год за интервал начало месяца → выбранная дата.",
+    "section_sotuv": "Продажи",
+    "section_kirim": "Поступления",
+    "section_projection_sotuv": "Прогноз продаж",
+    "section_projection_kirim": "Прогноз поступлений",
+    "section_plan": "План vs Факт",
+    "section_region": "Регион × менеджер",
+    "as_of": "Дата",
+    "years": "Лет",
+    "slice_eyebrow": "Интервал: 1 {{month}} → {{day}} {{month}} {{year}} · день {{day}} из {{total}}",
+    "col_manager": "Менеджер",
+    "col_jami": "Итого",
+    "col_yoy": "YoY",
+    "proj_min": "Мин",
+    "proj_mean": "Сред",
+    "proj_max": "Макс",
+    "proj_hint": "к дню {{day}} обычно набрано ~{{pct}}% месяца ({{n}} лет истории)",
+    "proj_hint_no_history": "нет исторических данных",
+    "mtd_label": "С начала месяца",
+    "plan_sotuv": "План продаж",
+    "plan_kirim": "План поступлений",
+    "fakt_label": "Факт",
+    "index_label": "Индекс",
+    "saving": "сохранение…",
+    "last_edit": "последнее ред.",
+    "region_label": "Регион",
+    "grand_total": "Итого"
   }
 }

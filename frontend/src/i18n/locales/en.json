@@ -68,6 +68,7 @@
     "returns": "Returns",
     "worklist": "Debt worklist",
     "executive": "Executive briefing",
+    "dayslice": "Day-slice",
     "executive_group": "Executive"
   },
   "payments_dash": {
@@ -676,5 +677,36 @@
     "kind_manager_aged_book": "Aged book",
     "kind_lost_clients": "Lost clients",
     "kind_overextended": "Overextended"
+  },
+  "dayslice": {
+    "crumb": "Executive",
+    "title": "Day-slice scoreboard",
+    "subtitle": "Manager × year for the calendar window month-start → as-of date, replayed across each year.",
+    "section_sotuv": "Sotuv",
+    "section_kirim": "Kirim",
+    "section_projection_sotuv": "Sotuv projection",
+    "section_projection_kirim": "Kirim projection",
+    "section_plan": "Plan vs Fakt",
+    "section_region": "Region × manager",
+    "as_of": "As-of",
+    "years": "Years",
+    "slice_eyebrow": "Slice: 1 {{month}} → {{day}} {{month}} {{year}} · day {{day}} of {{total}}",
+    "col_manager": "Manager",
+    "col_jami": "Total",
+    "col_yoy": "YoY",
+    "proj_min": "Min",
+    "proj_mean": "Mean",
+    "proj_max": "Max",
+    "proj_hint": "by day {{day}} typically {{pct}}% booked ({{n}}-yr history)",
+    "proj_hint_no_history": "no historical data",
+    "mtd_label": "MTD",
+    "plan_sotuv": "Plan Sotuv",
+    "plan_kirim": "Plan Kirim",
+    "fakt_label": "Fakt",
+    "index_label": "Index",
+    "saving": "saving…",
+    "last_edit": "last edit",
+    "region_label": "Region",
+    "grand_total": "Grand total"
   }
 }
