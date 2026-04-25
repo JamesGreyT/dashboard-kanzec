@@ -13,7 +13,6 @@ restriction flows through `_analytics.filters.clause()`.
 """
 from __future__ import annotations
 
-import asyncio
 import calendar
 from datetime import date
 from typing import Any
@@ -162,11 +161,15 @@ async def scoreboard(
     year_end = as_of.year
     year_start = year_end - years + 1
     year_columns = list(range(year_start, year_end + 1))
-    sotuv_grid, kirim_grid = await asyncio.gather(
-        _grid_sotuv(session, year_start=year_start, year_end=year_end,
-                    month=as_of.month, day_n=as_of.day, f=f),
-        _grid_kirim(session, year_start=year_start, year_end=year_end,
-                    month=as_of.month, day_n=as_of.day, f=f),
+    # NOTE: must serialize — asyncpg can't run two queries in parallel
+    # on the same connection (an AsyncSession holds one).
+    sotuv_grid = await _grid_sotuv(
+        session, year_start=year_start, year_end=year_end,
+        month=as_of.month, day_n=as_of.day, f=f,
+    )
+    kirim_grid = await _grid_kirim(
+        session, year_start=year_start, year_end=year_end,
+        month=as_of.month, day_n=as_of.day, f=f,
     )
     return {
         "slice": {
@@ -286,13 +289,16 @@ async def projection(
 ) -> dict[str, Any]:
     year_end = as_of.year
     year_start = year_end - years + 1
-    sotuv_per_year, kirim_per_year = await asyncio.gather(
-        _per_year_mtd_and_full(session, measure="sotuv",
-                                year_start=year_start, year_end=year_end,
-                                month=as_of.month, day_n=as_of.day, f=f),
-        _per_year_mtd_and_full(session, measure="kirim",
-                                year_start=year_start, year_end=year_end,
-                                month=as_of.month, day_n=as_of.day, f=f),
+    # Serialize for asyncpg single-connection-per-session.
+    sotuv_per_year = await _per_year_mtd_and_full(
+        session, measure="sotuv",
+        year_start=year_start, year_end=year_end,
+        month=as_of.month, day_n=as_of.day, f=f,
+    )
+    kirim_per_year = await _per_year_mtd_and_full(
+        session, measure="kirim",
+        year_start=year_start, year_end=year_end,
+        month=as_of.month, day_n=as_of.day, f=f,
     )
 
     history: list[dict[str, Any]] = []
