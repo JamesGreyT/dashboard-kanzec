@@ -14,6 +14,7 @@ import {
   CalendarRange,
   TrendingUp,
   Undo2,
+  Crown,
 } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import AlertsBell from "./AlertsBell";
@@ -46,7 +47,8 @@ type IconKind =
   | "audit"
   | "calendar"
   | "trending"
-  | "returns";
+  | "returns"
+  | "exec";
 
 interface Item {
   to: string;
@@ -57,6 +59,9 @@ interface Item {
 
 const REGISTRY: Item[] = [
   { to: "/dashboard", labelKey: "nav.dashboard", roles: ["admin", "operator", "viewer"], icon: "dashboard" },
+];
+const EXECUTIVE: Item[] = [
+  { to: "/executive", labelKey: "nav.executive", roles: ["admin"], icon: "exec" },
 ];
 const DATA: Item[] = [
   { to: "/data/orders", labelKey: "nav.orders", roles: ["admin", "operator", "viewer"], icon: "orders" },
@@ -98,6 +103,7 @@ function IconFor({ kind }: { kind: IconKind }) {
     case "calendar": return <CalendarRange className={size} />;
     case "trending": return <TrendingUp className={size} />;
     case "returns": return <Undo2 className={size} />;
+    case "exec": return <Crown className={size} />;
   }
 }
 
@@ -142,6 +148,7 @@ export default function Sidebar() {
 
       <SidebarContent>
         <NavGroup titleKey="nav.registry" items={REGISTRY} role={user.role} />
+        <NavGroup titleKey="nav.executive_group" items={EXECUTIVE} role={user.role} />
         <NavGroup titleKey="nav.data_group" items={DATA} role={user.role} />
         <NavGroup titleKey="nav.collection" items={COLLECTION} role={user.role} />
         <NavGroup titleKey="nav.analytics" items={ANALYTICS} role={user.role} />

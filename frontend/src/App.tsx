@@ -9,6 +9,7 @@ import Debt from "./pages/Debt";
 import DebtClient from "./pages/DebtClient";
 import DebtLedger from "./pages/DebtLedger";
 import DebtWorklist from "./pages/DebtWorklist";
+import Executive from "./pages/Executive";
 import Ops from "./pages/Ops";
 import Payments from "./pages/Payments";
 import Returns from "./pages/Returns";
@@ -31,6 +32,14 @@ export default function App() {
           }
         >
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route
+            path="/executive"
+            element={
+              <RequireAuth roles={["admin"]}>
+                <Executive />
+              </RequireAuth>
+            }
+          />
           <Route path="/data" element={<Navigate to="/data/orders" replace />} />
           <Route path="/data/orders" element={<DataViewer lockedTable="deal_order" />} />
           <Route path="/data/payments" element={<DataViewer lockedTable="payment" />} />
