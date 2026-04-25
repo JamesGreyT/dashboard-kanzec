@@ -9,7 +9,10 @@ Two modes of slicing the calendar:
   replayed across each year. Lets the operator ask "what did 1–10
   March look like across 4 years" or "1 Feb → 15 March across 4 years".
 
-Sotuv: groups by `deal_order.sales_manager`, sums `product_amount > 0`.
+Sotuv: groups by `deal_order.sales_manager`, sums `product_amount`
+**net of returns** — so a return line (negative product_amount) subtracts
+from that manager-year cell. Excel `Dashborad` uses the same convention
+(its SUMIFS doesn't filter on sign).
 Kirim: payments have no `sales_manager` column, so we attribute each
 payment to the **most-recent prior deal_order's** sales manager
 (LATERAL DISTINCT ON pattern).
@@ -116,7 +119,6 @@ async def _grid_sotuv(
       FROM slices sl
       JOIN smartup_rep.deal_order d
         ON d.delivery_date BETWEEN sl.s AND sl.e
-       AND d.product_amount > 0
       JOIN smartup_rep.legal_person lp ON lp.person_id::text = d.person_id
      WHERE TRUE {f_sql}
      GROUP BY 1, 2
@@ -261,7 +263,6 @@ async def _per_year_mtd_and_full(
           FROM slices sl
           LEFT JOIN smartup_rep.deal_order d
             ON d.delivery_date BETWEEN sl.s AND sl.month_e
-           AND d.product_amount > 0
           LEFT JOIN smartup_rep.legal_person lp ON lp.person_id::text = d.person_id
          WHERE TRUE {f_sql}
          GROUP BY sl.y
@@ -388,7 +389,6 @@ async def region_pivot(
       FROM smartup_rep.deal_order d
       JOIN smartup_rep.legal_person lp ON lp.person_id::text = d.person_id
      WHERE d.delivery_date BETWEEN (:s)::date AND (:e)::date
-       AND d.product_amount > 0
        {f_sql}
      GROUP BY 1, 2
     """
@@ -542,7 +542,6 @@ async def drill(
           FROM smartup_rep.deal_order d
           JOIN smartup_rep.legal_person lp ON lp.person_id::text = d.person_id
          WHERE d.delivery_date BETWEEN (:s)::date AND (:e)::date
-           AND d.product_amount > 0
            {mgr_sql}
            {f_sql}
          ORDER BY d.delivery_date DESC, d.deal_id
@@ -550,15 +549,18 @@ async def drill(
         """
         params = {"s": s, "e": e, "limit": limit, **f_params, **mgr_params}
         rows = (await session.execute(text(sql), params)).mappings().all()
-        # Total across the full slice (not capped by LIMIT) so the user
-        # sees how much they're seeing vs how much exists.
+        # Total across the full slice (not capped by LIMIT). Includes
+        # returns (negative rows), so this nets to the scoreboard cell.
         total_sql = f"""
         SELECT COALESCE(SUM(d.product_amount), 0)::numeric(18,2) AS total,
-               COUNT(*) AS n
+               COUNT(*) AS n,
+               COUNT(*) FILTER (WHERE d.product_amount < 0) AS returns_n,
+               COALESCE(SUM(d.product_amount)
+                        FILTER (WHERE d.product_amount < 0), 0)::numeric(18,2)
+                                                  AS returns_total
           FROM smartup_rep.deal_order d
           JOIN smartup_rep.legal_person lp ON lp.person_id::text = d.person_id
          WHERE d.delivery_date BETWEEN (:s)::date AND (:e)::date
-           AND d.product_amount > 0
            {mgr_sql}
            {f_sql}
         """
@@ -567,8 +569,10 @@ async def drill(
             "measure": "sotuv",
             "manager": manager, "year": year,
             "slice": {"from": s.isoformat(), "to": e.isoformat()},
-            "total": float(total.get("total") or 0),
+            "total": float(total.get("total") or 0),       # NET (sales − returns)
             "row_count": int(total.get("n") or 0),
+            "returns_count": int(total.get("returns_n") or 0),
+            "returns_total": float(total.get("returns_total") or 0),  # negative
             "rows": [{
                 "date": r["dt"].isoformat(),
                 "deal_id": r["deal_id"],
