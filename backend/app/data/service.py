@@ -396,12 +396,16 @@ def _col_letter(n: int) -> str:
 
 def _xlsx_cell(v):
     """Coerce a DB value to something openpyxl writes sensibly.
-    Decimal → float (Excel has no Decimal). date/datetime pass through so
-    Excel recognises them as dates. Strings/ints/None pass through."""
+    Decimal → float (Excel has no Decimal). tz-aware datetimes are
+    converted to naive (Excel has no timezones — openpyxl raises
+    TypeError on tzinfo). date/datetime pass through so Excel
+    recognises them as dates. Strings/ints/None pass through."""
     if v is None:
         return None
     if isinstance(v, Decimal):
         return float(v)
+    if isinstance(v, datetime) and v.tzinfo is not None:
+        return v.replace(tzinfo=None)
     if isinstance(v, (date, datetime)):
         return v
     return v
