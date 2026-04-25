@@ -67,7 +67,6 @@
     "payments_dash": "Платежи",
     "returns": "Возвраты",
     "worklist": "Список долгов",
-    "yearly": "Годовой срез",
     "executive": "Стратегический обзор",
     "executive_group": "Стратегия"
   },
@@ -218,32 +217,11 @@
     "col_last_return": "Посл. возврат",
     "col_yoy": "YoY"
   },
-  "yearly": {
-    "title": "Годовые срезы",
-    "subtitle": "Продажи и поступления по 12-месячным окнам, закреплённым за выбранной датой.",
-    "jami": "Итого",
-    "jami_produce": "Всего производство",
-    "jami_sold": "Всего продажи",
-    "scope_b2b": "B2B",
-    "scope_all": "Все направления",
-    "filter_direction": "Направление",
-    "filter_end_year": "Конец года",
-    "filter_end_date": "Дата окончания",
-    "quick_yday": "ВЧЕРА",
-    "filter_years": "Лет",
-    "filter_search": "Поиск",
-    "filter_empty": "Ничего не найдено",
-    "filter_all": "Все",
-    "compact_digits": "1к",
-    "full_digits": "1 000",
-    "footer_note": "Значения берутся напрямую из smartup_rep.deal_order (Sotuv, после переоценки) и smartup_rep.payment (Kirim, по дате платежа). Платежи без менеджера привязываются к торговому представителю последнего заказа клиента.",
-    "tbl": {
-      "managers": "Менеджеры",
-      "aging": "Окно активности",
-      "directions": "По направлению",
-      "regions": "По региону",
-      "brands": "По бренду"
-    }
+  "direction_filter": {
+    "label": "Направление",
+    "search": "Поиск",
+    "empty": "Ничего не найдено",
+    "all": "Все"
   },
   "a11y": {
     "skip_to_main": "Перейти к основному содержимому",

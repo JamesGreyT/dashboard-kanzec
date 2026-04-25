@@ -67,7 +67,6 @@
     "payments_dash": "Payments",
     "returns": "Returns",
     "worklist": "Debt worklist",
-    "yearly": "Yearly",
     "executive": "Executive briefing",
     "executive_group": "Executive"
   },
@@ -218,32 +217,11 @@
     "col_last_return": "Last return",
     "col_yoy": "YoY"
   },
-  "yearly": {
-    "title": "Yearly snapshots",
-    "subtitle": "Sales and receipts across 12-month windows anchored to a chosen date.",
-    "jami": "Total",
-    "jami_produce": "Production total",
-    "jami_sold": "Sales total",
-    "scope_b2b": "B2B",
-    "scope_all": "All directions",
-    "filter_direction": "Direction",
-    "filter_end_year": "FY ending",
-    "filter_end_date": "End date",
-    "quick_yday": "YDAY",
-    "filter_years": "Years",
-    "filter_search": "Search",
-    "filter_empty": "No matches",
-    "filter_all": "All",
-    "compact_digits": "1k",
-    "full_digits": "1,000",
-    "footer_note": "Values come straight from smartup_rep.deal_order (Sotuv — post-revaluation amount) and smartup_rep.payment (Kirim — by payment date). Payments without a sales_manager are attributed to the client's most recent order manager at the payment date.",
-    "tbl": {
-      "managers": "Sales managers",
-      "aging": "Activity window",
-      "directions": "By direction",
-      "regions": "By region",
-      "brands": "By brand"
-    }
+  "direction_filter": {
+    "label": "Direction",
+    "search": "Search",
+    "empty": "No matches",
+    "all": "All"
   },
   "a11y": {
     "skip_to_main": "Skip to main content",

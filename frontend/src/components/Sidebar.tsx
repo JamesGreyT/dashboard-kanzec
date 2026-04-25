@@ -77,7 +77,6 @@ const ANALYTICS: Item[] = [
   { to: "/analytics/sales",    labelKey: "nav.sales",    roles: ["admin", "operator", "viewer"], icon: "trending" },
   { to: "/analytics/payments", labelKey: "nav.payments_dash", roles: ["admin", "operator", "viewer"], icon: "payments" },
   { to: "/analytics/returns",  labelKey: "nav.returns",  roles: ["admin", "operator", "viewer"], icon: "returns" },
-  { to: "/analytics/yearly",   labelKey: "nav.yearly",   roles: ["admin", "operator", "viewer"], icon: "calendar" },
 ];
 const OPERATIONS: Item[] = [
   { to: "/ops", labelKey: "nav.reports", roles: ["admin", "operator"], icon: "reports" },

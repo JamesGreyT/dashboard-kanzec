@@ -50,16 +50,16 @@ export default function DirectionMultiSelect({
             className="h-9 gap-2 justify-between min-w-[160px] font-normal"
           >
             <span className="text-xs uppercase tracking-[0.1em] text-muted-foreground">
-              {t("yearly.filter_direction")}
+              {t("direction_filter.label")}
             </span>
             <ChevronsUpDown className="h-3 w-3 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[260px] p-0" align="start">
           <Command>
-            <CommandInput placeholder={t("yearly.filter_search") as string} />
+            <CommandInput placeholder={t("direction_filter.search") as string} />
             <CommandList>
-              <CommandEmpty>{t("yearly.filter_empty")}</CommandEmpty>
+              <CommandEmpty>{t("direction_filter.empty")}</CommandEmpty>
               <CommandGroup>
                 {options.map((o) => {
                   const checked = value.includes(o);
@@ -82,7 +82,7 @@ export default function DirectionMultiSelect({
       </Popover>
       {value.length === 0 ? (
         <span className="text-[12px] italic text-muted-foreground">
-          {t("yearly.filter_all")}
+          {t("direction_filter.all")}
         </span>
       ) : (
         value.map((v) => (

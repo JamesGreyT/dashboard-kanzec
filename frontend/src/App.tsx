@@ -14,7 +14,6 @@ import Ops from "./pages/Ops";
 import Payments from "./pages/Payments";
 import Returns from "./pages/Returns";
 import Sales from "./pages/Sales";
-import YearlySnapshots from "./pages/YearlySnapshots";
 import AdminAlerts from "./pages/AdminAlerts";
 import AdminUsers from "./pages/AdminUsers";
 import AdminAudit from "./pages/AdminAudit";
@@ -53,7 +52,6 @@ export default function App() {
           <Route path="/analytics/sales" element={<Sales />} />
           <Route path="/analytics/payments" element={<Payments />} />
           <Route path="/analytics/returns" element={<Returns />} />
-          <Route path="/analytics/yearly" element={<YearlySnapshots />} />
           <Route
             path="/ops"
             element={
