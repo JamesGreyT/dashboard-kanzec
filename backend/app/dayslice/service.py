@@ -37,12 +37,12 @@ async def _grid_sotuv(
 ) -> dict[str, dict[int, float]]:
     f_sql, f_params = clause(f)
     sql = f"""
-    WITH years AS (SELECT generate_series(:y_start, :y_end) AS y),
+    WITH years AS (SELECT generate_series((:y_start)::int, (:y_end)::int) AS y),
     slices AS (
       SELECT y,
-             make_date(y, :month, 1) AS s,
-             make_date(y, :month, LEAST(:day_n,
-               EXTRACT(DAY FROM (make_date(y, :month, 1)
+             make_date(y, (:month)::int, 1) AS s,
+             make_date(y, (:month)::int, LEAST((:day_n)::int,
+               EXTRACT(DAY FROM (make_date(y, (:month)::int, 1)
                                  + INTERVAL '1 month - 1 day'))::int)) AS e
         FROM years
     )
@@ -86,12 +86,12 @@ async def _grid_kirim(
     """
     f_sql, f_params = clause(f, manager_table="lp", room_on="")
     sql = f"""
-    WITH years AS (SELECT generate_series(:y_start, :y_end) AS y),
+    WITH years AS (SELECT generate_series((:y_start)::int, (:y_end)::int) AS y),
     slices AS (
       SELECT y,
-             make_date(y, :month, 1) AS s,
-             make_date(y, :month, LEAST(:day_n,
-               EXTRACT(DAY FROM (make_date(y, :month, 1)
+             make_date(y, (:month)::int, 1) AS s,
+             make_date(y, (:month)::int, LEAST((:day_n)::int,
+               EXTRACT(DAY FROM (make_date(y, (:month)::int, 1)
                                  + INTERVAL '1 month - 1 day'))::int)) AS e
         FROM years
     )
@@ -202,14 +202,14 @@ async def _per_year_mtd_and_full(
     if measure == "sotuv":
         f_sql, f_params = clause(f)
         sql = f"""
-        WITH years AS (SELECT generate_series(:y_start, :y_end) AS y),
+        WITH years AS (SELECT generate_series((:y_start)::int, (:y_end)::int) AS y),
         slices AS (
           SELECT y,
-                 make_date(y, :month, 1) AS s,
-                 make_date(y, :month, LEAST(:day_n,
-                   EXTRACT(DAY FROM (make_date(y, :month, 1)
+                 make_date(y, (:month)::int, 1) AS s,
+                 make_date(y, (:month)::int, LEAST((:day_n)::int,
+                   EXTRACT(DAY FROM (make_date(y, (:month)::int, 1)
                                      + INTERVAL '1 month - 1 day'))::int)) AS mtd_e,
-                 (make_date(y, :month, 1) + INTERVAL '1 month - 1 day')::date AS month_e
+                 (make_date(y, (:month)::int, 1) + INTERVAL '1 month - 1 day')::date AS month_e
             FROM years
         )
         SELECT sl.y AS year,
@@ -231,14 +231,14 @@ async def _per_year_mtd_and_full(
     else:  # kirim
         f_sql, f_params = clause(f, manager_table="lp", room_on="")
         sql = f"""
-        WITH years AS (SELECT generate_series(:y_start, :y_end) AS y),
+        WITH years AS (SELECT generate_series((:y_start)::int, (:y_end)::int) AS y),
         slices AS (
           SELECT y,
-                 make_date(y, :month, 1) AS s,
-                 make_date(y, :month, LEAST(:day_n,
-                   EXTRACT(DAY FROM (make_date(y, :month, 1)
+                 make_date(y, (:month)::int, 1) AS s,
+                 make_date(y, (:month)::int, LEAST((:day_n)::int,
+                   EXTRACT(DAY FROM (make_date(y, (:month)::int, 1)
                                      + INTERVAL '1 month - 1 day'))::int)) AS mtd_e,
-                 (make_date(y, :month, 1) + INTERVAL '1 month - 1 day')::date AS month_e
+                 (make_date(y, (:month)::int, 1) + INTERVAL '1 month - 1 day')::date AS month_e
             FROM years
         )
         SELECT sl.y AS year,
@@ -355,7 +355,7 @@ async def region_pivot(
            SUM(d.product_amount)::numeric(18,2) AS revenue
       FROM smartup_rep.deal_order d
       JOIN smartup_rep.legal_person lp ON lp.person_id::text = d.person_id
-     WHERE d.delivery_date BETWEEN :s AND :e
+     WHERE d.delivery_date BETWEEN (:s)::date AND (:e)::date
        AND d.product_amount > 0
        {f_sql}
      GROUP BY 1, 2
