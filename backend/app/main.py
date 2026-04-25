@@ -16,6 +16,7 @@ from .auth.router import router as auth_router
 from .config import settings
 from .dashboard.router import router as dashboard_router
 from .data.router import router as data_router
+from .dayslice.router import router as dayslice_router
 from .db import SessionLocal, healthcheck
 from .debt.router import router as debt_router
 from .executive.router import router as executive_router
@@ -129,6 +130,7 @@ app.include_router(sales_router)
 app.include_router(payments_router)
 app.include_router(returns_router)
 app.include_router(executive_router)
+app.include_router(dayslice_router)
 app.include_router(preferences_router)
 app.include_router(annotations_router)
 app.include_router(alerts_router)
