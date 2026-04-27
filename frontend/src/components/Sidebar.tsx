@@ -5,8 +5,6 @@ import {
   Package,
   Wallet,
   Building2,
-  Scale,
-  BookText,
   FileBarChart,
   Users,
   ShieldCheck,
@@ -40,8 +38,6 @@ type IconKind =
   | "orders"
   | "payments"
   | "people"
-  | "scales"
-  | "ledger"
   | "reports"
   | "users"
   | "audit"
@@ -68,11 +64,6 @@ const DATA: Item[] = [
   { to: "/data/payments", labelKey: "nav.payments", roles: ["admin", "operator", "viewer"], icon: "payments" },
   { to: "/data/legal-persons", labelKey: "nav.legal_persons", roles: ["admin", "operator", "viewer"], icon: "people" },
 ];
-const COLLECTION: Item[] = [
-  { to: "/collection/debt",     labelKey: "nav.debt",        roles: ["admin", "viewer"], icon: "scales" },
-  { to: "/collection/worklist", labelKey: "nav.worklist",    roles: ["admin", "viewer"], icon: "ledger" },
-  { to: "/collection/ledger",   labelKey: "nav.ledger",      roles: ["admin", "viewer"], icon: "ledger" },
-];
 const ANALYTICS: Item[] = [
   { to: "/analytics/sales",    labelKey: "nav.sales",    roles: ["admin", "viewer"], icon: "trending" },
   { to: "/analytics/payments", labelKey: "nav.payments_dash", roles: ["admin", "viewer"], icon: "payments" },
@@ -94,8 +85,6 @@ function IconFor({ kind }: { kind: IconKind }) {
     case "orders": return <Package className={size} />;
     case "payments": return <Wallet className={size} />;
     case "people": return <Building2 className={size} />;
-    case "scales": return <Scale className={size} />;
-    case "ledger": return <BookText className={size} />;
     case "reports": return <FileBarChart className={size} />;
     case "users": return <Users className={size} />;
     case "audit": return <ShieldCheck className={size} />;
@@ -149,7 +138,6 @@ export default function Sidebar() {
         <NavGroup titleKey="nav.registry" items={REGISTRY} role={user.role} />
         <NavGroup titleKey="nav.executive_group" items={EXECUTIVE} role={user.role} />
         <NavGroup titleKey="nav.data_group" items={DATA} role={user.role} />
-        <NavGroup titleKey="nav.collection" items={COLLECTION} role={user.role} />
         <NavGroup titleKey="nav.analytics" items={ANALYTICS} role={user.role} />
         <NavGroup titleKey="nav.operations" items={OPERATIONS} role={user.role} />
         <NavGroup titleKey="nav.admin" items={ADMIN} role={user.role} />
