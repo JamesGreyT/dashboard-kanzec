@@ -61,7 +61,6 @@ const REGISTRY: Item[] = [
   { to: "/dashboard", labelKey: "nav.dashboard", roles: ["admin", "operator", "viewer"], icon: "dashboard" },
 ];
 const EXECUTIVE: Item[] = [
-  { to: "/executive", labelKey: "nav.executive", roles: ["admin"], icon: "exec" },
   { to: "/dayslice",  labelKey: "nav.dayslice",  roles: ["admin"], icon: "calendar" },
 ];
 const DATA: Item[] = [
