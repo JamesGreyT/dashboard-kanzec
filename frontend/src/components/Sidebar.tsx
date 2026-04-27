@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -14,6 +15,7 @@ import {
   TrendingUp,
   Undo2,
   Crown,
+  ChevronRight,
 } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import AlertsBell from "./AlertsBell";
@@ -30,6 +32,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -143,7 +148,12 @@ export default function Sidebar() {
       <SidebarContent>
         <NavGroup titleKey="nav.registry" items={REGISTRY} role={user.role} />
         <NavGroup titleKey="nav.executive_group" items={EXECUTIVE} role={user.role} />
-        <NavGroup titleKey="nav.data_group" items={DATA} role={user.role} />
+        <CollapsibleNavGroup
+          titleKey="nav.data_group"
+          items={DATA}
+          role={user.role}
+          parentIcon="reports"
+        />
         <NavGroup titleKey="nav.collection" items={COLLECTION} role={user.role} />
         <NavGroup titleKey="nav.analytics" items={ANALYTICS} role={user.role} />
         <NavGroup titleKey="nav.operations" items={OPERATIONS} role={user.role} />
@@ -205,6 +215,64 @@ function NavGroup({
           })}
         </SidebarMenu>
       </SidebarGroupContent>
+    </SidebarGroup>
+  );
+}
+
+function CollapsibleNavGroup({
+  titleKey,
+  items,
+  role,
+  parentIcon,
+}: {
+  titleKey: string;
+  items: Item[];
+  role: "admin" | "operator" | "viewer";
+  parentIcon?: IconKind;
+}) {
+  const { t } = useTranslation();
+  const { pathname } = useLocation();
+  const visible = items.filter((i) => i.roles.includes(role));
+  const hasActiveChild = visible.some(
+    (i) => pathname === i.to || pathname.startsWith(i.to + "/"),
+  );
+  const [open, setOpen] = useState(true);
+  if (!visible.length) return null;
+  const expanded = open || hasActiveChild;
+  return (
+    <SidebarGroup>
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={expanded}
+          >
+            {parentIcon && <IconFor kind={parentIcon} />}
+            <span className="truncate">{t(titleKey)}</span>
+            <ChevronRight
+              className={`ml-auto h-4 w-4 transition-transform ${expanded ? "rotate-90" : ""}`}
+            />
+          </SidebarMenuButton>
+          {expanded && (
+            <SidebarMenuSub>
+              {visible.map((i) => {
+                const isActive =
+                  pathname === i.to || pathname.startsWith(i.to + "/");
+                return (
+                  <SidebarMenuSubItem key={i.to}>
+                    <SidebarMenuSubButton asChild isActive={isActive}>
+                      <Link to={i.to}>
+                        {i.icon && <IconFor kind={i.icon} />}
+                        <span className="truncate">{t(i.labelKey)}</span>
+                      </Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                );
+              })}
+            </SidebarMenuSub>
+          )}
+        </SidebarMenuItem>
+      </SidebarMenu>
     </SidebarGroup>
   );
 }
