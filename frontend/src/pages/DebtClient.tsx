@@ -536,7 +536,7 @@ export default function DebtClient() {
       <div className="">
         <div className="caption text-muted-foreground flex items-center gap-2 flex-wrap">
           <button
-            onClick={() => navigate("/collection/debt")}
+            onClick={() => navigate("/collection/worklist")}
             className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1"
           >
             <span aria-hidden>←</span>
@@ -574,7 +574,7 @@ export default function DebtClient() {
               {t("debt.not_found")}
             </div>
             <div className="mt-6">
-              <Button variant="primary" onClick={() => navigate("/collection/debt")}>
+              <Button variant="primary" onClick={() => navigate("/collection/worklist")}>
                 ← {t("debt.back_to_list")}
               </Button>
             </div>

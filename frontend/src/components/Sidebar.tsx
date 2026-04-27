@@ -5,7 +5,6 @@ import {
   Package,
   Wallet,
   Building2,
-  Scale,
   BookText,
   FileBarChart,
   Users,
@@ -40,7 +39,6 @@ type IconKind =
   | "orders"
   | "payments"
   | "people"
-  | "scales"
   | "ledger"
   | "reports"
   | "users"
@@ -69,9 +67,7 @@ const DATA: Item[] = [
   { to: "/data/legal-persons", labelKey: "nav.legal_persons", roles: ["admin", "operator", "viewer"], icon: "people" },
 ];
 const COLLECTION: Item[] = [
-  { to: "/collection/debt",     labelKey: "nav.debt",        roles: ["admin", "viewer"], icon: "scales" },
   { to: "/collection/worklist", labelKey: "nav.worklist",    roles: ["admin", "viewer"], icon: "ledger" },
-  { to: "/collection/ledger",   labelKey: "nav.ledger",      roles: ["admin", "viewer"], icon: "ledger" },
 ];
 const ANALYTICS: Item[] = [
   { to: "/analytics/sales",    labelKey: "nav.sales",    roles: ["admin", "viewer"], icon: "trending" },
@@ -94,7 +90,6 @@ function IconFor({ kind }: { kind: IconKind }) {
     case "orders": return <Package className={size} />;
     case "payments": return <Wallet className={size} />;
     case "people": return <Building2 className={size} />;
-    case "scales": return <Scale className={size} />;
     case "ledger": return <BookText className={size} />;
     case "reports": return <FileBarChart className={size} />;
     case "users": return <Users className={size} />;
