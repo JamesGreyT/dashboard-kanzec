@@ -234,12 +234,9 @@ function CollapsibleNavGroup({
   const { t } = useTranslation();
   const { pathname } = useLocation();
   const visible = items.filter((i) => i.roles.includes(role));
-  const hasActiveChild = visible.some(
-    (i) => pathname === i.to || pathname.startsWith(i.to + "/"),
-  );
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   if (!visible.length) return null;
-  const expanded = open || hasActiveChild;
+  const expanded = open;
   return (
     <SidebarGroup>
       <SidebarMenu>
