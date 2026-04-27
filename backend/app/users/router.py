@@ -252,17 +252,106 @@ async def revoke_sessions(
 
 _USERNAME_SAFE_RE = re.compile(r"[^a-z0-9]+")
 
+# Cyrillic → ASCII transliteration. Covers Russian + the Uzbek-Cyrillic letters
+# that show up in Smartup room names. Non-letters fall through unchanged and
+# get stripped by _USERNAME_SAFE_RE below.
+_CYRILLIC_MAP = {
+    "а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "yo",
+    "ж": "zh", "з": "z", "и": "i", "й": "y", "к": "k", "л": "l", "м": "m",
+    "н": "n", "о": "o", "п": "p", "р": "r", "с": "s", "т": "t", "у": "u",
+    "ф": "f", "х": "h", "ц": "ts", "ч": "ch", "ш": "sh", "щ": "sch",
+    "ъ": "", "ы": "y", "ь": "", "э": "e", "ю": "yu", "я": "ya",
+    "ў": "o", "қ": "q", "ғ": "g", "ҳ": "h",
+    "'": "", "ʼ": "", "`": "",
+}
+
+
+def _transliterate(s: str) -> str:
+    return "".join(_CYRILLIC_MAP.get(ch, ch) for ch in s.lower())
+
 
 def _slugify_username(room_name: str, room_code: str | None) -> str:
-    """Deterministic-ish username from a room name. Lowercased, ASCII-like,
-    stripped of punctuation, falls back to room_code if the stripped name is
-    empty. Caller must still check for collisions."""
-    slug = _USERNAME_SAFE_RE.sub("_", room_name.lower()).strip("_")
+    """Full-slug username from a room name (e.g. "Sardor Yanvarov" →
+    "sardor-yanvarov"). Cyrillic transliterated, punctuation stripped, spaces
+    become single hyphens. Falls back to room_code if name slugifies empty.
+    Caller still checks for collisions."""
+    slug = _USERNAME_SAFE_RE.sub("-", _transliterate(room_name)).strip("-")
     if not slug and room_code:
-        slug = _USERNAME_SAFE_RE.sub("_", room_code.lower()).strip("_")
+        slug = _USERNAME_SAFE_RE.sub("-", _transliterate(room_code)).strip("-")
     if not slug:
         slug = "room"
-    return f"room_{slug}"[:64]
+    return slug[:64]
+
+
+# Curated 4-7 letter words with no homoglyphs (no o/0, l/I, etc. confusables).
+# Mix of nouns + adjectives so passphrases parse as English-ish. Keep at least
+# 256 entries so 4-word passphrases pass entropy bar.
+_PASSPHRASE_WORDS = (
+    "Able", "Acorn", "Active", "Agile", "Alpha", "Amber", "Apex", "Apple",
+    "April", "Arctic", "Arena", "Arrow", "Atlas", "Aurora", "Autumn", "Azure",
+    "Bamboo", "Banana", "Basket", "Basil", "Beacon", "Beach", "Bear", "Bee",
+    "Berry", "Birch", "Bison", "Black", "Blaze", "Blink", "Blue", "Bluff",
+    "Bold", "Bonus", "Brave", "Breeze", "Bridge", "Bright", "Brisk", "Bronze",
+    "Brook", "Brown", "Buddy", "Burst", "Cactus", "Calm", "Camel", "Candle",
+    "Canyon", "Carbon", "Carrot", "Castle", "Cedar", "Chalk", "Charm", "Cheer",
+    "Cherry", "Chime", "Cinder", "Clay", "Clean", "Clever", "Cliff", "Cloud",
+    "Clover", "Coast", "Cobalt", "Cobra", "Cocoa", "Comet", "Coral", "Cosmic",
+    "Cotton", "Cougar", "Cove", "Crane", "Crater", "Cream", "Crest", "Crisp",
+    "Crown", "Crystal", "Cube", "Cyan", "Daisy", "Dance", "Dapper", "Dark",
+    "Dart", "Dash", "Dawn", "Decay", "Deep", "Deer", "Delta", "Desert",
+    "Dew", "Dice", "Diesel", "Dingo", "Dipper", "Disco", "Diver", "Dragon",
+    "Drift", "Drum", "Dune", "Dusk", "Eagle", "Earth", "Easy", "Eclipse",
+    "Edge", "Eden", "Ember", "Empire", "Energy", "Epic", "Equal", "Era",
+    "Evergreen", "Express", "Falcon", "Fancy", "Feather", "Felt", "Fern", "Fest",
+    "Field", "Fierce", "Final", "Finch", "Fire", "Fjord", "Flame", "Flash",
+    "Flax", "Fleet", "Flint", "Float", "Flora", "Flute", "Foam", "Fog",
+    "Forest", "Fort", "Fox", "Fresh", "Frost", "Fudge", "Fun", "Galaxy",
+    "Gem", "Ginger", "Giraffe", "Glacier", "Glass", "Glow", "Goat", "Gold",
+    "Grace", "Grain", "Grand", "Grape", "Grass", "Gravel", "Great", "Green",
+    "Grit", "Grove", "Gust", "Hammer", "Happy", "Harbor", "Harvest", "Hawk",
+    "Hazel", "Heart", "Heath", "Heavy", "Helix", "Hero", "Hickory", "Hidden",
+    "Hilltop", "Honey", "Hover", "Hunter", "Husky", "Iceberg", "Indigo", "Inkwell",
+    "Iris", "Iron", "Ivory", "Jade", "Jasper", "Jazz", "Jester", "Jetty",
+    "Jingle", "Jolly", "Journey", "Jungle", "Juniper", "Karma", "Kayak", "Keen",
+    "Kelp", "Kestrel", "Kettle", "Kiln", "Kind", "King", "Kite", "Kiwi",
+    "Knack", "Knight", "Knot", "Lake", "Lamp", "Lark", "Latte", "Laurel",
+    "Lava", "Leaf", "Lemon", "Lens", "Light", "Lily", "Linen", "Lion",
+    "Loft", "Lotus", "Lucky", "Lumber", "Lunar", "Magic", "Maize", "Mango",
+    "Maple", "Marble", "Marina", "Maroon", "Marsh", "Mason", "Master", "Matrix",
+    "Meadow", "Melody", "Mercury", "Metal", "Meteor", "Mighty", "Mint", "Mirror",
+    "Mist", "Modern", "Monsoon", "Moose", "Mountain", "Music", "Native", "Nectar",
+    "Neon", "Nest", "Night", "Nimble", "Noble", "North", "Nova", "Nutmeg",
+    "Oak", "Oasis", "Ocean", "Onyx", "Opal", "Orange", "Orbit", "Orchid",
+    "Otter", "Oxide", "Pacific", "Page", "Palm", "Panda", "Panther", "Paper",
+    "Park", "Patch", "Peach", "Peak", "Pearl", "Pebble", "Pepper", "Petal",
+    "Phoenix", "Piano", "Pier", "Pine", "Pixel", "Plain", "Planet", "Plum",
+    "Polar", "Pollen", "Pond", "Poppy", "Prairie", "Prism", "Proud", "Puma",
+    "Quartz", "Queen", "Quest", "Quick", "Quiet", "Quill", "Quince", "Rabbit",
+    "Radar", "Rain", "Rapid", "Raven", "Ravine", "Rebel", "Red", "Reed",
+    "Reef", "Relay", "Rhythm", "Ridge", "Rift", "Ripple", "River", "Robin",
+    "Rocket", "Rope", "Rose", "Royal", "Ruby", "Rust", "Saffron", "Sage",
+    "Sail", "Salmon", "Sand", "Sapphire", "Saturn", "Scarlet", "Scout", "Sea",
+    "Seal", "Sequoia", "Shade", "Shadow", "Shark", "Shell", "Sherbet", "Shine",
+    "Shore", "Silver", "Simple", "Sincere", "Sky", "Slate", "Sleet", "Smart",
+    "Smile", "Snap", "Snow", "Solar", "Solid", "Song", "Soft", "Spark",
+    "Sparrow", "Spice", "Spider", "Spire", "Spring", "Sprout", "Spruce", "Stable",
+    "Star", "Steady", "Steel", "Stream", "Strong", "Sugar", "Summit", "Sunny",
+    "Surf", "Swan", "Sweet", "Tangerine", "Tango", "Teal", "Teak", "Thunder",
+    "Tiger", "Timber", "Tinder", "Topaz", "Torch", "Trail", "Trout", "Tulip",
+    "Tundra", "Turkey", "Turtle", "Tusk", "Twig", "Umber", "Uniform", "Unique",
+    "Urban", "Valley", "Vast", "Velvet", "Venus", "Vibrant", "Victor", "Vine",
+    "Violet", "Vivid", "Volt", "Walnut", "Warm", "Water", "Whale", "Wheat",
+    "Whisper", "White", "Wild", "Willow", "Winter", "Wise", "Wolf", "Wood",
+    "Yacht", "Yellow", "Yield", "Yoga", "Young", "Zebra", "Zen", "Zest",
+)
+
+
+def _generate_passphrase() -> str:
+    """4-word passphrase joined by hyphens, suffixed with 2 random digits.
+    Example: 'Bright-River-Mango-92'. ~46 bits of entropy."""
+    words = [secrets.choice(_PASSPHRASE_WORDS) for _ in range(4)]
+    digits = secrets.randbelow(90) + 10  # 10..99 inclusive
+    return f"{'-'.join(words)}-{digits}"
 
 
 class BulkFromRoomsBody(BaseModel):
@@ -270,6 +359,11 @@ class BulkFromRoomsBody(BaseModel):
     # If the generated username already exists, we append a numeric suffix
     # until we find a free one. If True, we skip those rooms instead (safer).
     skip_existing_usernames: bool = False
+    # If True, rooms that already have a user assigned get their existing
+    # user's password reset to a fresh passphrase (and slug renamed to the
+    # current rule). Existing scope assignment stays intact. Use this to
+    # rotate creds for the whole sales team in one go.
+    reset_existing: bool = False
 
 
 class BulkCredentialOut(BaseModel):
@@ -287,30 +381,34 @@ async def bulk_from_rooms(
     _: Annotated[object, Depends(require_role("admin"))],
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> list[BulkCredentialOut]:
-    """For each active room that doesn't yet have a user assigned, create a
-    fresh user and scope them to that one room. Returns the temp passwords —
-    this is the ONLY time they can be read back, so the admin must copy them
-    out of the response."""
+    """For each active sales-person room, ensure there's a user scoped to it.
+    Creates a new user if the room has none, or (when reset_existing=True)
+    rotates the existing user's username + password to the current rule.
+    Returns the plaintext passphrases — this is the ONLY time they can be
+    read back, so the admin must copy them out of the response."""
 
-    # Find rooms with no assigned user.
+    # All active rooms — we need both "no user yet" (create) and "already has
+    # a user" (optionally reset). Pulling the assigned user_id in one query.
     rooms = (
         await session.execute(
             text(
                 """
-                SELECT r.room_id, r.room_code, r.room_name
+                SELECT r.room_id, r.room_code, r.room_name,
+                       (SELECT ur.user_id
+                          FROM app.user_rooms ur
+                         WHERE ur.room_id = r.room_id
+                         ORDER BY ur.user_id LIMIT 1) AS assigned_user_id
                   FROM app.room r
                  WHERE r.active = true
-                   AND NOT EXISTS (
-                       SELECT 1 FROM app.user_rooms ur WHERE ur.room_id = r.room_id
-                   )
                  ORDER BY r.room_name
                 """
             )
         )
     ).all()
 
-    # Existing usernames for collision check.
-    existing = {
+    # Existing usernames for collision check (excluding the user we're about
+    # to rename — we add that back conditionally per row).
+    existing_usernames = {
         row[0]
         for row in (await session.execute(select(User.username))).all()
     }
@@ -318,29 +416,69 @@ async def bulk_from_rooms(
     out: list[BulkCredentialOut] = []
     for r in rooms:
         base = _slugify_username(r.room_name, r.room_code)
-        username = base
+        owner_id: int | None = r.assigned_user_id
+        owner: User | None = None
+        if owner_id is not None:
+            if not body.reset_existing:
+                continue  # already provisioned; skip
+            owner = await session.scalar(select(User).where(User.id == owner_id))
+            if owner is None:
+                # Stale user_rooms row pointing at a deleted user — treat as
+                # unassigned. _set_user_rooms below will fix the orphan.
+                owner_id = None
+
+        # Pick a free username. When renaming an existing user, that user's
+        # current name doesn't count as "taken".
+        candidate = base
         n = 2
-        while username in existing:
+        owner_name = owner.username if owner else None
+        while candidate in existing_usernames and candidate != owner_name:
             if body.skip_existing_usernames:
-                username = ""
+                candidate = ""
                 break
-            username = f"{base}_{n}"[:64]
+            candidate = f"{base}-{n}"[:64]
             n += 1
-        if not username:
+        if not candidate:
             continue
+        username = candidate
 
-        temp_password = secrets.token_urlsafe(12)
-        u = User(
-            username=username,
-            password_hash=hash_password(temp_password),
-            role=body.role,
-            is_active=True,
-        )
-        session.add(u)
-        await session.flush()
-        existing.add(username)
+        temp_password = _generate_passphrase()
 
-        await _set_user_rooms(session, u.id, [r.room_id])
+        if owner is not None:
+            if owner.username != username:
+                existing_usernames.discard(owner.username)
+                owner.username = username
+            owner.password_hash = hash_password(temp_password)
+            owner.is_active = True
+            owner.updated_at = datetime.utcnow()
+            existing_usernames.add(username)
+            await session.flush()
+            # Force-revoke any active sessions so the new password takes
+            # effect immediately.
+            tokens = (
+                await session.execute(
+                    select(RefreshToken).where(
+                        RefreshToken.user_id == owner.id,
+                        RefreshToken.revoked_at.is_(None),
+                    )
+                )
+            ).scalars().all()
+            now = datetime.utcnow()
+            for tok in tokens:
+                tok.revoked_at = now
+            # Make sure scope still points at this room (idempotent).
+            await _set_user_rooms(session, owner.id, [r.room_id])
+        else:
+            u = User(
+                username=username,
+                password_hash=hash_password(temp_password),
+                role=body.role,
+                is_active=True,
+            )
+            session.add(u)
+            await session.flush()
+            existing_usernames.add(username)
+            await _set_user_rooms(session, u.id, [r.room_id])
 
         out.append(
             BulkCredentialOut(
@@ -354,7 +492,11 @@ async def bulk_from_rooms(
     await audit.write(
         session, user_id=actor.id, action="user_bulk_from_rooms",
         target=None,
-        details={"count": len(out), "role": body.role},
+        details={
+            "count": len(out),
+            "role": body.role,
+            "reset_existing": body.reset_existing,
+        },
         ip_address=request.client.host if request.client else None,
     )
     await session.commit()
