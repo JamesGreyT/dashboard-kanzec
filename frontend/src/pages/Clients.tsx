@@ -261,11 +261,6 @@ export default function Clients() {
                 <Th right>{t("clients.col.term_days")}</Th>
                 <Th right>{t("clients.col.opening_debt")}</Th>
                 <Th right>{t("clients.col.opening_credit")}</Th>
-                <Th right>{t("clients.col.sotuv")}</Th>
-                <Th right>{t("clients.col.vozrat")}</Th>
-                <Th right>{t("clients.col.tolov")}</Th>
-                <Th right>{t("clients.col.total_credits")}</Th>
-                <Th right>{t("clients.col.total_debt")}</Th>
                 <Th right strong>{t("clients.col.qarz")}</Th>
                 <Th right>{t("clients.col.not_due")}</Th>
                 <Th right>{t("clients.col.overdue")}</Th>
@@ -273,10 +268,6 @@ export default function Clients() {
                 <Th right>{t("clients.col.bucket_31_60")}</Th>
                 <Th right>{t("clients.col.bucket_61_90")}</Th>
                 <Th right>{t("clients.col.bucket_90_plus")}</Th>
-                <Th right>{t("clients.col.overdue_0")}</Th>
-                <Th right>{t("clients.col.overdue_30")}</Th>
-                <Th right>{t("clients.col.overdue_60")}</Th>
-                <Th right>{t("clients.col.overdue_90")}</Th>
                 <Th>{t("clients.col.manager")}</Th>
                 <Th>{t("clients.col.region")}</Th>
                 <Th>{t("clients.col.direction")}</Th>
@@ -286,7 +277,7 @@ export default function Clients() {
             <tbody>
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={24} className="p-6 text-center text-muted-foreground">
+                  <td colSpan={15} className="p-6 text-center text-muted-foreground">
                     {t("clients.empty")}
                   </td>
                 </tr>
@@ -308,11 +299,6 @@ export default function Clients() {
                   <Td right>{r.term_days}</Td>
                   <Td right>{fmtZero(r.opening_debt)}</Td>
                   <Td right>{fmtZero(r.opening_credit)}</Td>
-                  <Td right>{fmtZero(r.sotuv)}</Td>
-                  <Td right>{fmtZero(r.vozrat)}</Td>
-                  <Td right>{fmtZero(r.tolov)}</Td>
-                  <Td right>{fmtZero(r.total_credits)}</Td>
-                  <Td right>{fmtZero(r.total_debt)}</Td>
                   <Td right strong>{fmtNum(r.qarz)}</Td>
                   <Td right>{fmtZero(r.not_due)}</Td>
                   <Td right>{fmtZero(r.overdue)}</Td>
@@ -320,10 +306,6 @@ export default function Clients() {
                   <Td right>{fmtZero(r.bucket_31_60)}</Td>
                   <Td right>{fmtZero(r.bucket_61_90)}</Td>
                   <Td right>{fmtZero(r.bucket_90_plus)}</Td>
-                  <Td right>{fmtZero(r.overdue_0)}</Td>
-                  <Td right>{fmtZero(r.overdue_30)}</Td>
-                  <Td right>{fmtZero(r.overdue_60)}</Td>
-                  <Td right>{fmtZero(r.overdue_90)}</Td>
                   <Td>
                     <span className="text-foreground/90 truncate max-w-[140px] block">
                       {r.manager ?? "—"}
