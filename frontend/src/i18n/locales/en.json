@@ -47,6 +47,7 @@
   "nav": {
     "registry": "Main",
     "data_group": "Data",
+    "collection": "Collection",
     "operations": "Operations",
     "admin": "Admin",
     "dashboard": "Dashboard",
@@ -54,6 +55,8 @@
     "orders": "Orders",
     "payments": "Payments",
     "legal_persons": "Legal persons",
+    "debt": "Debt",
+    "ledger": "Ledger",
     "reports": "Reports",
     "users": "Users",
     "audit": "Audit",
@@ -63,6 +66,7 @@
     "sales": "Sales",
     "payments_dash": "Payments",
     "returns": "Returns",
+    "worklist": "Debt worklist",
     "dayslice": "Day-slice",
     "executive_group": "Executive"
   },

@@ -6,6 +6,10 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import DataViewer from "./pages/DataViewer";
 import DaySlice from "./pages/DaySlice";
+import Debt from "./pages/Debt";
+import DebtClient from "./pages/DebtClient";
+import DebtLedger from "./pages/DebtLedger";
+import DebtWorklist from "./pages/DebtWorklist";
 import Ops from "./pages/Ops";
 import Payments from "./pages/Payments";
 import Returns from "./pages/Returns";
@@ -39,6 +43,11 @@ export default function App() {
           <Route path="/data/orders" element={<DataViewer lockedTable="deal_order" />} />
           <Route path="/data/payments" element={<DataViewer lockedTable="payment" />} />
           <Route path="/data/legal-persons" element={<DataViewer lockedTable="legal_person" />} />
+          <Route path="/collection" element={<Navigate to="/collection/debt" replace />} />
+          <Route path="/collection/debt" element={<RequireAuth roles={["admin", "viewer"]}><Debt /></RequireAuth>} />
+          <Route path="/collection/worklist" element={<RequireAuth roles={["admin", "viewer"]}><DebtWorklist /></RequireAuth>} />
+          <Route path="/collection/debt/client/:personId" element={<RequireAuth roles={["admin", "viewer"]}><DebtClient /></RequireAuth>} />
+          <Route path="/collection/ledger" element={<RequireAuth roles={["admin", "viewer"]}><DebtLedger /></RequireAuth>} />
           <Route path="/analytics" element={<Navigate to="/analytics/sales" replace />} />
           <Route path="/analytics/sales" element={<RequireAuth roles={["admin", "viewer"]}><Sales /></RequireAuth>} />
           <Route path="/analytics/payments" element={<RequireAuth roles={["admin", "viewer"]}><Payments /></RequireAuth>} />

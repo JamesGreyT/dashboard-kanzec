@@ -18,6 +18,7 @@ from .dashboard.router import router as dashboard_router
 from .data.router import router as data_router
 from .dayslice.router import router as dayslice_router
 from .db import SessionLocal, healthcheck
+from .debt.router import router as debt_router
 from .ops.router import router as ops_router
 from .payments.router import router as payments_router
 from .preferences.router import router as preferences_router
@@ -122,6 +123,7 @@ app.include_router(ops_router)
 app.include_router(users_router)
 app.include_router(audit_router)
 app.include_router(rooms_router)
+app.include_router(debt_router)
 app.include_router(snapshots_router)
 app.include_router(sales_router)
 app.include_router(payments_router)
