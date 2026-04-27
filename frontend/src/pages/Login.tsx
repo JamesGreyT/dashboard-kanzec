@@ -43,85 +43,94 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Top-right language toggle only — no masthead. */}
-      <div className="px-6 md:px-10 pt-6 flex justify-end">
-        <LangToggle />
-      </div>
+    <div className="min-h-screen bg-background grid md:grid-cols-2">
+      {/* Left pane — sage-tinted canvas hero. Hidden on mobile, the right
+          pane fills the screen there. */}
+      <aside className="hidden md:flex flex-col justify-between p-12 bg-secondary relative overflow-hidden">
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-24 -right-24 w-[420px] h-[420px] rounded-full bg-primary/15 blur-3xl" />
+          <div className="absolute bottom-12 left-[-80px] w-[320px] h-[320px] rounded-full bg-destructive/10 blur-3xl" />
+        </div>
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary text-primary-foreground grid place-items-center text-base font-semibold">K</div>
+          <div>
+            <div className="font-semibold text-foreground">Kanzec</div>
+            <div className="text-xs text-muted-foreground">Operations</div>
+          </div>
+        </div>
+        <div className="relative z-10">
+          <h2 className="font-display text-5xl font-semibold leading-[1] text-foreground tracking-tight">
+            Sales,<br /><span className="text-primary">simply visible.</span>
+          </h2>
+          <p className="text-sm text-muted-foreground mt-5 max-w-md leading-relaxed">
+            A clean dashboard for the wholesale floor. Track what's sold, what's paid, and who's behind — without the spreadsheet.
+          </p>
+        </div>
+        <div className="relative z-10 text-xs text-muted-foreground">Tashkent · since 2022</div>
+      </aside>
 
-      <div className="flex-1 flex items-center justify-center px-6 animate-in fade-in-0 slide-in-from-bottom-2">
-        <div className="w-full max-w-[380px]">
-          {/* One-line editorial anchor above the title — the wordmark in
-              text-xs text-muted-foreground uppercase tracking-wider font-medium type, middle-dot separator to echo breadcrumbs. */}
-          <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-3">Kanzec · Operations</div>
-          <h1 className="font-display text-5xl font-medium tracking-tight text-foreground leading-[1.04]">
-            {t("login.title")}
-            <span className="font-display-italic text-primary ml-[2px]">.</span>
-          </h1>
+      {/* Right pane — sign-in form */}
+      <div className="flex flex-col">
+        <div className="px-6 md:px-10 pt-6 flex justify-end">
+          <LangToggle />
+        </div>
+        <div className="flex-1 flex items-center justify-center px-6 animate-in fade-in-0 slide-in-from-bottom-2">
+          <div className="w-full max-w-[380px]">
+            <h1 className="font-display text-4xl font-semibold tracking-tight text-foreground leading-[1.04]">
+              {t("login.title")}
+              <span className="ml-[2px]">👋</span>
+            </h1>
+            <p className="text-sm text-muted-foreground mt-2">Sign in to your operations desk.</p>
 
-          {err && (
-            <div className="mt-6 caption text-red-700 dark:text-red-400 border-l-2 border-red-500 pl-3">
-              {err}
-            </div>
-          )}
+            {err && (
+              <div className="mt-6 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-3">
+                {err}
+              </div>
+            )}
 
-          <form onSubmit={submit} className="mt-8 flex flex-col gap-5" noValidate>
-            <label className="flex flex-col gap-2">
-              <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">{t("login.username_label")}</span>
-              <div
-                className="relative h-11 bg-muted rounded-[10px]
-                           focus-within:ring-2 focus-within:ring-ring/30
-                           focus-within:before:content-[''] focus-within:before:absolute
-                           focus-within:before:inset-y-[8px] focus-within:before:left-0
-                           focus-within:before:w-[2px] focus-within:before:bg-primary
-                           focus-within:before:rounded-r"
-              >
+            <form onSubmit={submit} className="mt-7 flex flex-col gap-4" noValidate>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs text-foreground font-medium">{t("login.username_label")}</span>
                 <input
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   autoFocus
                   autoComplete="username"
                   required
-                  className="w-full h-full bg-transparent text-sm text-foreground px-3 rounded-[10px] border-0 outline-none placeholder:italic placeholder:text-muted-foreground"
+                  placeholder="sardor-yanvarov"
+                  className="h-11 bg-muted rounded-xl px-4 text-sm border border-transparent outline-none transition-colors focus:bg-card focus:border-primary placeholder:text-muted-foreground/60"
                 />
-              </div>
-            </label>
+              </label>
 
-            <label className="flex flex-col gap-2">
-              <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">{t("login.password_label")}</span>
-              <div
-                className="relative h-11 bg-muted rounded-[10px]
-                           focus-within:ring-2 focus-within:ring-ring/30
-                           focus-within:before:content-[''] focus-within:before:absolute
-                           focus-within:before:inset-y-[8px] focus-within:before:left-0
-                           focus-within:before:w-[2px] focus-within:before:bg-primary
-                           focus-within:before:rounded-r"
-              >
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs text-foreground font-medium">{t("login.password_label")}</span>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
                   required
-                  className="w-full h-full bg-transparent text-sm text-foreground px-3 rounded-[10px] border-0 outline-none placeholder:italic placeholder:text-muted-foreground"
+                  className="h-11 bg-muted rounded-xl px-4 text-sm border border-transparent outline-none transition-colors focus:bg-card focus:border-primary"
                 />
-              </div>
-            </label>
+              </label>
 
-            <button
-              type="submit"
-              disabled={busy || !username || !password}
-              className="mt-2 h-11 bg-primary text-white text-sm font-semibold rounded-[10px] shadow-sm transition-all duration-200 hover:shadow-md hover:brightness-[0.95] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {busy ? t("login.submitting") : t("login.submit")}
-            </button>
-          </form>
+              <button
+                type="submit"
+                disabled={busy || !username || !password}
+                className="mt-3 h-11 bg-primary text-primary-foreground text-sm font-medium rounded-xl shadow-soft transition-all duration-200 hover:bg-primary/90 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {busy ? t("login.submitting") : `${t("login.submit")} →`}
+              </button>
+            </form>
+
+            <div className="text-xs text-muted-foreground text-center mt-6">
+              Forgot? Ask an admin to rotate your password.
+            </div>
+          </div>
         </div>
-      </div>
-
-      {/* Single-line footer with just the domain — everything else removed. */}
-      <div className="px-6 md:px-10 py-5 flex items-center justify-center">
-        <div className="caption text-muted-foreground font-mono">kanzec.ilhom.work</div>
+        <div className="px-6 md:px-10 py-5 flex items-center justify-center">
+          <div className="text-xs text-muted-foreground">kanzec.ilhom.work</div>
+        </div>
       </div>
     </div>
   );

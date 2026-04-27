@@ -77,17 +77,19 @@ export default function MetricCard({
       : "text-muted-foreground";
 
   const Wrapper: any = href ? Link : "div";
+  const baseCard =
+    "flex flex-col gap-1.5 min-w-0 bg-card border rounded-2xl shadow-soft p-5";
   const wrapperProps: any = href
     ? {
         to: href,
         title: title ?? "",
         "aria-label": `${label} — open detail`,
         className:
-          "flex flex-col gap-1.5 min-w-0 group -mx-2 px-2 py-1 rounded-md transition-colors " +
-          "hover:bg-muted/40 focus-visible:bg-muted/50 " +
+          baseCard +
+          " group transition-shadow hover:shadow-md " +
           "outline-none focus-visible:ring-2 focus-visible:ring-ring",
       }
-    : { role: "group", "aria-label": label, className: "flex flex-col gap-1.5 min-w-0" };
+    : { role: "group", "aria-label": label, className: baseCard };
 
   return (
     <Wrapper {...wrapperProps}>

@@ -29,6 +29,13 @@ export default function Layout() {
 
   return (
     <SidebarProvider>
+      {/* Linen ambience — soft sage + terra blobs blurred behind everything,
+          fixed so they don't scroll. Hidden in dark mode (the moss-ink bg
+          doesn't need them and they read muddy). */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden dark:hidden">
+        <div className="absolute -top-32 right-[-120px] w-[520px] h-[520px] rounded-full bg-[hsl(120,14%,58%)] opacity-25 blur-3xl" />
+        <div className="absolute bottom-32 left-[-100px] w-[420px] h-[420px] rounded-full bg-[hsl(21,50%,54%)] opacity-12 blur-3xl" />
+      </div>
       {/* WCAG 2.4.1 — skip link becomes visible on focus */}
       <a href="#main" className="sr-only-focusable">
         {t("a11y.skip_to_main", { defaultValue: "Skip to main content" })}
