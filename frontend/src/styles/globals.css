@@ -3,99 +3,98 @@
 @tailwind utilities;
 
 /* ============================================================
-   Quarto — editorial archive identity
+   Linen — soft pastel / modern startup
    ------------------------------------------------------------
-   Warm ivory paper, deep ink-navy foreground, umber (not
-   orange) accent. Fraunces for display, Geist for UI,
-   JetBrains Mono for data. Dark mode keeps the temperature —
-   a deep ink-slate bg with cream foreground and a warmer,
-   lifted amber accent so the eye still reads "amber" not "mud".
+   Warm cream canvas, sage-green primary, terracotta accent for
+   debt and warnings. Onest sans throughout. Soft shadows and
+   rounded corners replace the editorial paper-grain feel.
+   Dark mode keeps the warm temperature — mossy ink bg with a
+   lifted sage primary so it still reads "sage" not "olive".
    ============================================================ */
 
 @layer base {
   :root {
-    --background: 44 40% 96%;
-    --foreground: 222 28% 11%;
+    --background: 36 100% 98%;
+    --foreground: 36 14% 14%;
     --card: 0 0% 100%;
-    --card-foreground: 222 28% 11%;
-    --popover: 44 40% 98%;
-    --popover-foreground: 222 28% 11%;
-    --primary: 24 78% 38%;
-    --primary-foreground: 44 40% 96%;
-    --secondary: 42 28% 90%;
-    --secondary-foreground: 222 28% 11%;
-    --muted: 42 24% 91%;
-    --muted-foreground: 222 15% 38%;
-    --accent: 24 60% 93%;
-    --accent-foreground: 24 78% 28%;
-    --destructive: 0 72% 44%;
-    --destructive-foreground: 44 40% 96%;
-    --border: 42 22% 84%;
-    --input: 42 22% 84%;
-    --ring: 24 78% 38%;
-    --radius: 0.375rem;
+    --card-foreground: 36 14% 14%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 36 14% 14%;
+    --primary: 120 15% 42%;
+    --primary-foreground: 36 100% 98%;
+    --secondary: 40 50% 93%;
+    --secondary-foreground: 36 14% 14%;
+    --muted: 40 50% 93%;
+    --muted-foreground: 33 14% 48%;
+    --accent: 120 13% 88%;
+    --accent-foreground: 120 15% 32%;
+    --destructive: 21 50% 54%;
+    --destructive-foreground: 36 100% 98%;
+    --border: 120 15% 88%;
+    --input: 40 50% 93%;
+    --ring: 120 15% 42%;
+    --radius: 0.75rem;
 
-    --chart-1: 24 78% 42%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 217 47% 42%;
-    --chart-4: 42 74% 52%;
-    --chart-5: 340 58% 50%;
+    /* Charts — sage primary, terra warning, then natural earth tones */
+    --chart-1: 120 15% 42%;
+    --chart-2: 21 50% 54%;
+    --chart-3: 40 60% 60%;
+    --chart-4: 200 25% 55%;
+    --chart-5: 340 30% 60%;
 
-    /* Sidebar — warmer paper than main body, reads as book spine. */
-    --sidebar-background: 42 30% 92%;
-    --sidebar-foreground: 222 20% 22%;
-    --sidebar-primary: 24 78% 38%;
-    --sidebar-primary-foreground: 44 40% 96%;
-    --sidebar-accent: 42 22% 86%;
-    --sidebar-accent-foreground: 24 78% 28%;
-    --sidebar-border: 42 22% 80%;
-    --sidebar-ring: 24 78% 38%;
+    /* Sidebar — slightly warmer than canvas so it reads as a soft rail. */
+    --sidebar-background: 40 50% 96%;
+    --sidebar-foreground: 36 14% 18%;
+    --sidebar-primary: 120 15% 42%;
+    --sidebar-primary-foreground: 36 100% 98%;
+    --sidebar-accent: 40 50% 90%;
+    --sidebar-accent-foreground: 120 15% 32%;
+    --sidebar-border: 120 15% 90%;
+    --sidebar-ring: 120 15% 42%;
 
-    --font-display: "Fraunces", ui-serif, Georgia, serif;
-    --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
-    --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
-
-    /* Fractal-noise paper grain — ~3% opacity. Applied via body::before
-       with mix-blend-mode:multiply so the ivory takes the tactile warmth
-       without darkening the card surfaces. */
-    --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.08  0 0 0 0 0.06  0 0 0 0 0.04  0 0 0 0.3 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/></svg>");
+    /* Single sans for everything; display + mono aliases keep legacy
+       className="font-display" / "font-mono" working without churn. */
+    --font-display: "Onest", ui-sans-serif, system-ui, sans-serif;
+    --font-sans: "Onest", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "Onest", ui-sans-serif, system-ui, sans-serif;
   }
 
   .dark {
-    --background: 222 30% 7%;
-    --foreground: 44 30% 92%;
-    --card: 222 28% 10%;
-    --card-foreground: 44 30% 92%;
-    --popover: 222 28% 10%;
-    --popover-foreground: 44 30% 92%;
-    --primary: 24 85% 58%;
-    --primary-foreground: 222 30% 7%;
-    --secondary: 222 20% 16%;
-    --secondary-foreground: 44 30% 92%;
-    --muted: 222 20% 14%;
-    --muted-foreground: 44 10% 65%;
-    --accent: 222 24% 18%;
-    --accent-foreground: 24 85% 72%;
-    --destructive: 0 65% 52%;
-    --destructive-foreground: 44 30% 92%;
-    --border: 222 18% 20%;
-    --input: 222 18% 20%;
-    --ring: 24 85% 58%;
+    /* Linen dark — deep mossy ink + softer sage accent */
+    --background: 36 14% 8%;
+    --foreground: 36 30% 92%;
+    --card: 36 14% 11%;
+    --card-foreground: 36 30% 92%;
+    --popover: 36 14% 11%;
+    --popover-foreground: 36 30% 92%;
+    --primary: 120 22% 62%;
+    --primary-foreground: 36 14% 8%;
+    --secondary: 36 10% 16%;
+    --secondary-foreground: 36 30% 92%;
+    --muted: 36 10% 14%;
+    --muted-foreground: 36 12% 62%;
+    --accent: 36 10% 18%;
+    --accent-foreground: 120 22% 72%;
+    --destructive: 21 60% 60%;
+    --destructive-foreground: 36 14% 8%;
+    --border: 36 10% 18%;
+    --input: 36 10% 18%;
+    --ring: 120 22% 62%;
 
-    --chart-1: 24 85% 58%;
-    --chart-2: 173 60% 50%;
-    --chart-3: 217 55% 60%;
-    --chart-4: 42 80% 62%;
-    --chart-5: 340 65% 62%;
+    --chart-1: 120 22% 62%;
+    --chart-2: 21 60% 60%;
+    --chart-3: 40 60% 60%;
+    --chart-4: 200 30% 65%;
+    --chart-5: 340 35% 65%;
 
-    --sidebar-background: 222 32% 5%;
-    --sidebar-foreground: 44 20% 82%;
-    --sidebar-primary: 24 85% 58%;
-    --sidebar-primary-foreground: 222 30% 7%;
-    --sidebar-accent: 222 22% 12%;
-    --sidebar-accent-foreground: 24 85% 72%;
-    --sidebar-border: 222 20% 14%;
-    --sidebar-ring: 24 85% 58%;
+    --sidebar-background: 36 16% 6%;
+    --sidebar-foreground: 36 18% 80%;
+    --sidebar-primary: 120 22% 62%;
+    --sidebar-primary-foreground: 36 14% 8%;
+    --sidebar-accent: 36 10% 14%;
+    --sidebar-accent-foreground: 120 22% 72%;
+    --sidebar-border: 36 10% 14%;
+    --sidebar-ring: 120 22% 62%;
   }
 }
 
@@ -105,29 +104,13 @@
   }
   html {
     font-family: var(--font-sans);
-    font-feature-settings: "cv11", "ss01", "ss03";
+    font-feature-settings: "ss01", "ss03";
   }
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
     position: relative;
     min-height: 100vh;
-  }
-  /* Paper grain — editorial tactility. Fixed so it doesn't scroll with
-     content. Hidden in dark mode (keeps the ink surface flat). */
-  body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background-image: var(--grain);
-    background-size: 200px 200px;
-    opacity: 0.45;
-    pointer-events: none;
-    z-index: 0;
-    mix-blend-mode: multiply;
-  }
-  .dark body::before {
-    display: none;
   }
   #root {
     position: relative;
@@ -146,19 +129,24 @@
    Typography utilities — editorial voice
    ============================================================ */
 @layer utilities {
+  /* Linen uses Onest for everything; these utilities stay so legacy
+     className="font-display" / "font-mono" call sites don't break. */
   .font-display {
     font-family: var(--font-display);
-    font-variation-settings: "opsz" 36, "SOFT" 40, "WONK" 0;
+    font-weight: 600;
+    letter-spacing: -0.025em;
   }
   .font-display-italic {
     font-family: var(--font-display);
     font-style: italic;
-    font-variation-settings: "opsz" 36, "SOFT" 80, "WONK" 1;
+    font-weight: 500;
   }
   .font-mono {
     font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
   }
-  .nums {
+  .nums,
+  .num-tabular {
     font-variant-numeric: tabular-nums lining-nums;
   }
   .eyebrow {
@@ -204,30 +192,13 @@
 }
 
 /* ============================================================
-   Sidebar spine — warmer paper than body + subtle vertical wash
-   so it reads as "bookbinding" rather than another panel.
+   Sidebar — soft warm rail with hairline + ambient shadow.
    ============================================================ */
 @layer components {
   [data-sidebar="sidebar"] {
-    background-image:
-      linear-gradient(
-        180deg,
-        hsl(var(--sidebar-background) / 1) 0%,
-        hsl(var(--sidebar-background) / 0.96) 40%,
-        hsl(var(--sidebar-background) / 1) 100%
-      ),
-      var(--grain);
-    background-blend-mode: normal, multiply;
-    background-size: 100% 100%, 200px 200px;
-    box-shadow: inset -1px 0 0 hsl(var(--sidebar-border)),
-      8px 0 24px -16px hsl(var(--foreground) / 0.25);
-  }
-  .dark [data-sidebar="sidebar"] {
-    background-image: linear-gradient(
-      180deg,
-      hsl(var(--sidebar-background) / 1) 0%,
-      hsl(var(--sidebar-background) / 0.98) 100%
-    );
+    box-shadow:
+      inset -1px 0 0 hsl(var(--sidebar-border)),
+      6px 0 18px -12px hsl(120 15% 30% / 0.18);
   }
 }
 

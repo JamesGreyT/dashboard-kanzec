@@ -13,6 +13,14 @@ export default {
   		}
   	},
   	extend: {
+  		fontFamily: {
+  			sans: ['Onest', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+  			display: ['Onest', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+  			mono: ['Onest', 'ui-sans-serif', 'system-ui', 'sans-serif']
+  		},
+  		boxShadow: {
+  			soft: '0 1px 0 rgba(90,122,90,0.04), 0 6px 18px -8px rgba(90,122,90,0.10)'
+  		},
   		colors: {
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
