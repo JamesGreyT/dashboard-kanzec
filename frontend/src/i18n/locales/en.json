@@ -46,7 +46,7 @@
   },
   "nav": {
     "registry": "Main",
-    "data_group": "Data",
+    "data_group": "ETL reports",
     "collection": "Collection",
     "operations": "Operations",
     "admin": "Admin",

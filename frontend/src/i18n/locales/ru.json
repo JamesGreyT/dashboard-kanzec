@@ -46,7 +46,7 @@
   },
   "nav": {
     "registry": "Главное",
-    "data_group": "Данные",
+    "data_group": "ETL отчёты",
     "collection": "Взыскание",
     "operations": "Операции",
     "admin": "Администрация",
