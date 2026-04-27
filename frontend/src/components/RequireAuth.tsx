@@ -27,19 +27,7 @@ export default function RequireAuth({
   }
 
   if (roles && !hasRole(user, ...roles)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="max-w-md text-center">
-          <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium text-red-700 dark:text-red-400">{t("common.forbidden_code")}</div>
-          <div className="text-2xl font-semibold tracking-tight text-foreground mt-2">
-            {t("common.forbidden_title")}
-          </div>
-          <div className="caption text-muted-foreground mt-3">
-            {t("common.forbidden_body")}
-          </div>
-        </div>
-      </div>
-    );
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
