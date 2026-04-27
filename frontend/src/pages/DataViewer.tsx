@@ -69,6 +69,10 @@ const LEGAL_PERSON_DIRECTIONS: string[] = [
   "Sergeli 3/3/13 D",
 ];
 
+// Keep in sync with ALLOWED_GROUPS in backend/app/data/router.py.
+const LEGAL_PERSON_GROUPS: string[] = ["A", "B", "C", "D"];
+const INSTALMENT_DAYS_PRESETS: number[] = [30, 60, 90, 180];
+
 function readDensity(): Density {
   if (typeof localStorage === "undefined") return "compact";
   const v = localStorage.getItem(DENSITY_KEY);
@@ -249,6 +253,33 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
                   current={(r.direction as string) ?? null}
                   source={(r.direction_source as string) ?? null}
                   updatedAt={(r.direction_updated_at as string) ?? null}
+                  editable={canEditDirection}
+                  onSaved={() => {
+                    queryClient.invalidateQueries({
+                      queryKey: ["data.rows", "legal_person"],
+                    });
+                  }}
+                />
+              )
+            : activeKey === "legal_person" && c.name === "instalment_days"
+            ? (r: Row) => (
+                <InstalmentDaysCell
+                  personId={Number(r.person_id)}
+                  current={(r.instalment_days as number | null) ?? null}
+                  source={(r.instalment_days_source as string) ?? null}
+                  editable={canEditDirection}
+                  onSaved={() => {
+                    queryClient.invalidateQueries({
+                      queryKey: ["data.rows", "legal_person"],
+                    });
+                  }}
+                />
+              )
+            : activeKey === "legal_person" && c.name === "client_group"
+            ? (r: Row) => (
+                <GroupCell
+                  personId={Number(r.person_id)}
+                  current={(r.client_group as string) ?? null}
                   editable={canEditDirection}
                   onSaved={() => {
                     queryClient.invalidateQueries({
@@ -1179,6 +1210,446 @@ function DirectionMenu({
       </div>
     </motion.div>,
     document.body,
+  );
+}
+
+/**
+ * Editable Group cell (A/B/C/D pill). Same visual family as DirectionTag —
+ * a rounded muted-bg pill — but tighter (single letter, mono) and with a
+ * lightweight 4-option dropdown anchored to the cell. Optimistic update,
+ * "✓" flash on save, inline error on failure.
+ */
+function GroupCell({
+  personId,
+  current,
+  editable,
+  onSaved,
+}: {
+  personId: number;
+  current: string | null;
+  editable: boolean;
+  onSaved: () => void;
+}) {
+  const [optimistic, setOptimistic] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [flash, setFlash] = useState<"saved" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const wrapRef = useRef<HTMLSpanElement | null>(null);
+
+  const displayed = optimistic ?? current ?? "A";
+
+  useEffect(() => {
+    setOptimistic(null);
+  }, [current]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (!wrapRef.current) return;
+      if (!wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const mutation = useMutation({
+    mutationFn: (g: string) =>
+      api<{ client_group: string; client_group_updated_at: string }>(
+        `/api/data/legal-persons/${personId}/group`,
+        { method: "PATCH", body: JSON.stringify({ client_group: g }) },
+      ),
+    onMutate: (g) => {
+      setError(null);
+      setOptimistic(g);
+    },
+    onError: (err) => {
+      setOptimistic(null);
+      const msg =
+        err instanceof ApiError
+          ? typeof err.body === "object" && err.body && "detail" in err.body
+            ? String((err.body as { detail: unknown }).detail)
+            : err.message
+          : (err as Error).message;
+      setError(msg);
+      setTimeout(() => setError(null), 4000);
+    },
+    onSuccess: () => {
+      setFlash("saved");
+      setTimeout(() => setFlash(null), 1400);
+      onSaved();
+    },
+  });
+
+  const pending = mutation.isPending;
+
+  return (
+    <span
+      ref={wrapRef}
+      className="relative inline-flex items-center gap-1.5"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button
+        type="button"
+        disabled={!editable || pending}
+        onClick={() => editable && setOpen((v) => !v)}
+        className={[
+          "inline-flex items-center justify-center rounded-[7px] w-7 h-7",
+          "text-[13px] leading-none font-mono transition-colors",
+          "bg-muted border border-border text-foreground",
+          editable
+            ? "hover:border-ink-3 cursor-pointer"
+            : "cursor-default",
+          open ? "border-primary text-primary ring-1 ring-ring/$1" : "",
+          pending ? "opacity-50" : "",
+        ].join(" ")}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        title={editable ? "Guruhni tahrirlash" : undefined}
+      >
+        {pending ? "…" : displayed}
+      </button>
+      {open && editable && (
+        <ul
+          role="listbox"
+          aria-label="Guruh"
+          className="absolute top-full left-0 mt-1 z-50 min-w-[72px] rounded-[8px] border border-border bg-card shadow-[0_20px_60px_-20px_rgba(0,0,0,0.25)] overflow-hidden"
+        >
+          {LEGAL_PERSON_GROUPS.map((g) => {
+            const isCurrent = g === displayed;
+            return (
+              <li key={g}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={isCurrent}
+                  disabled={pending}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpen(false);
+                    if (g !== displayed) mutation.mutate(g);
+                  }}
+                  className={[
+                    "w-full text-left px-3 py-1.5 font-mono text-[13.5px] transition-colors",
+                    "hover:bg-muted focus:bg-muted focus:outline-none",
+                    isCurrent ? "bg-muted/60 font-semibold" : "",
+                  ].join(" ")}
+                >
+                  {g}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <AnimatePresence>
+        {flash === "saved" && (
+          <motion.span
+            key="saved"
+            initial={{ opacity: 0, y: 2 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -2 }}
+            transition={{ duration: 0.18 }}
+            className="font-semibold italic caption text-emerald-700 dark:text-emerald-400 pointer-events-none"
+          >
+            ✓
+          </motion.span>
+        )}
+        {error && (
+          <motion.span
+            key="err"
+            initial={{ opacity: 0, y: 2 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="font-semibold italic caption text-red-700 dark:text-red-400 pointer-events-none max-w-[200px] truncate"
+            title={error}
+          >
+            ! {error}
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </span>
+  );
+}
+
+/**
+ * Editable Instalment days cell. Display: small numeric pill (e.g. "30").
+ * On click → popover with quick-pick chips (30/60/90/180) plus a free-form
+ * input clamped to 1..365. Save commits; "manual" source gets a leading
+ * dot bullet (mirrors DirectionTag's manual indicator).
+ */
+function InstalmentDaysCell({
+  personId,
+  current,
+  source,
+  editable,
+  onSaved,
+}: {
+  personId: number;
+  current: number | null;
+  source: string | null;
+  editable: boolean;
+  onSaved: () => void;
+}) {
+  const [optimistic, setOptimistic] = useState<number | null>(null);
+  const [optimisticSource, setOptimisticSource] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [flash, setFlash] = useState<"saved" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [staged, setStaged] = useState<number>(current ?? 30);
+  const wrapRef = useRef<HTMLSpanElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const displayed = optimistic ?? current ?? 30;
+  const displayedSource = optimisticSource ?? source;
+  const isManual = displayedSource === "manual";
+
+  useEffect(() => {
+    setOptimistic(null);
+    setOptimisticSource(null);
+  }, [current, source]);
+
+  useEffect(() => {
+    if (open) {
+      setStaged(displayed);
+      setError(null);
+      // Focus the input on open.
+      setTimeout(() => inputRef.current?.select(), 30);
+    }
+  }, [open, displayed]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (!wrapRef.current) return;
+      if (!wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const mutation = useMutation({
+    mutationFn: (v: number) =>
+      api<{ instalment_days: number; instalment_days_source: string; instalment_days_updated_at: string }>(
+        `/api/data/legal-persons/${personId}/instalment-days`,
+        { method: "PATCH", body: JSON.stringify({ instalment_days: v }) },
+      ),
+    onMutate: (v) => {
+      setError(null);
+      setOptimistic(v);
+      setOptimisticSource("manual");
+    },
+    onError: (err) => {
+      setOptimistic(null);
+      setOptimisticSource(null);
+      const msg =
+        err instanceof ApiError
+          ? typeof err.body === "object" && err.body && "detail" in err.body
+            ? String((err.body as { detail: unknown }).detail)
+            : err.message
+          : (err as Error).message;
+      setError(msg);
+      setTimeout(() => setError(null), 4000);
+    },
+    onSuccess: () => {
+      setFlash("saved");
+      setTimeout(() => setFlash(null), 1400);
+      onSaved();
+    },
+  });
+
+  const pending = mutation.isPending;
+  const valid = Number.isInteger(staged) && staged >= 1 && staged <= 365;
+  const dirty = staged !== displayed;
+
+  function commit() {
+    if (!valid) return;
+    setOpen(false);
+    if (dirty) mutation.mutate(staged);
+  }
+
+  return (
+    <span
+      ref={wrapRef}
+      className="relative inline-flex items-center gap-1.5"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button
+        type="button"
+        disabled={!editable || pending}
+        onClick={() => editable && setOpen((v) => !v)}
+        className={[
+          "inline-flex items-center gap-1 rounded-[7px] px-2.5 py-[5px]",
+          "text-[13px] leading-none tabular-nums transition-colors",
+          "bg-muted border border-border text-foreground",
+          editable ? "hover:border-ink-3 cursor-pointer" : "cursor-default",
+          open ? "border-primary text-primary ring-1 ring-ring/$1" : "",
+          pending ? "opacity-50" : "",
+        ].join(" ")}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        title={
+          source === "excel"
+            ? "Excel · Data sheet"
+            : source === "manual"
+              ? "qoʻlda sozlangan"
+              : "default"
+        }
+      >
+        {isManual && (
+          <span
+            aria-hidden
+            className="w-1.5 h-1.5 rounded-full bg-primary shrink-0"
+          />
+        )}
+        <span>{pending ? "…" : displayed}</span>
+        {editable && (
+          <svg
+            aria-hidden
+            width="9"
+            height="9"
+            viewBox="0 0 10 10"
+            fill="none"
+            className="text-muted-foreground shrink-0"
+          >
+            <path
+              d="M2 3.5 5 6.5 8 3.5"
+              stroke="currentColor"
+              strokeWidth="1.3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        )}
+      </button>
+      {open && editable && (
+        <div
+          role="dialog"
+          aria-label="Instalment kunlari"
+          className="absolute top-full left-0 mt-1 z-50 w-[240px] rounded-[10px] border border-border bg-card shadow-[0_20px_60px_-20px_rgba(0,0,0,0.25)] overflow-hidden"
+        >
+          <div className="px-3.5 pt-3 pb-2.5 border-b border-border bg-background">
+            <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-[0.08em]">
+              Instalment (kun)
+            </div>
+            <div className="mt-1 flex items-center gap-2 text-[13.5px] leading-tight">
+              <span className="tabular-nums">{displayed}</span>
+              {dirty && (
+                <>
+                  <span className="text-muted-foreground" aria-hidden>→</span>
+                  <span className={`font-semibold ${valid ? "text-primary" : "text-red-600"}`}>
+                    {staged}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="px-3.5 py-3 flex flex-col gap-2.5">
+            <div className="flex flex-wrap gap-1.5">
+              {INSTALMENT_DAYS_PRESETS.map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setStaged(d)}
+                  className={[
+                    "text-[12.5px] px-2.5 py-1 rounded-[6px] tabular-nums border transition-colors",
+                    staged === d
+                      ? "bg-primary text-card border-primary"
+                      : "bg-card text-foreground border-border hover:border-ink-3",
+                  ].join(" ")}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
+            <input
+              ref={inputRef}
+              type="number"
+              min={1}
+              max={365}
+              step={1}
+              value={Number.isFinite(staged) ? staged : ""}
+              onChange={(e) => {
+                const n = Number(e.target.value);
+                setStaged(Number.isFinite(n) ? n : 0);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  commit();
+                }
+              }}
+              className="w-full text-[13.5px] tabular-nums bg-background border border-border rounded-[6px] px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-ring focus:border-ring"
+            />
+            {!valid && (
+              <div className="text-[11.5px] text-red-600">1 dan 365 kungacha</div>
+            )}
+          </div>
+          <div className="px-3.5 py-2.5 border-t border-border bg-background flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              disabled={pending}
+              className="text-[12.5px] px-3 py-1.5 rounded-[6px] text-foreground/80 hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              Bekor
+            </button>
+            <button
+              type="button"
+              onClick={commit}
+              disabled={!valid || !dirty || pending}
+              className={[
+                "text-[12.5px] px-3 py-1.5 rounded-[6px] font-medium transition-colors",
+                valid && dirty && !pending
+                  ? "bg-primary text-card hover:brightness-110"
+                  : "bg-muted text-muted-foreground cursor-not-allowed",
+              ].join(" ")}
+            >
+              Saqlash
+            </button>
+          </div>
+        </div>
+      )}
+      <AnimatePresence>
+        {flash === "saved" && (
+          <motion.span
+            key="saved"
+            initial={{ opacity: 0, y: 2 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -2 }}
+            transition={{ duration: 0.18 }}
+            className="font-semibold italic caption text-emerald-700 dark:text-emerald-400 pointer-events-none"
+          >
+            ✓
+          </motion.span>
+        )}
+        {error && (
+          <motion.span
+            key="err"
+            initial={{ opacity: 0, y: 2 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="font-semibold italic caption text-red-700 dark:text-red-400 pointer-events-none max-w-[200px] truncate"
+            title={error}
+          >
+            ! {error}
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </span>
   );
 }
 

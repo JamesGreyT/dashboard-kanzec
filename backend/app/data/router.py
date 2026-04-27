@@ -97,10 +97,27 @@ class DirectionBody(BaseModel):
     direction: str = Field(..., min_length=1, max_length=64)
 
 
+class InstalmentDaysBody(BaseModel):
+    instalment_days: int = Field(..., ge=0, le=365)
+
+
+class GroupBody(BaseModel):
+    client_group: str = Field(..., min_length=1, max_length=1)
+
+
+ALLOWED_GROUPS: frozenset[str] = frozenset({"A", "B", "C", "D"})
+
+
 @router.get("/legal-persons/directions")
 async def list_directions(_: CurrentUser) -> dict:
     """Allowed Yoʻnalish values for the inline editor."""
     return {"directions": sorted(ALLOWED_DIRECTIONS)}
+
+
+@router.get("/legal-persons/groups")
+async def list_groups(_: CurrentUser) -> dict:
+    """Allowed Group values for the inline editor."""
+    return {"groups": sorted(ALLOWED_GROUPS)}
 
 
 @router.patch("/legal-persons/{person_id}/direction")
@@ -161,6 +178,112 @@ async def set_legal_person_direction(
         "direction_source": row["direction_source"],
         "direction_updated_at": row["direction_updated_at"].isoformat()
             if row["direction_updated_at"] else None,
+    }
+
+
+@router.patch("/legal-persons/{person_id}/instalment-days")
+async def set_legal_person_instalment_days(
+    person_id: int,
+    body: InstalmentDaysBody,
+    scope: ScopedUser,
+    request: Request,
+    _: Annotated[object, Depends(require_role("admin", "operator"))],
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict:
+    """Set the per-client instalment_days. Scope-enforced: non-admin users
+    can only edit clients inside their assigned rooms."""
+    scope_frag, scope_params = clause_for_table(scope, "smartup_rep.legal_person")
+    scope_where = f" AND {scope_frag}" if scope_frag else ""
+    row = (
+        await session.execute(
+            text(
+                f"""
+                UPDATE smartup_rep.legal_person
+                   SET instalment_days = :v,
+                       instalment_days_source = 'manual',
+                       instalment_days_updated_at = now()
+                 WHERE person_id = :pid
+                   {scope_where}
+                RETURNING person_id, name, instalment_days, instalment_days_source, instalment_days_updated_at
+                """
+            ),
+            {"v": body.instalment_days, "pid": person_id, **scope_params},
+        )
+    ).mappings().first()
+    if row is None:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, "legal person not found or outside scope"
+        )
+    await audit.write(
+        session,
+        user_id=scope.user_id,
+        action="legal_person.instalment_days.update",
+        target=f"person:{person_id}",
+        details={"instalment_days": body.instalment_days},
+        ip_address=request.client.host if request.client else None,
+    )
+    await session.commit()
+    return {
+        "person_id": row["person_id"],
+        "name": row["name"],
+        "instalment_days": row["instalment_days"],
+        "instalment_days_source": row["instalment_days_source"],
+        "instalment_days_updated_at": row["instalment_days_updated_at"].isoformat()
+            if row["instalment_days_updated_at"] else None,
+    }
+
+
+@router.patch("/legal-persons/{person_id}/group")
+async def set_legal_person_group(
+    person_id: int,
+    body: GroupBody,
+    scope: ScopedUser,
+    request: Request,
+    _: Annotated[object, Depends(require_role("admin", "operator"))],
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict:
+    """Set the per-client client_group (A/B/C/D). Scope-enforced."""
+    if body.client_group not in ALLOWED_GROUPS:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"client_group must be one of {sorted(ALLOWED_GROUPS)}",
+        )
+    scope_frag, scope_params = clause_for_table(scope, "smartup_rep.legal_person")
+    scope_where = f" AND {scope_frag}" if scope_frag else ""
+    row = (
+        await session.execute(
+            text(
+                f"""
+                UPDATE smartup_rep.legal_person
+                   SET client_group = :v,
+                       client_group_updated_at = now()
+                 WHERE person_id = :pid
+                   {scope_where}
+                RETURNING person_id, name, client_group, client_group_updated_at
+                """
+            ),
+            {"v": body.client_group, "pid": person_id, **scope_params},
+        )
+    ).mappings().first()
+    if row is None:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, "legal person not found or outside scope"
+        )
+    await audit.write(
+        session,
+        user_id=scope.user_id,
+        action="legal_person.group.update",
+        target=f"person:{person_id}",
+        details={"client_group": body.client_group},
+        ip_address=request.client.host if request.client else None,
+    )
+    await session.commit()
+    return {
+        "person_id": row["person_id"],
+        "name": row["name"],
+        "client_group": row["client_group"],
+        "client_group_updated_at": row["client_group_updated_at"].isoformat()
+            if row["client_group_updated_at"] else None,
     }
 
 

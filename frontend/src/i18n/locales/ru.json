@@ -65,8 +65,52 @@
     "payments_dash": "Платежи",
     "returns": "Возвраты",
     "worklist": "Список долгов",
+    "clients": "Клиенты",
     "dayslice": "Дневной срез",
     "executive_group": "Стратегия"
+  },
+  "clients": {
+    "title": "Клиенты",
+    "blurb": "Раздолжение по каждому клиенту: открывающие сальдо, продажи, возвраты, оплаты, текущий долг, срок и возрастные корзины (1-30, 31-60, 61-90, 90+).",
+    "search_placeholder": "Имя клиента или ИНН…",
+    "empty": "— клиенты не найдены —",
+    "kpi": {
+      "total_qarz": "Общий долг",
+      "clients": "клиентов"
+    },
+    "filter": {
+      "manager": "Менеджер",
+      "direction": "Направление",
+      "group": "Группа",
+      "region": "Регион",
+      "overdue_only": "Только просроченные"
+    },
+    "col": {
+      "client": "Клиент",
+      "term_days": "Срок (дн.)",
+      "opening_debt": "Откр. долг",
+      "opening_credit": "Откр. кредит",
+      "sotuv": "Продажи",
+      "vozrat": "Возвраты",
+      "tolov": "Оплаты",
+      "total_credits": "Всего кредитов",
+      "total_debt": "Всего долга",
+      "qarz": "Долг",
+      "not_due": "Не просрочено",
+      "overdue": "Просрочено",
+      "bucket_1_30": "1-30",
+      "bucket_31_60": "31-60",
+      "bucket_61_90": "61-90",
+      "bucket_90_plus": "90+",
+      "overdue_0": "Overdue0",
+      "overdue_30": "Overdue30",
+      "overdue_60": "Overdue60",
+      "overdue_90": "Overdue90",
+      "manager": "Менеджер",
+      "region": "Регион",
+      "direction": "Направление",
+      "group": "Группа"
+    }
   },
   "payments_dash": {
     "title": "Аналитика платежей",

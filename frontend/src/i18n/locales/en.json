@@ -65,8 +65,52 @@
     "payments_dash": "Payments",
     "returns": "Returns",
     "worklist": "Debt worklist",
+    "clients": "Clients",
     "dayslice": "Day-slice",
     "executive_group": "Executive"
+  },
+  "clients": {
+    "title": "Clients",
+    "blurb": "Per-client AR rollup: opening balances, sales, returns, payments, current debt, term days, and aging buckets (1-30, 31-60, 61-90, 90+).",
+    "search_placeholder": "Client name or TIN…",
+    "empty": "— no clients found —",
+    "kpi": {
+      "total_qarz": "Total debt",
+      "clients": "clients"
+    },
+    "filter": {
+      "manager": "Manager",
+      "direction": "Direction",
+      "group": "Group",
+      "region": "Region",
+      "overdue_only": "Overdue only"
+    },
+    "col": {
+      "client": "Client",
+      "term_days": "Term (days)",
+      "opening_debt": "Opening debt",
+      "opening_credit": "Opening credit",
+      "sotuv": "Sales",
+      "vozrat": "Returns",
+      "tolov": "Payments",
+      "total_credits": "Total credits",
+      "total_debt": "Total debt",
+      "qarz": "Debt",
+      "not_due": "Not yet due",
+      "overdue": "Overdue",
+      "bucket_1_30": "1-30",
+      "bucket_31_60": "31-60",
+      "bucket_61_90": "61-90",
+      "bucket_90_plus": "90+",
+      "overdue_0": "Overdue0",
+      "overdue_30": "Overdue30",
+      "overdue_60": "Overdue60",
+      "overdue_90": "Overdue90",
+      "manager": "Manager",
+      "region": "Region",
+      "direction": "Direction",
+      "group": "Group"
+    }
   },
   "payments_dash": {
     "title": "Payments analytics",

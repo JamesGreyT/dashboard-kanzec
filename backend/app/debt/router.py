@@ -76,6 +76,41 @@ async def worklist(
     )
 
 
+@router.get("/clients-aging")
+async def clients_aging(
+    scope: ScopedUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    limit: int = Query(50, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    sales_manager_room_id: str | None = None,
+    region: str | None = None,
+    category: str | None = None,
+    direction: str | None = None,
+    client_group: str | None = None,
+    overdue_only: bool = False,
+    search: str | None = None,
+) -> dict:
+    """Per-client AR-aging table — Excel `Data` sheet equivalent.
+
+    Reads per-client term days from legal_person.instalment_days and emits
+    columns covering opening balances, sales/returns/payments, current debt,
+    aging buckets (1-30, 31-60, 61-90, 90+), cumulative overdue thresholds,
+    plus client_group / direction / region / manager.
+    """
+    filters = service.LedgerFilters(
+        sales_manager_room_id=sales_manager_room_id,
+        region=region,
+        category=category,
+        direction=direction,
+        client_group=client_group,
+        overdue_only=overdue_only,
+        search=search,
+    )
+    return await service.compute_ledger(
+        session, scope=scope, filters=filters, limit=limit, offset=offset
+    )
+
+
 @router.get("/prepayments")
 async def prepayments(
     scope: ScopedUser,

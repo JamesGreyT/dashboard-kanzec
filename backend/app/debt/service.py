@@ -837,6 +837,7 @@ class LedgerFilters:
     region: str | None = None
     category: str | None = None
     direction: str | None = None           # exact match against legal_person.direction
+    client_group: str | None = None        # exact match against legal_person.client_group
     overdue_only: bool = False
     search: str | None = None
 
@@ -868,9 +869,14 @@ async def compute_ledger(
     person_f, scope_params = _scope_fragments(scope)
     params: dict[str, Any] = {
         **scope_params,
-        "term": int(term_days),
         "min_owed": float(_LEDGER_MIN_OWED),
+        "default_term": int(DEFAULT_TERM_DAYS),
     }
+    # term_days is no longer a single bound parameter — each row uses
+    # legal_person.instalment_days (NOT NULL, default 30 in the schema).
+    # The function still accepts term_days for backward compatibility but
+    # it is intentionally unused in the SQL.
+    _ = term_days
 
     filter_sqls: list[str] = []
     if filters.sales_manager_room_id:
@@ -885,6 +891,9 @@ async def compute_ledger(
     if filters.direction:
         filter_sqls.append("direction = :f_direction")
         params["f_direction"] = filters.direction
+    if filters.client_group:
+        filter_sqls.append("client_group = :f_client_group")
+        params["f_client_group"] = filters.client_group
     if filters.overdue_only:
         filter_sqls.append("overdue > 0")
     if filters.search:
@@ -988,18 +997,25 @@ async def compute_ledger(
         LEFT JOIN tot_pay tp USING (person_id)
     ),
     aging AS (
-      -- age_days = how old the invoice is. Due date = delivery_date + term.
-      -- overdue_days = age_days - term.  >0 means past due.
+      -- age_days = how old the invoice is. Due date = delivery_date + term_days.
+      -- overdue_days = age_days - term_days. >0 means past due. term_days is
+      -- read per-client from legal_person.instalment_days (NOT NULL, default
+      -- 30 in the schema). Orphan person_ids (no legal_person row) fall back
+      -- to :default_term.
       SELECT x.person_id,
-             SUM(CASE WHEN x.age_days <= :term                         THEN x.unpaid_slice ELSE 0 END) AS not_due,
-             SUM(CASE WHEN x.age_days >  :term                         THEN x.unpaid_slice ELSE 0 END) AS overdue,
-             SUM(CASE WHEN x.age_days >  :term      AND x.age_days <= :term + 30 THEN x.unpaid_slice ELSE 0 END) AS bucket_1_30,
-             SUM(CASE WHEN x.age_days >  :term + 30 AND x.age_days <= :term + 60 THEN x.unpaid_slice ELSE 0 END) AS bucket_31_60,
-             SUM(CASE WHEN x.age_days >  :term + 60 AND x.age_days <= :term + 90 THEN x.unpaid_slice ELSE 0 END) AS bucket_61_90,
-             SUM(CASE WHEN x.age_days >  :term + 90                    THEN x.unpaid_slice ELSE 0 END) AS bucket_90_plus
+             SUM(CASE WHEN x.age_days <= x.term_days                                  THEN x.unpaid_slice ELSE 0 END) AS not_due,
+             SUM(CASE WHEN x.age_days >  x.term_days                                  THEN x.unpaid_slice ELSE 0 END) AS overdue,
+             SUM(CASE WHEN x.age_days >  x.term_days      AND x.age_days <= x.term_days + 30 THEN x.unpaid_slice ELSE 0 END) AS bucket_1_30,
+             SUM(CASE WHEN x.age_days >  x.term_days + 30 AND x.age_days <= x.term_days + 60 THEN x.unpaid_slice ELSE 0 END) AS bucket_31_60,
+             SUM(CASE WHEN x.age_days >  x.term_days + 60 AND x.age_days <= x.term_days + 90 THEN x.unpaid_slice ELSE 0 END) AS bucket_61_90,
+             SUM(CASE WHEN x.age_days >  x.term_days + 90                             THEN x.unpaid_slice ELSE 0 END) AS bucket_90_plus
         FROM (
-          SELECT person_id, unpaid_slice, (CURRENT_DATE - delivery_date) AS age_days
-            FROM ord_unpaid
+          SELECT ou.person_id, ou.unpaid_slice,
+                 (CURRENT_DATE - ou.delivery_date)                AS age_days,
+                 COALESCE(lp.instalment_days, :default_term)      AS term_days
+            FROM ord_unpaid ou
+            LEFT JOIN smartup_rep.legal_person lp
+              ON lp.person_id::text = ou.person_id
         ) x
        GROUP BY x.person_id
     ),
@@ -1021,7 +1037,8 @@ async def compute_ledger(
            lp.region_name,
            lp.group_name2                         AS category,
            lp.direction                           AS direction,
-           :term                                  AS term_days,
+           lp.client_group                        AS client_group,
+           COALESCE(lp.instalment_days, :default_term) AS term_days,
            COALESCE(ob.opening_debt, 0)           AS opening_debt,
            COALESCE(ob.opening_credit, 0)         AS opening_credit,
            COALESCE(cg.sotuv, 0)                  AS sotuv,
@@ -1103,7 +1120,7 @@ async def compute_ledger(
         "rows": [_jsonify_mapping(r) for r in rows],
         "total": total,
         "summary": _jsonify_mapping(summary),
-        "term_days": int(term_days),
+        "default_term_days": int(DEFAULT_TERM_DAYS),
     }
 
 

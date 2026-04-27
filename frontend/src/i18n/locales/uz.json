@@ -65,8 +65,52 @@
     "payments_dash": "To'lovlar",
     "returns": "Qaytarishlar",
     "worklist": "Qarzlar ro'yxati",
+    "clients": "Mijozlar",
     "dayslice": "Kunlik kesim",
     "executive_group": "Strategik"
+  },
+  "clients": {
+    "title": "Mijozlar",
+    "blurb": "Har bir mijoz bo'yicha qarzdorlik kesimi: ochilish qoldiqlari, sotuv, qaytarish, to'lovlar, joriy qarz, muddati va yosh kesimlari (1-30, 31-60, 61-90, 90+).",
+    "search_placeholder": "Mijoz nomi yoki STIR…",
+    "empty": "— mijozlar topilmadi —",
+    "kpi": {
+      "total_qarz": "Umumiy qarz",
+      "clients": "mijoz"
+    },
+    "filter": {
+      "manager": "Menejer",
+      "direction": "Yo'nalish",
+      "group": "Guruh",
+      "region": "Hudud",
+      "overdue_only": "Faqat muddati o'tganlar"
+    },
+    "col": {
+      "client": "Mijoz",
+      "term_days": "Nehca kun?",
+      "opening_debt": "Boshlang'ich qarz",
+      "opening_credit": "Boshlang'ich kredit",
+      "sotuv": "Sotuv",
+      "vozrat": "Vozrat",
+      "tolov": "To'lov",
+      "total_credits": "TotalCredits",
+      "total_debt": "TotalDebt",
+      "qarz": "Qarz",
+      "not_due": "Muddati tugamagan",
+      "overdue": "Muddati o'tgan",
+      "bucket_1_30": "1-30",
+      "bucket_31_60": "31-60",
+      "bucket_61_90": "61-90",
+      "bucket_90_plus": "90+",
+      "overdue_0": "Overdue0",
+      "overdue_30": "Overdue30",
+      "overdue_60": "Overdue60",
+      "overdue_90": "Overdue90",
+      "manager": "Meneger",
+      "region": "Region",
+      "direction": "Yo'nalish",
+      "group": "Group"
+    }
   },
   "payments_dash": {
     "title": "To'lovlar analitikasi",
