@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 
 import { api } from "../lib/api";
 import PageHeading from "../components/PageHeading";
@@ -54,7 +55,23 @@ export default function Sales() {
 
   const [window, setWindow] = useState<WindowState>(defaultWindow());
   const [directions, setDirections] = useState<string[]>([]);
-  const [tab, setTab] = useState<"clients" | "managers" | "brands" | "regions" | "rfm">("clients");
+
+  // Tab state mirrored to ?tab=... so the dashboard's RFM tile can deep-link.
+  // Bookmark-paste of /analytics/sales (no tab param) keeps the default.
+  type Tab = "clients" | "managers" | "brands" | "regions" | "rfm";
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get("tab") as Tab | null;
+  const validTabs: Tab[] = ["clients", "managers", "brands", "regions", "rfm"];
+  const initialTab: Tab =
+    tabFromUrl && validTabs.includes(tabFromUrl) ? tabFromUrl : "clients";
+  const [tab, setTabState] = useState<Tab>(initialTab);
+  const setTab = (next: Tab) => {
+    setTabState(next);
+    const sp = new URLSearchParams(searchParams);
+    if (next === "clients") sp.delete("tab");
+    else sp.set("tab", next);
+    setSearchParams(sp, { replace: true });
+  };
   const prefsQ = usePreferences();
   const [prefsApplied, setPrefsApplied] = useState(false);
   // Apply saved preferences once on first successful fetch.
