@@ -1243,7 +1243,7 @@ function PaymentsTable({
               <Th>{t("debt.pay_col.payment_date")}</Th>
               <Th>{t("debt.pay_col.payer")}</Th>
               <Th className="hidden md:table-cell">
-                {t("debt.pay_col.method")}
+                {t("debt.pay_col.payment_method")}
               </Th>
               <Th align="right">{t("debt.pay_col.amount")}</Th>
             </tr>

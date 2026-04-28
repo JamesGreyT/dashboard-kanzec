@@ -46,7 +46,7 @@ export default function AdminAudit() {
       <div className="">
         <PageHeading
           crumb={[
-            t("dashboard.crumb_dashboard"),
+            t("nav.dashboard"),
             t("admin.crumb"),
             t("admin.audit_crumb"),
           ]}
