@@ -1,20 +1,20 @@
 import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import {
-  BarChart3,
+  ArrowUpRight,
   CalendarRange,
   HandCoins,
-  Layers,
+  Users,
+  type LucideIcon,
 } from "lucide-react";
 
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { last90Days } from "../lib/dashboardWindow";
-import PageHeading from "../components/PageHeading";
-import MetricCard, { fmtNum, fmtCount, fmtPct } from "../components/MetricCard";
+import { fmtNum, fmtCount, fmtPct } from "../components/MetricCard";
 import TimeSeriesChart, { type SeriesPoint } from "../components/TimeSeriesChart";
-import SectionCard from "../components/SectionCard";
 
 // ---------------------------------------------------------------------------
 // Response types
@@ -65,7 +65,7 @@ interface RfmResp {
 // ---------------------------------------------------------------------------
 
 export default function Dashboard() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
 
@@ -73,8 +73,21 @@ export default function Dashboard() {
     document.title = t("dashboard.title", { defaultValue: "Dashboard" }) + " · Kanzec";
   }, [t]);
 
+  // Localized "Monday, 28 April 2026" for the masthead eyebrow.
+  const lang = (i18n.language || "uz").split("-")[0];
+  const dateLabel = new Date().toLocaleDateString(
+    lang === "uz" ? "uz-UZ" : lang === "ru" ? "ru-RU" : "en-US",
+    { weekday: "long", day: "numeric", month: "long", year: "numeric" },
+  );
+
+  // Split the title across two lines with the italic accent dot trailing
+  // the last word — same trick PageHeading uses.
+  const titleWords = (t("dashboard.title", { defaultValue: "Dashboard" }) as string).trim().split(/\s+/);
+  const titleHead = titleWords.slice(0, -1).join(" ");
+  const titleTail = titleWords[titleWords.length - 1];
+
   // -------------------------------------------------------------------------
-  // Top strip + 30d trend — single overview endpoint
+  // Queries
   // -------------------------------------------------------------------------
   const overviewQ = useQuery({
     queryKey: ["dashboard.overview"],
@@ -82,10 +95,6 @@ export default function Dashboard() {
     staleTime: 60_000,
   });
 
-  // -------------------------------------------------------------------------
-  // Section tiles — independent useQuery per tile so loading/error state
-  // doesn't cascade across the grid.
-  // -------------------------------------------------------------------------
   const sotuvCmpQ = useQuery({
     queryKey: ["dashboard.cmp.sotuv"],
     queryFn: () =>
@@ -136,7 +145,7 @@ export default function Dashboard() {
   });
 
   // -------------------------------------------------------------------------
-  // Derived shapes
+  // Derived state
   // -------------------------------------------------------------------------
 
   const trendSeries: SeriesPoint[] = useMemo(() => {
@@ -149,133 +158,158 @@ export default function Dashboard() {
     return a / b - 1;
   };
 
+  const yearLabels = sotuvCmpQ.data?.columns ?? [];
+  const yearNow = yearLabels.at(-1) ?? "";
+  const yearPrev = yearLabels.at(-2) ?? "";
+
   // -------------------------------------------------------------------------
   // Render
   // -------------------------------------------------------------------------
 
   return (
-    <div>
-      <PageHeading
-        crumb={[t("dashboard.title", { defaultValue: "Dashboard" })]}
-        title={t("dashboard.title", { defaultValue: "Dashboard" })}
-        subtitle={t("dashboard.subtitle", {
-          defaultValue:
-            "Bugungi ko'rsatkichlar, asosiy bo'limlarning qisqa hisobotlari va tezkor navigatsiya.",
-        })}
-      />
+    <div className="space-y-14 md:space-y-20 pb-16">
+      {/* MASTHEAD */}
+      <header className="stagger-0 relative pb-10">
+        <div className="grid grid-cols-12 gap-x-6 gap-y-8 items-end">
+          <div className="col-span-12 md:col-span-7">
+            <div className="eyebrow !tracking-[0.20em] mb-5">{dateLabel}</div>
+            <h1 className="font-display text-[44px] sm:text-6xl md:text-[88px] font-medium leading-[0.92] tracking-[-0.02em] text-foreground">
+              {titleHead && <span className="block">{titleHead}</span>}
+              <span className="block">
+                {titleTail}
+                <span aria-hidden className="font-display-italic text-primary">.</span>
+              </span>
+            </h1>
+          </div>
+          <div className="col-span-12 md:col-span-5 md:pl-8 md:border-l border-border/60 md:self-end pb-1">
+            <p className="text-[14px] md:text-[15px] text-muted-foreground italic leading-relaxed max-w-prose">
+              {t("dashboard.subtitle")}
+            </p>
+          </div>
+        </div>
+        <div className="mark-rule absolute bottom-0 left-0 right-0" aria-hidden />
+      </header>
 
-      {/* Today strip — 4-up on desktop, 2-up on mobile */}
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-10">
-        <MetricCard
-          label={t("dashboard.today_orders", { defaultValue: "Today's orders" })}
-          value={"$" + fmtNum(overviewQ.data?.today.orders.amount ?? 0, true)}
-          unit={fmtCount(overviewQ.data?.today.orders.count ?? 0) + " " + t("dashboard.orders_unit", { defaultValue: "deals" })}
-          delta={todayDelta(
-            overviewQ.data?.today.orders.amount,
-            overviewQ.data?.yesterday.orders.amount,
-          )}
-          deltaLabel={t("dashboard.vs_yesterday", { defaultValue: "vs yesterday" })}
-        />
-        <MetricCard
-          label={t("dashboard.today_payments", { defaultValue: "Today's payments" })}
-          value={"$" + fmtNum(overviewQ.data?.today.payments.amount ?? 0, true)}
-          unit={fmtCount(overviewQ.data?.today.payments.count ?? 0) + " " + t("dashboard.payments_unit", { defaultValue: "tx" })}
-          delta={todayDelta(
-            overviewQ.data?.today.payments.amount,
-            overviewQ.data?.yesterday.payments.amount,
-          )}
-          deltaLabel={t("dashboard.vs_yesterday", { defaultValue: "vs yesterday" })}
-        />
-        <MetricCard
-          label={t("dashboard.week_orders", { defaultValue: "This week orders" })}
-          value={"$" + fmtNum(overviewQ.data?.week.orders_amount ?? 0, true)}
-          hint={t("dashboard.week_hint", { defaultValue: "rolling 7 days" })}
-        />
-        <MetricCard
-          label={t("dashboard.active_30d", { defaultValue: "Active clients (30d)" })}
-          value={fmtCount(overviewQ.data?.active_clients_30d ?? 0)}
-          hint={t("dashboard.active_30d_hint", {
-            defaultValue: "distinct clients with deliveries",
-          })}
-        />
+      {/* PULSE STRIP — editorial stat list, hairline dividers between cells */}
+      <section className="stagger-1">
+        <div className="eyebrow !tracking-[0.18em] mb-6 flex items-baseline gap-2">
+          <span>{t("dashboard.pulse_label", { defaultValue: "Bugungi puls" })}</span>
+          <span aria-hidden className="font-display-italic text-primary text-[14px] -ml-0.5">.</span>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-0 gap-y-10 md:divide-x divide-border/50">
+          <PulseStat
+            label={t("dashboard.today_orders")}
+            value={overviewQ.data ? "$" + fmtNum(overviewQ.data.today.orders.amount, true) : "—"}
+            sub={overviewQ.data ? fmtCount(overviewQ.data.today.orders.count) + " " + t("dashboard.orders_unit") : ""}
+            delta={todayDelta(
+              overviewQ.data?.today.orders.amount,
+              overviewQ.data?.yesterday.orders.amount,
+            )}
+            deltaLabel={t("dashboard.vs_yesterday") as string}
+            isFirst
+          />
+          <PulseStat
+            label={t("dashboard.today_payments")}
+            value={overviewQ.data ? "$" + fmtNum(overviewQ.data.today.payments.amount, true) : "—"}
+            sub={overviewQ.data ? fmtCount(overviewQ.data.today.payments.count) + " " + t("dashboard.payments_unit") : ""}
+            delta={todayDelta(
+              overviewQ.data?.today.payments.amount,
+              overviewQ.data?.yesterday.payments.amount,
+            )}
+            deltaLabel={t("dashboard.vs_yesterday") as string}
+          />
+          <PulseStat
+            label={t("dashboard.week_orders")}
+            value={overviewQ.data ? "$" + fmtNum(overviewQ.data.week.orders_amount, true) : "—"}
+            sub={t("dashboard.week_hint") as string}
+          />
+          <PulseStat
+            label={t("dashboard.active_30d")}
+            value={overviewQ.data ? fmtCount(overviewQ.data.active_clients_30d) : "—"}
+            sub={t("dashboard.active_30d_hint") as string}
+          />
+        </div>
       </section>
 
-      {/* Section grid — Taqqoslash, Kunlik kesim (admin), Collection, RFM */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-10">
-        <SectionCard
-          to="/analytics/comparison"
-          icon={Layers}
-          title={t("nav.comparison", { defaultValue: "Comparison" })}
-          subtitle={t("dashboard.section_comparison_subtitle", {
-            defaultValue: "Sotuv va Kirim hozirgi yil vs o'tgan yil",
-          })}
-          loading={sotuvCmpQ.isLoading || kirimCmpQ.isLoading}
-          error={!!sotuvCmpQ.error || !!kirimCmpQ.error}
-        >
-          <ComparisonTileBody sotuv={sotuvCmpQ.data} kirim={kirimCmpQ.data} t={t} />
-        </SectionCard>
+      {/* SPOTLIGHT — Taqqoslash, the lead headline of the page */}
+      <SpotlightCard
+        to="/analytics/comparison"
+        eyebrow={t("nav.comparison") as string}
+        kicker={yearPrev && yearNow ? `${yearPrev} → ${yearNow}` : ""}
+        loading={sotuvCmpQ.isLoading || kirimCmpQ.isLoading}
+        error={!!sotuvCmpQ.error || !!kirimCmpQ.error}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-12 md:gap-y-0 md:gap-x-16 md:divide-x divide-border/40">
+          <SpotlightHalf
+            label={t("comparison.tab_sotuv") as string}
+            current={sotuvCmpQ.data?.totals.values.at(-1) ?? null}
+            prior={sotuvCmpQ.data?.totals.values.at(-2) ?? null}
+            yoy={sotuvCmpQ.data?.totals.trend_delta_pct ?? null}
+            yearPrev={yearPrev}
+          />
+          <SpotlightHalf
+            label={t("comparison.tab_kirim") as string}
+            current={kirimCmpQ.data?.totals.values.at(-1) ?? null}
+            prior={kirimCmpQ.data?.totals.values.at(-2) ?? null}
+            yoy={kirimCmpQ.data?.totals.trend_delta_pct ?? null}
+            yearPrev={yearPrev}
+            offset
+          />
+        </div>
+      </SpotlightCard>
 
+      {/* SECONDARY GRID — three tiles, asymmetric layouts inside */}
+      <section
+        className={
+          "stagger-3 grid gap-5 md:gap-6 grid-cols-1 " +
+          (isAdmin ? "md:grid-cols-3" : "md:grid-cols-2")
+        }
+      >
         {isAdmin && (
-          <SectionCard
-            to="/dayslice"
-            icon={CalendarRange}
-            title={t("nav.dayslice", { defaultValue: "Day-slice" })}
-            subtitle={t("dashboard.section_dayslice_subtitle", {
-              defaultValue: "Joriy oyning oxiriga prognoz",
-            })}
-            loading={projectionQ.isLoading}
-            error={!!projectionQ.error}
-          >
-            <ProjectionTileBody data={projectionQ.data} t={t} />
-          </SectionCard>
+          <KunlikKesimTile data={projectionQ.data} loading={projectionQ.isLoading} error={!!projectionQ.error} t={t} />
         )}
-
-        <SectionCard
-          to="/collection/worklist"
-          icon={HandCoins}
-          title={t("nav.worklist", { defaultValue: "Collection" })}
-          subtitle={t("dashboard.section_collection_subtitle", {
-            defaultValue: "Qarzdorlik va oldindan to'lovlar",
-          })}
+        <CollectionTile
+          worklist={worklistQ.data}
+          prepayments={prepaymentsQ.data}
           loading={worklistQ.isLoading || prepaymentsQ.isLoading}
           error={!!worklistQ.error || !!prepaymentsQ.error}
-        >
-          <CollectionTileBody
-            worklist={worklistQ.data}
-            prepayments={prepaymentsQ.data}
-            t={t}
-          />
-        </SectionCard>
-
-        <SectionCard
-          to="/analytics/sales?tab=rfm"
-          icon={BarChart3}
-          title={t("dashboard.section_rfm_title", { defaultValue: "RFM" })}
-          subtitle={t("dashboard.section_rfm_subtitle", {
-            defaultValue: "So'nggi 90 kun bo'yicha mijoz segmentlari",
-          })}
-          loading={rfmQ.isLoading}
-          error={!!rfmQ.error}
-        >
-          <RfmTileBody data={rfmQ.data} t={t} />
-        </SectionCard>
+          t={t}
+        />
+        <RfmTile data={rfmQ.data} loading={rfmQ.isLoading} error={!!rfmQ.error} t={t} />
       </section>
 
-      {/* 30-day trend */}
+      {/* TREND — minimal chrome, sits in the page like an inline figure */}
       {trendSeries.length > 0 && (
-        <section className="mb-10">
-          <h2 className="font-display text-[22px] md:text-[26px] font-medium tracking-[-0.01em] text-foreground mb-3">
-            {t("dashboard.trend_30d", { defaultValue: "30-day trend" })}
-            <span aria-hidden className="font-display-italic text-primary ml-[2px]">.</span>
-          </h2>
-          <div className="bg-card border rounded-2xl shadow-soft p-4">
+        <section className="stagger-4">
+          <div className="flex items-end justify-between mb-6 flex-wrap gap-3">
+            <div>
+              <div className="eyebrow !tracking-[0.18em] mb-2">
+                {t("dashboard.trend_eyebrow", { defaultValue: "Oxirgi 30 kun" })}
+              </div>
+              <h2 className="font-display text-[28px] md:text-[34px] font-medium tracking-[-0.01em] leading-[0.95] text-foreground">
+                {t("dashboard.trend_30d")}
+                <span aria-hidden className="font-display-italic text-primary">.</span>
+              </h2>
+            </div>
+            <div className="flex items-center gap-4 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+              <LegendDot
+                color="hsl(var(--foreground))"
+                label={t("dashboard.orders_label") as string}
+              />
+              <LegendDot
+                color="hsl(var(--primary))"
+                label={t("dashboard.payments_label") as string}
+              />
+            </div>
+          </div>
+          <div className="border-t border-border/50 pt-5">
             <TimeSeriesChart
               data={trendSeries}
               showYoY
-              primaryLabel={t("dashboard.orders_label", { defaultValue: "Orders" })}
-              yoyLabel={t("dashboard.payments_label", { defaultValue: "Payments" })}
+              primaryLabel={t("dashboard.orders_label") as string}
+              yoyLabel={t("dashboard.payments_label") as string}
               showArea
-              height={260}
+              height={300}
             />
           </div>
         </section>
@@ -285,211 +319,26 @@ export default function Dashboard() {
 }
 
 // ---------------------------------------------------------------------------
-// Tile bodies — kept inline, not separate files (small + only used here)
+// Pulse stat — vertical editorial cell. Hairline divider from sibling.
 // ---------------------------------------------------------------------------
 
-function ComparisonTileBody({
-  sotuv,
-  kirim,
-  t,
-}: {
-  sotuv: ComparisonResp | undefined;
-  kirim: ComparisonResp | undefined;
-  t: ReturnType<typeof useTranslation>["t"];
-}) {
-  const sotuvNow = sotuv?.totals.values.at(-1) ?? null;
-  const sotuvYoY = sotuv?.totals.trend_delta_pct ?? null;
-  const kirimNow = kirim?.totals.values.at(-1) ?? null;
-  const kirimYoY = kirim?.totals.trend_delta_pct ?? null;
-  const yearLabel = sotuv?.columns.at(-1) ?? new Date().getFullYear().toString();
-  return (
-    <div className="grid grid-cols-2 gap-3">
-      <KpiBlock
-        label={t("comparison.tab_sotuv", { defaultValue: "Sotuv" })}
-        sub={yearLabel}
-        value={sotuvNow != null ? "$" + fmtNum(sotuvNow, true) : "—"}
-        delta={sotuvYoY}
-      />
-      <KpiBlock
-        label={t("comparison.tab_kirim", { defaultValue: "Kirim" })}
-        sub={yearLabel}
-        value={kirimNow != null ? "$" + fmtNum(kirimNow, true) : "—"}
-        delta={kirimYoY}
-      />
-    </div>
-  );
-}
-
-function ProjectionTileBody({
-  data,
-  t,
-}: {
-  data: ProjectionResp | undefined;
-  t: ReturnType<typeof useTranslation>["t"];
-}) {
-  const sMtd = data?.current_mtd.sotuv;
-  const kMtd = data?.current_mtd.kirim;
-  const sMean = data?.projection.sotuv.mean;
-  const kMean = data?.projection.kirim.mean;
-  return (
-    <div className="grid grid-cols-2 gap-3">
-      <KpiBlock
-        label={t("comparison.tab_sotuv", { defaultValue: "Sotuv" })}
-        sub={t("dashboard.metric_mtd", { defaultValue: "MTD" })}
-        value={sMtd != null ? "$" + fmtNum(sMtd, true) : "—"}
-        hint={
-          sMean != null
-            ? t("dashboard.metric_projection", {
-                defaultValue: "≈ ${{n}} forecast",
-                n: fmtNum(sMean, true),
-              }) as string
-            : undefined
-        }
-      />
-      <KpiBlock
-        label={t("comparison.tab_kirim", { defaultValue: "Kirim" })}
-        sub={t("dashboard.metric_mtd", { defaultValue: "MTD" })}
-        value={kMtd != null ? "$" + fmtNum(kMtd, true) : "—"}
-        hint={
-          kMean != null
-            ? t("dashboard.metric_projection", {
-                defaultValue: "≈ ${{n}} forecast",
-                n: fmtNum(kMean, true),
-              }) as string
-            : undefined
-        }
-      />
-    </div>
-  );
-}
-
-function CollectionTileBody({
-  worklist,
-  prepayments,
-  t,
-}: {
-  worklist: WorklistResp | undefined;
-  prepayments: PrepaymentsResp | undefined;
-  t: ReturnType<typeof useTranslation>["t"];
-}) {
-  const total = worklist?.summary.total_outstanding;
-  const debtors = worklist?.summary.debtor_count;
-  const over90 = worklist?.summary.total_over_90;
-  const over90Cnt = worklist?.summary.debtor_over_90_count;
-  const prepay = prepayments?.rows.reduce((s, r) => s + (r.credit_balance ?? 0), 0);
-  return (
-    <div className="grid grid-cols-2 gap-3">
-      <KpiBlock
-        label={t("dashboard.metric_total_debt", { defaultValue: "Total debt" })}
-        sub={
-          debtors != null
-            ? (t("dashboard.metric_debtors_n", {
-                defaultValue: "{{n}} debtors",
-                n: fmtCount(debtors),
-              }) as string)
-            : ""
-        }
-        value={total != null ? "$" + fmtNum(total, true) : "—"}
-      />
-      <KpiBlock
-        label={t("dashboard.metric_over_90", { defaultValue: "90+ days" })}
-        sub={
-          over90Cnt != null
-            ? (t("dashboard.metric_debtors_n", {
-                defaultValue: "{{n}} debtors",
-                n: fmtCount(over90Cnt),
-              }) as string)
-            : ""
-        }
-        value={over90 != null ? "$" + fmtNum(over90, true) : "—"}
-      />
-      <KpiBlock
-        label={t("dashboard.metric_prepayments", { defaultValue: "Prepayments" })}
-        sub={
-          prepayments?.total != null
-            ? (t("dashboard.metric_clients_n", {
-                defaultValue: "{{n}} clients",
-                n: fmtCount(prepayments.total),
-              }) as string)
-            : ""
-        }
-        value={prepay != null && prepay > 0 ? "$" + fmtNum(prepay, true) : "—"}
-      />
-    </div>
-  );
-}
-
-function RfmTileBody({
-  data,
-  t,
-}: {
-  data: RfmResp | undefined;
-  t: ReturnType<typeof useTranslation>["t"];
-}) {
-  const seg = data?.segment_distribution ?? [];
-  const find = (name: string) =>
-    seg.find((s) => s.segment.toLowerCase() === name.toLowerCase())?.clients ?? 0;
-  const cells: Array<{ key: string; label: string; n: number; tone: string }> = [
-    {
-      key: "champions",
-      label: t("dashboard.rfm_champions", { defaultValue: "Champions" }),
-      n: find("Champions"),
-      tone: "text-emerald-700 dark:text-emerald-400",
-    },
-    {
-      key: "loyal",
-      label: t("dashboard.rfm_loyal", { defaultValue: "Loyal" }),
-      n: find("Loyal"),
-      tone: "text-foreground",
-    },
-    {
-      key: "atrisk",
-      label: t("dashboard.rfm_at_risk", { defaultValue: "At-Risk" }),
-      n: find("At-Risk"),
-      tone: "text-amber-700 dark:text-amber-400",
-    },
-    {
-      key: "lost",
-      label: t("dashboard.rfm_lost", { defaultValue: "Lost" }),
-      n: find("Lost"),
-      tone: "text-red-700 dark:text-red-400",
-    },
-  ];
-  return (
-    <div className="grid grid-cols-4 gap-2">
-      {cells.map((c) => (
-        <div key={c.key} className="flex flex-col gap-0.5 min-w-0">
-          <div className={"font-display text-[26px] font-medium leading-[1] tabular-nums " + c.tone}>
-            {fmtCount(c.n)}
-          </div>
-          <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground truncate">
-            {c.label}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Shared mini-KPI block — used inside section tiles
-// ---------------------------------------------------------------------------
-
-function KpiBlock({
+function PulseStat({
   label,
-  sub,
   value,
+  sub,
   delta,
-  hint,
+  deltaLabel,
+  isFirst,
 }: {
   label: string;
-  sub?: string;
   value: string;
+  sub?: string;
   delta?: number | null;
-  hint?: string;
+  deltaLabel?: string;
+  isFirst?: boolean;
 }) {
-  const deltaCls =
-    delta == null
+  const cls =
+    delta == null || !Number.isFinite(delta)
       ? "text-muted-foreground/60"
       : delta > 0
       ? "text-emerald-700 dark:text-emerald-400"
@@ -497,20 +346,474 @@ function KpiBlock({
       ? "text-red-700 dark:text-red-400"
       : "text-muted-foreground";
   return (
-    <div className="flex flex-col gap-0.5 min-w-0">
-      <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground flex items-baseline gap-1.5">
-        <span>{label}</span>
-        {sub && <span className="font-mono normal-case text-muted-foreground/70">{sub}</span>}
+    <div className={"flex flex-col gap-2 min-w-0 " + (isFirst ? "md:pr-6" : "md:px-6 last:md:pr-0")}>
+      <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-medium">
+        {label}
       </div>
-      <div className="font-display text-[28px] md:text-[30px] font-medium leading-[1.05] tabular-nums text-foreground">
+      <div className="font-display text-[32px] md:text-[40px] font-medium leading-[1] tabular-nums text-foreground">
         {value}
       </div>
-      {(delta != null || hint) && (
-        <div className="text-[11px] font-mono tabular-nums">
-          {delta != null && <span className={deltaCls}>{fmtPct(delta)} </span>}
-          {hint && <span className="text-muted-foreground italic">{hint}</span>}
-        </div>
-      )}
+      <div className="flex items-baseline gap-2 text-[11px] tabular-nums min-h-[14px]">
+        {delta != null && Number.isFinite(delta) && (
+          <span className={cls + " font-mono font-medium"}>{fmtPct(delta)}</span>
+        )}
+        {sub && (
+          <span className="text-muted-foreground italic truncate">{sub}</span>
+        )}
+        {delta != null && Number.isFinite(delta) && deltaLabel && (
+          <span className="text-muted-foreground/60 italic ml-auto md:ml-0">{deltaLabel}</span>
+        )}
+      </div>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Spotlight — the featured year-over-year comparison block
+// ---------------------------------------------------------------------------
+
+function SpotlightCard({
+  to,
+  eyebrow,
+  kicker,
+  loading,
+  error,
+  children,
+}: {
+  to: string;
+  eyebrow: string;
+  kicker?: string;
+  loading?: boolean;
+  error?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      to={to}
+      aria-label={`${eyebrow} — open`}
+      className={
+        "stagger-2 group relative block bg-card border rounded-3xl p-7 md:p-12 " +
+        "transition-shadow hover:shadow-lg outline-none focus-visible:ring-2 focus-visible:ring-ring " +
+        "overflow-hidden"
+      }
+    >
+      {/* Decorative radial wash in the top-right corner — primary-tinted,
+       *  very low opacity. Adds atmosphere without being a "blob". */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-16 -right-16 w-[280px] h-[280px] rounded-full opacity-[0.07]"
+        style={{
+          background:
+            "radial-gradient(circle at center, hsl(var(--primary)) 0%, transparent 65%)",
+        }}
+      />
+      <div className="relative flex items-baseline justify-between mb-10 flex-wrap gap-3">
+        <div className="eyebrow !tracking-[0.18em] flex items-baseline gap-2.5">
+          <span>{eyebrow}</span>
+          {kicker && (
+            <>
+              <span aria-hidden className="text-muted-foreground/40">·</span>
+              <span className="font-mono normal-case text-[10px] text-muted-foreground/80 tabular-nums">
+                {kicker}
+              </span>
+            </>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70 group-hover:text-foreground transition-colors">
+          <span>{loading ? "…" : "Ochish"}</span>
+          <ArrowUpRight className="h-3 w-3" aria-hidden />
+        </div>
+      </div>
+      <div className="relative">
+        {error ? <SpotlightError /> : loading ? <SpotlightSkeleton /> : children}
+      </div>
+    </Link>
+  );
+}
+
+function SpotlightHalf({
+  label,
+  current,
+  prior,
+  yoy,
+  yearPrev,
+  offset,
+}: {
+  label: string;
+  current: number | null;
+  prior: number | null;
+  yoy: number | null;
+  yearPrev: string;
+  offset?: boolean;
+}) {
+  const yoyCls =
+    yoy == null || !Number.isFinite(yoy)
+      ? "text-muted-foreground/60"
+      : yoy > 0
+      ? "text-emerald-700 dark:text-emerald-400"
+      : yoy < 0
+      ? "text-red-700 dark:text-red-400"
+      : "text-muted-foreground";
+  return (
+    <div className={"flex flex-col gap-3 " + (offset ? "md:pl-16" : "")}>
+      <div className="text-[11px] uppercase tracking-[0.20em] text-muted-foreground font-medium">
+        {label}
+      </div>
+      <div className="font-display text-[56px] md:text-[80px] font-medium leading-[0.95] tracking-[-0.02em] tabular-nums text-foreground">
+        {current != null ? "$" + fmtNum(current, true) : "—"}
+      </div>
+      <div className="flex items-baseline gap-3 mt-1 text-[12px] tabular-nums">
+        {yoy != null && Number.isFinite(yoy) && (
+          <span className={yoyCls + " text-[15px] font-mono font-medium"}>
+            {fmtPct(yoy)}
+          </span>
+        )}
+        {prior != null && yearPrev && (
+          <span className="text-muted-foreground italic">
+            ${fmtNum(prior, true)} <span className="text-muted-foreground/60 not-italic">({yearPrev})</span>
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SpotlightSkeleton() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-12 md:gap-y-0 md:gap-x-16">
+      {[0, 1].map((i) => (
+        <div key={i} className="space-y-3 animate-pulse">
+          <div className="h-3 w-16 bg-muted/40 rounded" />
+          <div className="h-16 md:h-20 w-2/3 bg-muted/50 rounded" />
+          <div className="h-3 w-1/2 bg-muted/30 rounded" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SpotlightError() {
+  return (
+    <div className="text-[12px] italic text-red-700 dark:text-red-400">
+      Failed to load.
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Tile chrome — shared shell for the three secondary cards
+// ---------------------------------------------------------------------------
+
+function TileFrame({
+  to,
+  icon: Icon,
+  eyebrow,
+  kicker,
+  loading,
+  error,
+  children,
+}: {
+  to: string;
+  icon: LucideIcon;
+  eyebrow: string;
+  kicker?: string;
+  loading?: boolean;
+  error?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      to={to}
+      aria-label={`${eyebrow} — open`}
+      className={
+        "group relative block bg-card border rounded-2xl p-6 md:p-7 min-h-[220px] " +
+        "transition-shadow hover:shadow-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      }
+    >
+      <div className="flex items-baseline justify-between gap-3 mb-7">
+        <div className="flex items-center gap-2 min-w-0">
+          <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" aria-hidden />
+          <div className="eyebrow !tracking-[0.16em] truncate">{eyebrow}</div>
+          {kicker && (
+            <>
+              <span aria-hidden className="text-muted-foreground/40 px-0.5">·</span>
+              <div className="font-mono normal-case text-[10px] text-muted-foreground/70 truncate">
+                {kicker}
+              </div>
+            </>
+          )}
+        </div>
+        <ArrowUpRight
+          className="h-3.5 w-3.5 text-muted-foreground/50 group-hover:text-foreground transition-colors shrink-0"
+          aria-hidden
+        />
+      </div>
+      {error ? (
+        <div className="text-[12px] italic text-red-700 dark:text-red-400">Failed to load.</div>
+      ) : loading ? (
+        <TileSkeleton />
+      ) : (
+        children
+      )}
+    </Link>
+  );
+}
+
+function TileSkeleton() {
+  return (
+    <div className="space-y-3 animate-pulse">
+      <div className="h-3 w-20 bg-muted/40 rounded" />
+      <div className="h-9 w-2/3 bg-muted/50 rounded" />
+      <div className="h-3 w-1/2 bg-muted/30 rounded" />
+      <div className="h-3 w-3/5 bg-muted/30 rounded mt-6" />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// KunlikKesim tile — MTD over forecast, two stacked stats
+// ---------------------------------------------------------------------------
+
+function KunlikKesimTile({
+  data,
+  loading,
+  error,
+  t,
+}: {
+  data: ProjectionResp | undefined;
+  loading: boolean;
+  error: boolean;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  return (
+    <TileFrame
+      to="/dayslice"
+      icon={CalendarRange}
+      eyebrow={t("nav.dayslice") as string}
+      kicker={t("dashboard.metric_mtd") as string}
+      loading={loading}
+      error={error}
+    >
+      <div className="space-y-6">
+        <ForecastRow
+          label={t("comparison.tab_sotuv") as string}
+          mtd={data?.current_mtd.sotuv}
+          forecast={data?.projection.sotuv.mean}
+        />
+        <div className="border-t border-border/40" />
+        <ForecastRow
+          label={t("comparison.tab_kirim") as string}
+          mtd={data?.current_mtd.kirim}
+          forecast={data?.projection.kirim.mean}
+        />
+      </div>
+    </TileFrame>
+  );
+}
+
+function ForecastRow({
+  label,
+  mtd,
+  forecast,
+}: {
+  label: string;
+  mtd: number | undefined;
+  forecast: number | undefined;
+}) {
+  // Visual progress: how much of the projected month-end is the MTD
+  // already? Capped at 100% so a high actual doesn't run off the bar.
+  const pct =
+    mtd != null && forecast != null && forecast > 0
+      ? Math.min(1, mtd / forecast)
+      : 0;
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground mb-1.5">
+        {label}
+      </div>
+      <div className="flex items-baseline gap-2 mb-2">
+        <div className="font-display text-[32px] font-medium leading-[1] tabular-nums text-foreground">
+          {mtd != null ? "$" + fmtNum(mtd, true) : "—"}
+        </div>
+        <div className="text-[11px] text-muted-foreground italic font-mono">
+          → ${forecast != null ? fmtNum(forecast, true) : "—"}
+        </div>
+      </div>
+      {/* Hairline progress — MTD as fraction of forecast */}
+      <div className="h-[3px] bg-muted/40 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-primary/70 transition-all"
+          style={{ width: `${(pct * 100).toFixed(1)}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Collection tile — total debt headline + 90+ days hairline bar
+// ---------------------------------------------------------------------------
+
+function CollectionTile({
+  worklist,
+  prepayments,
+  loading,
+  error,
+  t,
+}: {
+  worklist: WorklistResp | undefined;
+  prepayments: PrepaymentsResp | undefined;
+  loading: boolean;
+  error: boolean;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  const total = worklist?.summary.total_outstanding;
+  const debtors = worklist?.summary.debtor_count;
+  const over90 = worklist?.summary.total_over_90;
+  const over90Cnt = worklist?.summary.debtor_over_90_count;
+  const prepay = prepayments?.rows.reduce((s, r) => s + (r.credit_balance ?? 0), 0);
+  const over90Pct = total && over90 ? over90 / total : 0;
+  return (
+    <TileFrame
+      to="/collection/worklist"
+      icon={HandCoins}
+      eyebrow={t("nav.worklist") as string}
+      loading={loading}
+      error={error}
+    >
+      <div className="space-y-6">
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground mb-1.5">
+            {t("dashboard.metric_total_debt")}
+          </div>
+          <div className="font-display text-[40px] md:text-[44px] font-medium leading-[1] tabular-nums text-foreground">
+            {total != null ? "$" + fmtNum(total, true) : "—"}
+          </div>
+          <div className="text-[11px] text-muted-foreground italic mt-1.5">
+            {debtors != null
+              ? t("dashboard.metric_debtors_n", { n: fmtCount(debtors) })
+              : ""}
+          </div>
+        </div>
+
+        {/* 90+ days as portion of total — single hairline bar */}
+        <div>
+          <div className="flex items-baseline justify-between text-[10px] uppercase tracking-[0.16em] text-muted-foreground mb-1.5">
+            <span>{t("dashboard.metric_over_90")}</span>
+            <span className="font-mono tabular-nums normal-case text-muted-foreground/80">
+              {(over90Pct * 100).toFixed(0)}%
+            </span>
+          </div>
+          <div className="h-[3px] bg-muted/40 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-destructive/70 transition-all"
+              style={{ width: `${(over90Pct * 100).toFixed(1)}%` }}
+            />
+          </div>
+          <div className="flex items-baseline justify-between mt-2 text-[12px]">
+            <span className="font-mono tabular-nums text-foreground">
+              {over90 != null ? "$" + fmtNum(over90, true) : "—"}
+            </span>
+            <span className="text-muted-foreground italic">
+              {over90Cnt != null
+                ? t("dashboard.metric_debtors_n", { n: fmtCount(over90Cnt) })
+                : ""}
+            </span>
+          </div>
+        </div>
+
+        {/* Prepayments — single understated line */}
+        {prepay != null && prepay > 0 && (
+          <div className="text-[11px] text-muted-foreground border-t border-border/40 pt-3 flex items-baseline justify-between">
+            <span className="italic">{t("dashboard.metric_prepayments")}</span>
+            <span className="font-mono tabular-nums text-foreground">
+              ${fmtNum(prepay, true)}
+            </span>
+          </div>
+        )}
+      </div>
+    </TileFrame>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// RFM tile — 4 segments as a 2x2 mini-grid, color-toned numbers
+// ---------------------------------------------------------------------------
+
+function RfmTile({
+  data,
+  loading,
+  error,
+  t,
+}: {
+  data: RfmResp | undefined;
+  loading: boolean;
+  error: boolean;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  const seg = data?.segment_distribution ?? [];
+  const find = (name: string) =>
+    seg.find((s) => s.segment.toLowerCase() === name.toLowerCase())?.clients ?? 0;
+
+  type Tone = "primary" | "fg" | "amber" | "destructive";
+  const cells: Array<{ key: string; label: string; n: number; tone: Tone }> = [
+    { key: "champ", label: t("dashboard.rfm_champions") as string, n: find("Champions"), tone: "primary" },
+    { key: "loyal", label: t("dashboard.rfm_loyal") as string, n: find("Loyal"), tone: "fg" },
+    { key: "risk",  label: t("dashboard.rfm_at_risk") as string, n: find("At-Risk"), tone: "amber" },
+    { key: "lost",  label: t("dashboard.rfm_lost") as string, n: find("Lost"), tone: "destructive" },
+  ];
+  const toneCls = (tone: Tone) =>
+    tone === "primary"
+      ? "text-primary"
+      : tone === "amber"
+      ? "text-amber-700 dark:text-amber-400"
+      : tone === "destructive"
+      ? "text-destructive"
+      : "text-foreground";
+
+  return (
+    <TileFrame
+      to="/analytics/sales?tab=rfm"
+      icon={Users}
+      eyebrow={t("dashboard.section_rfm_title", { defaultValue: "RFM" }) as string}
+      kicker="90 kun"
+      loading={loading}
+      error={error}
+    >
+      <div className="grid grid-cols-2 gap-x-5 gap-y-5">
+        {cells.map((c) => (
+          <div key={c.key} className="min-w-0">
+            <div
+              className={
+                "font-display text-[34px] md:text-[36px] font-medium leading-[1] tabular-nums " +
+                toneCls(c.tone)
+              }
+            >
+              {fmtCount(c.n)}
+            </div>
+            <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground mt-1.5 truncate">
+              {c.label}
+            </div>
+          </div>
+        ))}
+      </div>
+    </TileFrame>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Misc
+// ---------------------------------------------------------------------------
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span
+        aria-hidden
+        className="inline-block w-2 h-2 rounded-full"
+        style={{ backgroundColor: color }}
+      />
+      <span>{label}</span>
+    </span>
   );
 }

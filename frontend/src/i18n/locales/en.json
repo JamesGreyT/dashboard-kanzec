@@ -82,6 +82,8 @@
     "vs_yesterday": "vs yesterday",
     "week_hint": "rolling 7 days",
     "active_30d_hint": "distinct clients with deliveries",
+    "pulse_label": "Today's pulse",
+    "trend_eyebrow": "Last 30 days",
     "section_comparison_subtitle": "Sotuv & Kirim — current year vs prior",
     "section_dayslice_subtitle": "Month-to-date and end-of-month forecast",
     "section_collection_subtitle": "Outstanding debt & prepayments",

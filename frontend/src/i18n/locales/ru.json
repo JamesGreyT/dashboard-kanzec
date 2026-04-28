@@ -82,6 +82,8 @@
     "vs_yesterday": "по сравнению со вчера",
     "week_hint": "скользящие 7 дней",
     "active_30d_hint": "уникальные клиенты с отгрузками",
+    "pulse_label": "Пульс дня",
+    "trend_eyebrow": "Последние 30 дней",
     "section_comparison_subtitle": "Sotuv и Kirim — текущий год против прошлого",
     "section_dayslice_subtitle": "MTD и прогноз на конец месяца",
     "section_collection_subtitle": "Задолженность и предоплаты",
