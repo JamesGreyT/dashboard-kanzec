@@ -28,7 +28,7 @@ interface KirimRow {
 
 interface DrillResp<R> {
   measure: "sotuv" | "kirim";
-  manager: string;
+  manager: string;       // for comparison source, this carries the dimension value
   year: number;
   slice: { from: string; to: string };
   total: number;             // NET for Sotuv (sales − returns)
@@ -39,39 +39,72 @@ interface DrillResp<R> {
   limit: number;
 }
 
+type DrillPanelProps =
+  | {
+      /** DaySlice cell (manager × year). */
+      source?: "dayslice";
+      measure: "sotuv" | "kirim";
+      manager: string;
+      year: number;
+      /** The same query string DaySlice uses for scoreboard. */
+      baseQs: URLSearchParams;
+    }
+  | {
+      /** Comparison cell (any dimension × any bucket). The drill endpoint
+       *  uses the same response shape — the `manager` field carries the
+       *  dimension value so the header line still reads naturally. */
+      source: "comparison";
+      measure: "sotuv" | "kirim";
+      /** Built by Comparison.tsx with dimension, dimension_value, bucket,
+       *  mode, year, month and the active filters/scope. */
+      drillQs: URLSearchParams;
+      /** The dimension value displayed in the header (e.g. "Sardor Yanvarov"). */
+      label: string;
+      /** The bucket label displayed next to the dimension value (year, month, day). */
+      bucket: string;
+    };
+
 /**
- * Drill panel — fetches the line items behind one (manager, year) cell
- * of a YearMatrix and renders them as a compact verification table.
- *
- * The QS encodes the as-of slice (so the "year" param shifts back in
- * time but the (start_month, start_day, end_month, end_day) shape is
- * preserved by the backend's Slice helper).
+ * Drill panel — fetches the line items behind one cell of either the
+ * DaySlice scoreboard (manager × year) or the Comparison matrix
+ * (arbitrary dimension × bucket) and renders them as a compact
+ * verification table. Both call sites share the response shape;
+ * `source` selects the endpoint and the header text.
  */
-export default function DrillPanel({
-  measure,
-  manager,
-  year,
-  baseQs,
-}: {
-  measure: "sotuv" | "kirim";
-  manager: string;
-  year: number;
-  /** The same query string DaySlice uses for scoreboard, with `year` */
-  baseQs: URLSearchParams;
-}) {
+export default function DrillPanel(props: DrillPanelProps) {
   const { t, i18n } = useTranslation();
   const lang = (i18n.language || "uz").split("-")[0];
 
-  const qs = new URLSearchParams(baseQs);
-  qs.set("measure", measure);
-  qs.set("manager", manager);
-  qs.set("year", String(year));
+  const isComparison = props.source === "comparison";
+
+  let url: string;
+  let queryKey: unknown[];
+  let headerLabel: string;
+  let headerBucket: string;
+
+  if (isComparison) {
+    url = `/api/comparison/${props.measure}/drill?${props.drillQs.toString()}`;
+    queryKey = ["comparison.drill", props.measure, props.drillQs.toString()];
+    headerLabel = props.label;
+    headerBucket = props.bucket;
+  } else {
+    const qs = new URLSearchParams(props.baseQs);
+    qs.set("measure", props.measure);
+    qs.set("manager", props.manager);
+    qs.set("year", String(props.year));
+    url = `/api/dayslice/drill?${qs.toString()}`;
+    queryKey = ["dayslice.drill", props.measure, props.manager, props.year, qs.toString()];
+    headerLabel = props.manager;
+    headerBucket = String(props.year);
+  }
 
   const q = useQuery({
-    queryKey: ["dayslice.drill", measure, manager, year, qs.toString()],
-    queryFn: () => api<DrillResp<SotuvRow | KirimRow>>(`/api/dayslice/drill?${qs.toString()}`),
+    queryKey,
+    queryFn: () => api<DrillResp<SotuvRow | KirimRow>>(url),
     staleTime: 30_000,
   });
+
+  const measure = props.measure;
 
   if (q.isLoading) {
     return (
@@ -107,9 +140,9 @@ export default function DrillPanel({
             ? t("dayslice.drill_sotuv_title", { defaultValue: "Sotuv line items" })
             : t("dayslice.drill_kirim_title", { defaultValue: "Kirim line items" })}
           {" · "}
-          <span className="text-foreground">{manager}</span>
+          <span className="text-foreground">{headerLabel}</span>
           {" · "}
-          <span className="text-foreground font-mono">{year}</span>
+          <span className="text-foreground font-mono">{headerBucket}</span>
         </div>
         <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
           {t("dayslice.drill_window", { defaultValue: "Window" })}: {fmtDate(slice.from)} → {fmtDate(slice.to)}

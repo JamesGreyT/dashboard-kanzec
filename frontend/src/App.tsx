@@ -13,6 +13,7 @@ import Ops from "./pages/Ops";
 import Payments from "./pages/Payments";
 import Returns from "./pages/Returns";
 import Sales from "./pages/Sales";
+import Comparison from "./pages/Comparison";
 import AdminAlerts from "./pages/AdminAlerts";
 import AdminUsers from "./pages/AdminUsers";
 import AdminAudit from "./pages/AdminAudit";
@@ -49,6 +50,7 @@ export default function App() {
           <Route path="/analytics/sales" element={<RequireAuth roles={["admin", "viewer"]}><Sales /></RequireAuth>} />
           <Route path="/analytics/payments" element={<RequireAuth roles={["admin", "viewer"]}><Payments /></RequireAuth>} />
           <Route path="/analytics/returns" element={<RequireAuth roles={["admin", "viewer"]}><Returns /></RequireAuth>} />
+          <Route path="/analytics/comparison" element={<RequireAuth roles={["admin", "viewer"]}><Comparison /></RequireAuth>} />
           <Route
             path="/ops"
             element={
