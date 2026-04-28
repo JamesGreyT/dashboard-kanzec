@@ -167,22 +167,22 @@ export default function Dashboard() {
   // -------------------------------------------------------------------------
 
   return (
-    <div className="space-y-14 md:space-y-20 pb-16">
+    <div className="space-y-8 md:space-y-10 pb-10">
       {/* MASTHEAD */}
-      <header className="stagger-0 relative pb-10">
-        <div className="grid grid-cols-12 gap-x-6 gap-y-8 items-end">
+      <header className="stagger-0 relative pb-5">
+        <div className="grid grid-cols-12 gap-x-6 gap-y-3 items-end">
           <div className="col-span-12 md:col-span-7">
-            <div className="eyebrow !tracking-[0.20em] mb-5">{dateLabel}</div>
-            <h1 className="font-display text-[44px] sm:text-6xl md:text-[88px] font-medium leading-[0.92] tracking-[-0.02em] text-foreground">
-              {titleHead && <span className="block">{titleHead}</span>}
-              <span className="block">
+            <div className="eyebrow !tracking-[0.18em] mb-2">{dateLabel}</div>
+            <h1 className="font-display text-[28px] sm:text-[36px] md:text-[44px] font-medium leading-[1.05] tracking-[-0.015em] text-foreground">
+              {titleHead && <span>{titleHead} </span>}
+              <span>
                 {titleTail}
                 <span aria-hidden className="font-display-italic text-primary">.</span>
               </span>
             </h1>
           </div>
-          <div className="col-span-12 md:col-span-5 md:pl-8 md:border-l border-border/60 md:self-end pb-1">
-            <p className="text-[14px] md:text-[15px] text-muted-foreground italic leading-relaxed max-w-prose">
+          <div className="col-span-12 md:col-span-5 md:pl-6 md:border-l border-border/60 md:self-end pb-1">
+            <p className="text-[12px] md:text-[13px] text-muted-foreground italic leading-relaxed max-w-prose">
               {t("dashboard.subtitle")}
             </p>
           </div>
@@ -192,11 +192,11 @@ export default function Dashboard() {
 
       {/* PULSE STRIP — editorial stat list, hairline dividers between cells */}
       <section className="stagger-1">
-        <div className="eyebrow !tracking-[0.18em] mb-6 flex items-baseline gap-2">
+        <div className="eyebrow !tracking-[0.18em] mb-3 flex items-baseline gap-2">
           <span>{t("dashboard.pulse_label", { defaultValue: "Bugungi puls" })}</span>
           <span aria-hidden className="font-display-italic text-primary text-[14px] -ml-0.5">.</span>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-0 gap-y-10 md:divide-x divide-border/50">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-0 gap-y-5 md:divide-x divide-border/50">
           <PulseStat
             label={t("dashboard.today_orders")}
             value={overviewQ.data ? "$" + fmtNum(overviewQ.data.today.orders.amount, true) : "—"}
@@ -239,7 +239,7 @@ export default function Dashboard() {
         loading={sotuvCmpQ.isLoading || kirimCmpQ.isLoading}
         error={!!sotuvCmpQ.error || !!kirimCmpQ.error}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-12 md:gap-y-0 md:gap-x-16 md:divide-x divide-border/40">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 md:gap-y-0 md:gap-x-10 md:divide-x divide-border/40">
           <SpotlightHalf
             label={t("comparison.tab_sotuv") as string}
             current={sotuvCmpQ.data?.totals.values.at(-1) ?? null}
@@ -261,7 +261,7 @@ export default function Dashboard() {
       {/* SECONDARY GRID — three tiles, asymmetric layouts inside */}
       <section
         className={
-          "stagger-3 grid gap-5 md:gap-6 grid-cols-1 " +
+          "stagger-3 grid gap-4 md:gap-4 grid-cols-1 " +
           (isAdmin ? "md:grid-cols-3" : "md:grid-cols-2")
         }
       >
@@ -281,17 +281,17 @@ export default function Dashboard() {
       {/* TREND — minimal chrome, sits in the page like an inline figure */}
       {trendSeries.length > 0 && (
         <section className="stagger-4">
-          <div className="flex items-end justify-between mb-6 flex-wrap gap-3">
+          <div className="flex items-end justify-between mb-3 flex-wrap gap-2">
             <div>
-              <div className="eyebrow !tracking-[0.18em] mb-2">
+              <div className="eyebrow !tracking-[0.16em] mb-1">
                 {t("dashboard.trend_eyebrow", { defaultValue: "Oxirgi 30 kun" })}
               </div>
-              <h2 className="font-display text-[28px] md:text-[34px] font-medium tracking-[-0.01em] leading-[0.95] text-foreground">
+              <h2 className="font-display text-[20px] md:text-[24px] font-medium tracking-[-0.01em] leading-[1] text-foreground">
                 {t("dashboard.trend_30d")}
                 <span aria-hidden className="font-display-italic text-primary">.</span>
               </h2>
             </div>
-            <div className="flex items-center gap-4 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+            <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
               <LegendDot
                 color="hsl(var(--foreground))"
                 label={t("dashboard.orders_label") as string}
@@ -302,14 +302,14 @@ export default function Dashboard() {
               />
             </div>
           </div>
-          <div className="border-t border-border/50 pt-5">
+          <div className="border-t border-border/50 pt-3">
             <TimeSeriesChart
               data={trendSeries}
               showYoY
               primaryLabel={t("dashboard.orders_label") as string}
               yoyLabel={t("dashboard.payments_label") as string}
               showArea
-              height={300}
+              height={200}
             />
           </div>
         </section>
@@ -346,14 +346,14 @@ function PulseStat({
       ? "text-red-700 dark:text-red-400"
       : "text-muted-foreground";
   return (
-    <div className={"flex flex-col gap-2 min-w-0 " + (isFirst ? "md:pr-6" : "md:px-6 last:md:pr-0")}>
-      <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-medium">
+    <div className={"flex flex-col gap-1.5 min-w-0 " + (isFirst ? "md:pr-5" : "md:px-5 last:md:pr-0")}>
+      <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground font-medium">
         {label}
       </div>
-      <div className="font-display text-[32px] md:text-[40px] font-medium leading-[1] tabular-nums text-foreground">
+      <div className="font-display text-[24px] md:text-[28px] font-medium leading-[1] tabular-nums text-foreground">
         {value}
       </div>
-      <div className="flex items-baseline gap-2 text-[11px] tabular-nums min-h-[14px]">
+      <div className="flex items-baseline gap-2 text-[10px] tabular-nums min-h-[12px]">
         {delta != null && Number.isFinite(delta) && (
           <span className={cls + " font-mono font-medium"}>{fmtPct(delta)}</span>
         )}
@@ -392,7 +392,7 @@ function SpotlightCard({
       to={to}
       aria-label={`${eyebrow} — open`}
       className={
-        "stagger-2 group relative block bg-card border rounded-3xl p-7 md:p-12 " +
+        "stagger-2 group relative block bg-card border rounded-2xl p-5 md:p-7 " +
         "transition-shadow hover:shadow-lg outline-none focus-visible:ring-2 focus-visible:ring-ring " +
         "overflow-hidden"
       }
@@ -401,13 +401,13 @@ function SpotlightCard({
        *  very low opacity. Adds atmosphere without being a "blob". */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-16 -right-16 w-[280px] h-[280px] rounded-full opacity-[0.07]"
+        className="pointer-events-none absolute -top-10 -right-10 w-[180px] h-[180px] rounded-full opacity-[0.07]"
         style={{
           background:
             "radial-gradient(circle at center, hsl(var(--primary)) 0%, transparent 65%)",
         }}
       />
-      <div className="relative flex items-baseline justify-between mb-10 flex-wrap gap-3">
+      <div className="relative flex items-baseline justify-between mb-6 flex-wrap gap-3">
         <div className="eyebrow !tracking-[0.18em] flex items-baseline gap-2.5">
           <span>{eyebrow}</span>
           {kicker && (
@@ -455,16 +455,16 @@ function SpotlightHalf({
       ? "text-red-700 dark:text-red-400"
       : "text-muted-foreground";
   return (
-    <div className={"flex flex-col gap-3 " + (offset ? "md:pl-16" : "")}>
-      <div className="text-[11px] uppercase tracking-[0.20em] text-muted-foreground font-medium">
+    <div className={"flex flex-col gap-2 " + (offset ? "md:pl-10" : "")}>
+      <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-medium">
         {label}
       </div>
-      <div className="font-display text-[56px] md:text-[80px] font-medium leading-[0.95] tracking-[-0.02em] tabular-nums text-foreground">
+      <div className="font-display text-[36px] md:text-[44px] font-medium leading-[1] tracking-[-0.015em] tabular-nums text-foreground">
         {current != null ? "$" + fmtNum(current, true) : "—"}
       </div>
-      <div className="flex items-baseline gap-3 mt-1 text-[12px] tabular-nums">
+      <div className="flex items-baseline gap-2 mt-0.5 text-[11px] tabular-nums flex-wrap">
         {yoy != null && Number.isFinite(yoy) && (
-          <span className={yoyCls + " text-[15px] font-mono font-medium"}>
+          <span className={yoyCls + " text-[13px] font-mono font-medium"}>
             {fmtPct(yoy)}
           </span>
         )}
@@ -480,11 +480,11 @@ function SpotlightHalf({
 
 function SpotlightSkeleton() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-12 md:gap-y-0 md:gap-x-16">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 md:gap-y-0 md:gap-x-10">
       {[0, 1].map((i) => (
-        <div key={i} className="space-y-3 animate-pulse">
+        <div key={i} className="space-y-2 animate-pulse">
           <div className="h-3 w-16 bg-muted/40 rounded" />
-          <div className="h-16 md:h-20 w-2/3 bg-muted/50 rounded" />
+          <div className="h-10 md:h-12 w-2/3 bg-muted/50 rounded" />
           <div className="h-3 w-1/2 bg-muted/30 rounded" />
         </div>
       ))}
@@ -526,11 +526,11 @@ function TileFrame({
       to={to}
       aria-label={`${eyebrow} — open`}
       className={
-        "group relative block bg-card border rounded-2xl p-6 md:p-7 min-h-[220px] " +
+        "group relative block bg-card border rounded-2xl p-5 min-h-[160px] " +
         "transition-shadow hover:shadow-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
       }
     >
-      <div className="flex items-baseline justify-between gap-3 mb-7">
+      <div className="flex items-baseline justify-between gap-3 mb-4">
         <div className="flex items-center gap-2 min-w-0">
           <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" aria-hidden />
           <div className="eyebrow !tracking-[0.16em] truncate">{eyebrow}</div>
@@ -561,11 +561,11 @@ function TileFrame({
 
 function TileSkeleton() {
   return (
-    <div className="space-y-3 animate-pulse">
-      <div className="h-3 w-20 bg-muted/40 rounded" />
-      <div className="h-9 w-2/3 bg-muted/50 rounded" />
-      <div className="h-3 w-1/2 bg-muted/30 rounded" />
-      <div className="h-3 w-3/5 bg-muted/30 rounded mt-6" />
+    <div className="space-y-2 animate-pulse">
+      <div className="h-2.5 w-20 bg-muted/40 rounded" />
+      <div className="h-7 w-2/3 bg-muted/50 rounded" />
+      <div className="h-2.5 w-1/2 bg-muted/30 rounded" />
+      <div className="h-2.5 w-3/5 bg-muted/30 rounded mt-4" />
     </div>
   );
 }
@@ -594,7 +594,7 @@ function KunlikKesimTile({
       loading={loading}
       error={error}
     >
-      <div className="space-y-6">
+      <div className="space-y-3">
         <ForecastRow
           label={t("comparison.tab_sotuv") as string}
           mtd={data?.current_mtd.sotuv}
@@ -628,11 +628,11 @@ function ForecastRow({
       : 0;
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground mb-1.5">
+      <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground mb-1">
         {label}
       </div>
-      <div className="flex items-baseline gap-2 mb-2">
-        <div className="font-display text-[32px] font-medium leading-[1] tabular-nums text-foreground">
+      <div className="flex items-baseline gap-2 mb-1.5">
+        <div className="font-display text-[24px] font-medium leading-[1] tabular-nums text-foreground">
           {mtd != null ? "$" + fmtNum(mtd, true) : "—"}
         </div>
         <div className="text-[11px] text-muted-foreground italic font-mono">
@@ -640,7 +640,7 @@ function ForecastRow({
         </div>
       </div>
       {/* Hairline progress — MTD as fraction of forecast */}
-      <div className="h-[3px] bg-muted/40 rounded-full overflow-hidden">
+      <div className="h-[2px] bg-muted/40 rounded-full overflow-hidden">
         <div
           className="h-full bg-primary/70 transition-all"
           style={{ width: `${(pct * 100).toFixed(1)}%` }}
@@ -681,15 +681,15 @@ function CollectionTile({
       loading={loading}
       error={error}
     >
-      <div className="space-y-6">
+      <div className="space-y-3">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground mb-1.5">
+          <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground mb-1">
             {t("dashboard.metric_total_debt")}
           </div>
-          <div className="font-display text-[40px] md:text-[44px] font-medium leading-[1] tabular-nums text-foreground">
+          <div className="font-display text-[28px] md:text-[32px] font-medium leading-[1] tabular-nums text-foreground">
             {total != null ? "$" + fmtNum(total, true) : "—"}
           </div>
-          <div className="text-[11px] text-muted-foreground italic mt-1.5">
+          <div className="text-[10px] text-muted-foreground italic mt-1">
             {debtors != null
               ? t("dashboard.metric_debtors_n", { n: fmtCount(debtors) })
               : ""}
@@ -698,19 +698,19 @@ function CollectionTile({
 
         {/* 90+ days as portion of total — single hairline bar */}
         <div>
-          <div className="flex items-baseline justify-between text-[10px] uppercase tracking-[0.16em] text-muted-foreground mb-1.5">
+          <div className="flex items-baseline justify-between text-[10px] uppercase tracking-[0.16em] text-muted-foreground mb-1">
             <span>{t("dashboard.metric_over_90")}</span>
             <span className="font-mono tabular-nums normal-case text-muted-foreground/80">
               {(over90Pct * 100).toFixed(0)}%
             </span>
           </div>
-          <div className="h-[3px] bg-muted/40 rounded-full overflow-hidden">
+          <div className="h-[2px] bg-muted/40 rounded-full overflow-hidden">
             <div
               className="h-full bg-destructive/70 transition-all"
               style={{ width: `${(over90Pct * 100).toFixed(1)}%` }}
             />
           </div>
-          <div className="flex items-baseline justify-between mt-2 text-[12px]">
+          <div className="flex items-baseline justify-between mt-1.5 text-[11px]">
             <span className="font-mono tabular-nums text-foreground">
               {over90 != null ? "$" + fmtNum(over90, true) : "—"}
             </span>
@@ -724,7 +724,7 @@ function CollectionTile({
 
         {/* Prepayments — single understated line */}
         {prepay != null && prepay > 0 && (
-          <div className="text-[11px] text-muted-foreground border-t border-border/40 pt-3 flex items-baseline justify-between">
+          <div className="text-[10px] text-muted-foreground border-t border-border/40 pt-2 flex items-baseline justify-between">
             <span className="italic">{t("dashboard.metric_prepayments")}</span>
             <span className="font-mono tabular-nums text-foreground">
               ${fmtNum(prepay, true)}
@@ -780,18 +780,18 @@ function RfmTile({
       loading={loading}
       error={error}
     >
-      <div className="grid grid-cols-2 gap-x-5 gap-y-5">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
         {cells.map((c) => (
           <div key={c.key} className="min-w-0">
             <div
               className={
-                "font-display text-[34px] md:text-[36px] font-medium leading-[1] tabular-nums " +
+                "font-display text-[24px] md:text-[26px] font-medium leading-[1] tabular-nums " +
                 toneCls(c.tone)
               }
             >
               {fmtCount(c.n)}
             </div>
-            <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground mt-1.5 truncate">
+            <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground mt-1 truncate">
               {c.label}
             </div>
           </div>
