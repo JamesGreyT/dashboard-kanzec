@@ -88,13 +88,16 @@ def _buckets_cte(spec: BucketSpec) -> tuple[str, dict[str, Any]]:
     over. Days clamp to each month's actual length (Feb 29 → 28 in non-
     leap years), so callers don't have to think about month-end edges.
     """
+    # `make_date` is `make_date(integer, integer, integer)`; Python ints
+    # bind as PG bigint and the function lookup fails without explicit
+    # `::int` casts. Same pattern as dayslice/service.py:_slices_cte.
     if spec.mode == "yearly":
         sql = """
         WITH buckets AS (
           SELECT y::text AS label,
                  make_date(y, 1, 1)   AS s,
                  make_date(y, 12, 31) AS e
-            FROM generate_series(:y_start, :y_end) AS y
+            FROM generate_series((:y_start)::int, (:y_end)::int) AS y
         )
         """
         return sql, {"y_start": spec.year_start, "y_end": spec.year_end}
@@ -103,8 +106,9 @@ def _buckets_cte(spec: BucketSpec) -> tuple[str, dict[str, Any]]:
         sql = """
         WITH buckets AS (
           SELECT m::text AS label,
-                 make_date(:y, m, 1) AS s,
-                 (make_date(:y, m, 1) + INTERVAL '1 month - 1 day')::date AS e
+                 make_date((:y)::int, m, 1) AS s,
+                 (make_date((:y)::int, m, 1)
+                    + INTERVAL '1 month - 1 day')::date AS e
             FROM generate_series(1, 12) AS m
         )
         """
@@ -114,11 +118,11 @@ def _buckets_cte(spec: BucketSpec) -> tuple[str, dict[str, Any]]:
     sql = """
     WITH buckets AS (
       SELECT d::text AS label,
-             make_date(:y, :m, d) AS s,
-             make_date(:y, :m, d) AS e
+             make_date((:y)::int, (:m)::int, d) AS s,
+             make_date((:y)::int, (:m)::int, d) AS e
         FROM generate_series(
                1,
-               EXTRACT(DAY FROM (make_date(:y, :m, 1)
+               EXTRACT(DAY FROM (make_date((:y)::int, (:m)::int, 1)
                                  + INTERVAL '1 month - 1 day'))::int
              ) AS d
     )
