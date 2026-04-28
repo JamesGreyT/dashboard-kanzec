@@ -70,7 +70,7 @@ export default function DataTable<R extends Record<string, unknown>>({
   const showChevron = !!onRowClick;
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto rounded-2xl border bg-card shadow-soft">
       <Table>
         <TableHeader>
           <TableRow>
@@ -78,7 +78,7 @@ export default function DataTable<R extends Record<string, unknown>>({
               <TableHead
                 key={c.name}
                 className={cn(
-                  "whitespace-nowrap sticky top-0 bg-background z-10",
+                  "whitespace-nowrap sticky top-0 bg-secondary/60 backdrop-blur z-10",
                   c.numeric && "text-right",
                 )}
                 style={c.width ? { width: c.width, minWidth: c.width } : undefined}
