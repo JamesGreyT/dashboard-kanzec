@@ -8,7 +8,6 @@ import DataViewer from "./pages/DataViewer";
 import DaySlice from "./pages/DaySlice";
 import DebtClient from "./pages/DebtClient";
 import DebtWorklist from "./pages/DebtWorklist";
-import Clients from "./pages/Clients";
 import Ops from "./pages/Ops";
 import Payments from "./pages/Payments";
 import Returns from "./pages/Returns";
@@ -44,7 +43,6 @@ export default function App() {
           <Route path="/data/payments" element={<DataViewer lockedTable="payment" />} />
           <Route path="/data/legal-persons" element={<DataViewer lockedTable="legal_person" />} />
           <Route path="/collection/worklist" element={<RequireAuth roles={["admin", "viewer"]}><DebtWorklist /></RequireAuth>} />
-          <Route path="/collection/clients" element={<RequireAuth roles={["admin", "viewer"]}><Clients /></RequireAuth>} />
           <Route path="/collection/debt/client/:personId" element={<RequireAuth roles={["admin", "viewer"]}><DebtClient /></RequireAuth>} />
           <Route path="/analytics" element={<Navigate to="/analytics/sales" replace />} />
           <Route path="/analytics/sales" element={<RequireAuth roles={["admin", "viewer"]}><Sales /></RequireAuth>} />

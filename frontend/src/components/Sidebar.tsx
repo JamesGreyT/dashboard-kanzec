@@ -71,11 +71,6 @@ const DATA: Item[] = [
   { to: "/data/payments", labelKey: "nav.payments", roles: ["admin", "operator", "viewer"], icon: "payments" },
   { to: "/data/legal-persons", labelKey: "nav.legal_persons", roles: ["admin", "operator", "viewer"], icon: "people" },
 ];
-const CLIENTS: Item[] = [
-  // /collection/worklist is still routed (DebtClient.tsx back-button uses
-  // it) but unsurfaced from the sidebar.
-  { to: "/collection/clients", labelKey: "nav.debt_clients", roles: ["admin", "viewer"], icon: "ledger" },
-];
 const ANALYTICS: Item[] = [
   { to: "/analytics/sales",    labelKey: "nav.sales",    roles: ["admin", "viewer"], icon: "trending" },
   { to: "/analytics/payments", labelKey: "nav.payments_dash", roles: ["admin", "viewer"], icon: "payments" },
@@ -157,7 +152,6 @@ export default function Sidebar() {
           role={user.role}
           parentIcon="reports"
         />
-        <NavGroup titleKey="nav.clients_group" items={CLIENTS} role={user.role} />
         <NavGroup titleKey="nav.analytics" items={ANALYTICS} role={user.role} />
         <NavGroup titleKey="nav.operations" items={OPERATIONS} role={user.role} />
         <NavGroup titleKey="nav.admin" items={ADMIN} role={user.role} />
