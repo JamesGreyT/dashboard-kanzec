@@ -160,7 +160,7 @@ export default function Comparison() {
         {/* Control row — same shape for both tabs. */}
         <div className="flex flex-wrap items-center gap-3 mb-4">
           {/* Mode toggle */}
-          <div className="inline-flex rounded-md border border-border/60 overflow-hidden">
+          <div className="inline-flex rounded-md border border-line/60 overflow-hidden">
             {(["yearly", "monthly", "daily"] as Mode[]).map((m) => (
               <button
                 key={m}
@@ -169,7 +169,7 @@ export default function Comparison() {
                 className={
                   "px-3 h-9 text-[12px] uppercase tracking-[0.14em] font-medium transition-colors " +
                   (mode === m
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-mint text-white"
                     : "bg-background hover:bg-muted")
                 }
               >
@@ -368,25 +368,25 @@ function NumberStepper({
   max: number;
 }) {
   return (
-    <div className="inline-flex items-center gap-1.5 h-9 px-2 rounded-md border border-border/60 bg-background">
-      <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+    <div className="inline-flex items-center gap-1.5 h-9 px-2 rounded-md border border-line/60 bg-background">
+      <span className="text-[10px] uppercase tracking-[0.14em] text-ink3">
         {label}
       </span>
       <button
         type="button"
-        className="px-1.5 text-muted-foreground hover:text-foreground disabled:opacity-30"
+        className="px-1.5 text-ink3 hover:text-ink disabled:opacity-30"
         onClick={() => onChange(Math.max(min, value - 1))}
         disabled={value <= min}
         aria-label={`Decrement ${label}`}
       >
         −
       </button>
-      <span className="font-mono tabular-nums text-[13px] text-foreground min-w-[3ch] text-center">
+      <span className="font-mono tabular-nums text-[13px] text-ink min-w-[3ch] text-center">
         {value}
       </span>
       <button
         type="button"
-        className="px-1.5 text-muted-foreground hover:text-foreground disabled:opacity-30"
+        className="px-1.5 text-ink3 hover:text-ink disabled:opacity-30"
         onClick={() => onChange(Math.min(max, value + 1))}
         disabled={value >= max}
         aria-label={`Increment ${label}`}
@@ -400,7 +400,7 @@ function NumberStepper({
 function LoadingHint() {
   const { t } = useTranslation();
   return (
-    <div className="text-[12px] italic text-muted-foreground py-6">
+    <div className="text-[12px] italic text-ink3 py-6">
       {t("comparison.loading", { defaultValue: "Loading matrix…" })}
     </div>
   );
@@ -409,7 +409,7 @@ function LoadingHint() {
 function ErrorHint() {
   const { t } = useTranslation();
   return (
-    <div className="text-[12px] text-red-700 dark:text-red-400 py-6">
+    <div className="text-[12px] text-coraldk py-6">
       {t("comparison.error", { defaultValue: "Failed to load matrix." })}
     </div>
   );

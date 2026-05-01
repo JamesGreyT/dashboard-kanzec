@@ -237,11 +237,11 @@ export default function Sales() {
       {/* Cross-sell affinity */}
       <section className="mb-12 stagger-3">
         <div className="flex items-baseline justify-between mb-3">
-          <h2 className="font-display text-[22px] md:text-[26px] font-medium tracking-[-0.01em] text-foreground">
+          <h2 className="font-display text-[22px] md:text-[26px] font-medium tracking-[-0.01em] text-ink">
             {t("sales.section_xsell", { defaultValue: "Cross-sell" })}
-            <span aria-hidden className="font-display-italic text-primary ml-[2px]">.</span>
+            <span aria-hidden className="font-display text-mintdk ml-[2px]">.</span>
           </h2>
-          <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+          <div className="text-[11px] uppercase tracking-[0.16em] text-ink3">
             {t("sales.xsell_deals_hint", {
               defaultValue: "{{n}} deals carry ≥ 2 brands",
               n: xsellQ.data?.pairs?.[0]?.deals ?? 0,
@@ -249,23 +249,23 @@ export default function Sales() {
           </div>
         </div>
         {xsellQ.data && xsellQ.data.pairs.length > 0 ? (
-          <div className="overflow-x-auto border border-border/60 rounded-md bg-background/70">
+          <div className="overflow-x-auto border border-line/60 rounded-md bg-background/70">
             <table className="w-full text-[13px]">
               <thead className="bg-muted/50">
                 <tr>
-                  <th className="text-left px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-medium">
+                  <th className="text-left px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-ink3 font-medium">
                     {t("sales.col_brand_a", { defaultValue: "Brand A" })}
                   </th>
-                  <th className="text-left px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-medium">
+                  <th className="text-left px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-ink3 font-medium">
                     {t("sales.col_brand_b", { defaultValue: "Brand B" })}
                   </th>
-                  <th className="text-right px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-medium">
+                  <th className="text-right px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-ink3 font-medium">
                     {t("sales.col_deals_both", { defaultValue: "Deals with both" })}
                   </th>
-                  <th className="text-right px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-medium">
+                  <th className="text-right px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-ink3 font-medium">
                     {t("sales.col_support", { defaultValue: "Support" })}
                   </th>
-                  <th className="text-right px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-medium">
+                  <th className="text-right px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-ink3 font-medium">
                     {t("sales.col_lift", { defaultValue: "Lift" })}
                   </th>
                 </tr>
@@ -274,16 +274,16 @@ export default function Sales() {
                 {xsellQ.data.pairs.map((p, i) => {
                   const lift = p.lift ?? 0;
                   const liftTone = lift >= 3
-                    ? "text-emerald-700 dark:text-emerald-400 font-medium"
+                    ? "text-mintdk font-medium"
                     : lift >= 1.5
-                    ? "text-foreground"
-                    : "text-muted-foreground";
+                    ? "text-ink"
+                    : "text-ink3";
                   return (
-                    <tr key={i} className="border-t border-border/40">
-                      <td className="px-3 py-1.5 text-foreground">{p.brand_a}</td>
-                      <td className="px-3 py-1.5 text-foreground">{p.brand_b}</td>
+                    <tr key={i} className="border-t border-line/40">
+                      <td className="px-3 py-1.5 text-ink">{p.brand_a}</td>
+                      <td className="px-3 py-1.5 text-ink">{p.brand_b}</td>
                       <td className="px-3 py-1.5 text-right font-mono tabular-nums">{fmtNum(p.cnt)}</td>
-                      <td className="px-3 py-1.5 text-right font-mono tabular-nums text-muted-foreground">
+                      <td className="px-3 py-1.5 text-right font-mono tabular-nums text-ink3">
                         {(p.support * 100).toFixed(2)}%
                       </td>
                       <td className={`px-3 py-1.5 text-right font-mono tabular-nums ${liftTone}`}>
@@ -296,7 +296,7 @@ export default function Sales() {
             </table>
           </div>
         ) : (
-          <div className="text-muted-foreground italic text-sm py-10 text-center">—</div>
+          <div className="text-ink3 italic text-sm py-10 text-center">—</div>
         )}
       </section>
 
@@ -305,9 +305,9 @@ export default function Sales() {
       {/* Seasonality heatmap */}
       <section className="mb-12 stagger-4">
         <div className="flex items-baseline justify-between mb-3">
-          <h2 className="font-display text-[22px] md:text-[26px] font-medium tracking-[-0.01em] text-foreground">
+          <h2 className="font-display text-[22px] md:text-[26px] font-medium tracking-[-0.01em] text-ink">
             {t("sales.section_seasonality")}
-            <span aria-hidden className="font-display-italic text-primary ml-[2px]">.</span>
+            <span aria-hidden className="font-display text-mintdk ml-[2px]">.</span>
           </h2>
         </div>
         {heatQ.data && (
@@ -325,9 +325,9 @@ export default function Sales() {
       {/* Ranked tables in tabs */}
       <section className="mb-12 stagger-5">
         <div className="flex items-baseline justify-between mb-4">
-          <h2 className="font-display text-[22px] md:text-[26px] font-medium tracking-[-0.01em] text-foreground">
+          <h2 className="font-display text-[22px] md:text-[26px] font-medium tracking-[-0.01em] text-ink">
             {t("sales.section_ranked")}
-            <span aria-hidden className="font-display-italic text-primary ml-[2px]">.</span>
+            <span aria-hidden className="font-display text-mintdk ml-[2px]">.</span>
           </h2>
         </div>
         <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
@@ -417,7 +417,7 @@ export default function Sales() {
                         "inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background " +
                         (active
                           ? "border-foreground/70 bg-background ring-2 ring-foreground/30"
-                          : "border-border/60 bg-muted/40 hover:bg-muted/60")
+                          : "border-line/60 bg-muted/40 hover:bg-muted/60")
                       }
                       title={`${s.segment} — ${s.clients} clients, $${Math.round(s.revenue).toLocaleString("en-US")}`}
                     >
@@ -426,10 +426,10 @@ export default function Sales() {
                         style={{ backgroundColor: rfmSegmentColor(s.segment) }}
                         aria-hidden
                       />
-                      <span className={"text-[12px] " + (active ? "text-foreground font-medium" : "text-foreground")}>
+                      <span className={"text-[12px] " + (active ? "text-ink font-medium" : "text-ink")}>
                         {s.segment}
                       </span>
-                      <span className="font-mono tabular-nums text-[11px] text-muted-foreground">
+                      <span className="font-mono tabular-nums text-[11px] text-ink3">
                         {s.clients}
                       </span>
                     </button>
@@ -452,11 +452,11 @@ export default function Sales() {
 }
 
 function yoyChip(v: number | null | undefined) {
-  if (v === null || v === undefined || !Number.isFinite(v)) return <span className="text-muted-foreground/60">—</span>;
+  if (v === null || v === undefined || !Number.isFinite(v)) return <span className="text-ink3/60">—</span>;
   const sign = v > 0 ? "+" : "";
-  const cls = v > 0.005 ? "text-emerald-700 dark:text-emerald-400"
-            : v < -0.005 ? "text-red-700 dark:text-red-400"
-            : "text-muted-foreground";
+  const cls = v > 0.005 ? "text-mintdk"
+            : v < -0.005 ? "text-coraldk"
+            : "text-ink3";
   return <span className={cls}>{sign}{(v * 100).toFixed(1)}%</span>;
 }
 
@@ -589,7 +589,7 @@ function SalesTimeseries({ series }: { series: SeriesPoint[] }) {
   return (
     <section className="mb-12 stagger-3">
       <div className="flex items-baseline justify-between mb-2">
-        <div className="eyebrow !tracking-[0.18em] text-primary">
+        <div className="eyebrow !tracking-[0.18em] text-mintdk">
           {t("sales.chart_timeseries")}
         </div>
         <AddAnnotationButton
