@@ -6,7 +6,7 @@ import { Phone, FileEdit, ArrowUpRight } from "lucide-react";
 
 import { api } from "../lib/api";
 import PageHeading from "../components/PageHeading";
-import MetricCard, { fmtNum, fmtCount, fmtPct } from "../components/MetricCard";
+import { fmtNum, fmtCount, fmtPct } from "../components/MetricCard";
 import RankedTable, { type ColumnDef, type Page } from "../components/RankedTable";
 import Heatmap from "../components/Heatmap";
 import AgingBar from "../components/AgingBar";
@@ -296,7 +296,7 @@ export default function ClientIntelligence() {
   const kpi = analyticsQ.data?.kpi;
 
   return (
-    <div className="pb-12">
+    <div className="pb-14 space-y-9 md:space-y-11">
       <PageHeading
         crumb={[t("nav.clients_group", { defaultValue: "Mijozlar" }), t("clients360.title", { defaultValue: "Mijozlar 360°" })]}
         title={t("clients360.title", { defaultValue: "Mijozlar 360°" })}
@@ -305,126 +305,203 @@ export default function ClientIntelligence() {
         })}
       />
 
-      {/* KPI strip — 5 cards. Concentration card highlighted (left primary border). */}
-      <section className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-8">
-        <MetricCard
-          label={t("clients360.kpi_active", { defaultValue: "Active (12m)" })}
+      {/* ──────────────────────────────────────────────────────────────────
+          ZONE 1 — Today's state
+          Asymmetric KPI strip: concentration card spans 4/12 with a primary
+          radial wash + "Strategic radar" eyebrow; the four operational vitals
+          fill the remaining 8/12 with subtle accent borders so the eye reads
+          them as a related cluster.
+      ────────────────────────────────────────────────────────────────────── */}
+      <section className="stagger-1 grid grid-cols-12 gap-3 md:gap-4">
+        {/* Strategic radar — top-5 concentration */}
+        <div className="col-span-12 md:col-span-4 relative overflow-hidden bg-card border rounded-2xl p-5 shadow-soft">
+          <div
+            aria-hidden
+            className="absolute -top-16 -right-16 w-[220px] h-[220px] rounded-full pointer-events-none opacity-[0.10]"
+            style={{ background: "radial-gradient(circle at center, hsl(var(--primary)) 0%, transparent 70%)" }}
+          />
+          <div className="relative">
+            <div className="eyebrow !tracking-[0.18em] flex items-baseline gap-1.5 mb-3">
+              <span>{t("clients360.kpi_top5_eyebrow", { defaultValue: "Strategic radar" })}</span>
+              <span aria-hidden className="font-display-italic text-primary text-[12px] -ml-0.5">.</span>
+            </div>
+            <div className="font-display text-[36px] md:text-[42px] font-medium leading-[1] tracking-[-0.02em] tabular-nums text-foreground">
+              {kpi?.top5_concentration_pct != null ? fmtPct(kpi.top5_concentration_pct) : "—"}
+            </div>
+            <div className="mt-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+              {t("clients360.kpi_top5", { defaultValue: "Top-5 concentration" })}
+            </div>
+            <div className="mt-2 text-[11px] text-muted-foreground italic max-w-[34ch] leading-relaxed">
+              {t("clients360.kpi_top5_hint", { defaultValue: "Top 5 customers' share of LTV" })}
+            </div>
+          </div>
+        </div>
+
+        <KpiSmall
+          accent="emerald"
+          label={t("clients360.kpi_active", { defaultValue: "Active (12m)" }) as string}
           value={fmtCount(kpi?.active_12m ?? 0)}
         />
-        <MetricCard
-          label={t("clients360.kpi_at_risk", { defaultValue: "At risk" })}
+        <KpiSmall
+          accent="amber"
+          label={t("clients360.kpi_at_risk", { defaultValue: "At risk" }) as string}
           value={fmtCount(kpi?.at_risk_count ?? 0)}
-          hint={t("clients360.kpi_at_risk_hint", { defaultValue: "Cannot lose / At risk segments" }) as string}
+          hint={t("clients360.kpi_at_risk_hint", { defaultValue: "Cannot lose / At risk" }) as string}
         />
-        <MetricCard
-          label={t("clients360.kpi_total_debt", { defaultValue: "Total debt" })}
+        <KpiSmall
+          accent="destructive"
+          label={t("clients360.kpi_total_debt", { defaultValue: "Total debt" }) as string}
           value={"$" + fmtNum(kpi?.outstanding_total ?? 0, true)}
         />
-        <MetricCard
-          label={t("clients360.kpi_predicted_7d", { defaultValue: "Predicted next 7d" })}
+        <KpiSmall
+          accent="primary"
+          label={t("clients360.kpi_predicted_7d", { defaultValue: "Predicted next 7d" }) as string}
           value={fmtCount(kpi?.predicted_next_7d ?? 0)}
-          hint={t("clients360.kpi_predicted_hint", { defaultValue: "Customers overdue for repeat" }) as string}
-        />
-        <MetricCard
-          label={t("clients360.kpi_top5", { defaultValue: "Top-5 concentration" })}
-          value={kpi?.top5_concentration_pct != null ? fmtPct(kpi.top5_concentration_pct) : "—"}
-          hint={t("clients360.kpi_top5_hint", { defaultValue: "Top 5 customers' share of LTV" }) as string}
+          hint={t("clients360.kpi_predicted_hint", { defaultValue: "Overdue for repeat" }) as string}
         />
       </section>
 
-      {/* Analytics layer — 3 panels */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
-        <Panel title={t("clients360.panel_rfm", { defaultValue: "RFM 5×5" })}
-               subtitle={t("clients360.panel_rfm_sub", { defaultValue: "R = recency · F = frequency · cell = customers" }) as string}>
-          {analyticsQ.data ? (
-            <Heatmap
-              rowLabels={analyticsQ.data.rfm_heatmap.r_labels}
-              colLabels={analyticsQ.data.rfm_heatmap.f_labels}
-              values={analyticsQ.data.rfm_heatmap.counts}
-              formatValue={(v) => v === 0 ? "—" : String(v)}
-              rowHeader="R \\ F"
-              maxHeight={280}
+      <hr className="mark-rule" aria-hidden />
+
+      {/* ──────────────────────────────────────────────────────────────────
+          ZONE 2 — Analysis
+          Asymmetric 12-col: Action queue (5) — primary radial wash, slightly
+          elevated. Aging × Manager (4) — destructive radial wash, the
+          "bleeding cash" panel. RFM 5×5 (3) — clean editorial heatmap.
+      ────────────────────────────────────────────────────────────────────── */}
+      <section className="stagger-2 space-y-4">
+        <ZoneTitle
+          eyebrow={t("clients360.zone_analytics_eyebrow", { defaultValue: "Tahlil" }) as string}
+          title={t("clients360.zone_analytics_title", { defaultValue: "Kim, qayerda, qachon" }) as string}
+        />
+        <div className="grid grid-cols-12 gap-3 md:gap-4">
+          <Panel
+            className="col-span-12 lg:col-span-5"
+            accent="primary"
+            elevated
+            title={t("clients360.panel_queue", { defaultValue: "Action queue" })}
+            subtitle={t("clients360.panel_queue_sub", { defaultValue: "Top 10 by overdue × LTV" }) as string}
+          >
+            <ActionQueueList
+              items={analyticsQ.data?.action_queue ?? []}
+              loading={analyticsQ.isLoading}
+              error={!!analyticsQ.error}
             />
-          ) : <SkeletonBlock />}
-        </Panel>
+          </Panel>
 
-        <Panel title={t("clients360.panel_aging", { defaultValue: "Aging × Manager" })}
-               subtitle={t("clients360.panel_aging_sub", { defaultValue: "Outstanding $ by bucket per room" }) as string}>
-          {analyticsQ.data ? (
-            <Heatmap
-              rowLabels={analyticsQ.data.aging_by_manager.row_labels}
-              colLabels={analyticsQ.data.aging_by_manager.col_labels}
-              values={analyticsQ.data.aging_by_manager.values}
-              formatValue={(v) => v === 0 ? "—" : "$" + fmtNum(v, true)}
-              rowHeader="Manager"
-              maxHeight={280}
-            />
-          ) : <SkeletonBlock />}
-        </Panel>
+          <Panel
+            className="col-span-12 lg:col-span-4"
+            accent="destructive"
+            title={t("clients360.panel_aging", { defaultValue: "Aging × Manager" })}
+            subtitle={t("clients360.panel_aging_sub", { defaultValue: "Outstanding $ per room, by bucket" }) as string}
+          >
+            {analyticsQ.data ? (
+              <Heatmap
+                rowLabels={analyticsQ.data.aging_by_manager.row_labels}
+                colLabels={analyticsQ.data.aging_by_manager.col_labels}
+                values={analyticsQ.data.aging_by_manager.values}
+                formatValue={(v) => v === 0 ? "—" : "$" + fmtNum(v, true)}
+                maxHeight={280}
+              />
+            ) : <SkeletonBlock />}
+          </Panel>
 
-        <Panel title={t("clients360.panel_queue", { defaultValue: "Action queue" })}
-               subtitle={t("clients360.panel_queue_sub", { defaultValue: "Top 10 by overdue × LTV" }) as string}>
-          <ActionQueueList
-            items={analyticsQ.data?.action_queue ?? []}
-            loading={analyticsQ.isLoading}
-            error={!!analyticsQ.error}
-          />
-        </Panel>
-      </section>
-
-      {/* Segment ribbon */}
-      <section className="mb-4 sticky top-0 z-10 bg-background/85 backdrop-blur py-2 -mx-2 px-2 border-y border-border/40">
-        <div className="flex flex-wrap items-center gap-1.5">
-          {SEGMENTS.map((s) => {
-            const active = segment === s;
-            const count = s === "all" ? null : segCounts[segLabel(s)] ?? null;
-            return (
-              <button
-                key={s}
-                type="button"
-                onClick={() => { setSegment(s); setPage(0); }}
-                className={
-                  "px-2.5 py-1 rounded-full text-[11px] uppercase tracking-[0.08em] border transition-all " +
-                  (active
-                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                    : "bg-card text-foreground border-border hover:bg-muted")
-                }
-              >
-                {t(`clients360.seg_${s}`, { defaultValue: s.replace("_", " ") })}
-                {count != null && (
-                  <span className={"ml-1.5 font-mono tabular-nums " + (active ? "opacity-80" : "text-muted-foreground")}>
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-          <div className="ml-auto"><ScopeChip /></div>
+          <Panel
+            className="col-span-12 lg:col-span-3"
+            title={t("clients360.panel_rfm", { defaultValue: "RFM 5×5" })}
+            subtitle={t("clients360.panel_rfm_sub", { defaultValue: "Recency × Frequency · cell = customers" }) as string}
+          >
+            {analyticsQ.data ? (
+              <Heatmap
+                rowLabels={analyticsQ.data.rfm_heatmap.r_labels}
+                colLabels={analyticsQ.data.rfm_heatmap.f_labels}
+                values={analyticsQ.data.rfm_heatmap.counts}
+                formatValue={(v) => v === 0 ? "—" : String(v)}
+                rowHeader="R\\F"
+                maxHeight={280}
+              />
+            ) : <SkeletonBlock />}
+          </Panel>
         </div>
       </section>
 
-      {/* Filter row + table */}
-      <section>
-        <RankedTable<ClientRow>
-          columns={columns}
-          data={intelligenceQ.data ? {
-            rows: intelligenceQ.data.rows,
-            total: intelligenceQ.data.total,
-            page: intelligenceQ.data.page,
-            size: intelligenceQ.data.size,
-            sort,
-          } as Page<ClientRow> : undefined}
-          loading={intelligenceQ.isLoading}
-          onChange={(next) => {
-            setPage(next.page);
-            setSize(next.size);
-            setSort(next.sort);
-            setSearch(next.search);
-          }}
-          onRowClick={(r) => navigate(`/collection/debt/client/${r.person_id}`)}
-          getRowKey={(r) => r.person_id}
-          empty={t("clients360.empty", { defaultValue: "No clients match the current filter." }) as string}
+      <hr className="mark-rule" aria-hidden />
+
+      {/* ──────────────────────────────────────────────────────────────────
+          ZONE 3 — All customers
+          Title + sticky pill ribbon + the row table. The ribbon is the
+          page's filter UI; chips have a subtle scale + shadow on active so
+          the operator's choice always reads as the "selected" one.
+      ────────────────────────────────────────────────────────────────────── */}
+      <section className="stagger-3">
+        <ZoneTitle
+          eyebrow={t("clients360.zone_table_eyebrow", { defaultValue: "Barcha mijozlar" }) as string}
+          title={t("clients360.zone_table_title", { defaultValue: "Filtr va harakat" }) as string}
         />
+
+        {/* Sticky segment ribbon */}
+        <div className="sticky top-0 z-10 -mx-2 px-2 mt-4 mb-5 py-2.5 bg-background/90 backdrop-blur-md border-y border-border/40">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="eyebrow !tracking-[0.16em] mr-1 hidden sm:inline">
+              {t("clients360.segment_label", { defaultValue: "Segment" })}
+            </span>
+            {SEGMENTS.map((s) => {
+              const active = segment === s;
+              const count = s === "all" ? null : segCounts[segLabel(s)] ?? null;
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => { setSegment(s); setPage(0); }}
+                  className={
+                    "px-2.5 py-1 rounded-full text-[11px] uppercase tracking-[0.10em] border transition-all duration-150 " +
+                    (active
+                      ? "bg-primary text-primary-foreground border-primary shadow-md scale-105 font-medium"
+                      : "bg-card text-foreground/80 border-border hover:bg-muted hover:border-foreground/30")
+                  }
+                >
+                  {t(`clients360.seg_${s}`, { defaultValue: s.replace("_", " ") })}
+                  {count != null && (
+                    <span
+                      className={
+                        "ml-1.5 font-mono tabular-nums " +
+                        (active ? "opacity-85" : "text-muted-foreground")
+                      }
+                    >
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+            <div className="ml-auto"><ScopeChip /></div>
+          </div>
+        </div>
+
+        {/* The row table — wrapped in a thin layered container so the
+            sticky ribbon doesn't visually fuse with the heatmaps above. */}
+        <div className="bg-card border rounded-2xl shadow-soft p-3 md:p-4">
+          <RankedTable<ClientRow>
+            columns={columns}
+            data={intelligenceQ.data ? {
+              rows: intelligenceQ.data.rows,
+              total: intelligenceQ.data.total,
+              page: intelligenceQ.data.page,
+              size: intelligenceQ.data.size,
+              sort,
+            } as Page<ClientRow> : undefined}
+            loading={intelligenceQ.isLoading}
+            onChange={(next) => {
+              setPage(next.page);
+              setSize(next.size);
+              setSort(next.sort);
+              setSearch(next.search);
+            }}
+            onRowClick={(r) => navigate(`/collection/debt/client/${r.person_id}`)}
+            getRowKey={(r) => r.person_id}
+            empty={t("clients360.empty", { defaultValue: "No clients match the current filter." }) as string}
+          />
+        </div>
       </section>
 
       {contactDialog && (
@@ -456,29 +533,127 @@ function segLabel(s: Segment): string {
   }
 }
 
+/**
+ * Asymmetric panel with optional radial-wash accent. The wash is the
+ * single design move that lets each panel telegraph its purpose without
+ * resorting to outright color blocking — primary = "go do this",
+ * destructive = "this is bleeding," none = "neutral data view."
+ */
 function Panel({
   title,
   subtitle,
+  className,
+  accent = "none",
+  elevated = false,
   children,
 }: {
   title: string;
   subtitle?: string;
+  className?: string;
+  accent?: "primary" | "destructive" | "none";
+  elevated?: boolean;
   children: React.ReactNode;
 }) {
+  const wash =
+    accent === "primary" ? (
+      <div
+        aria-hidden
+        className="absolute -bottom-14 -right-14 w-[200px] h-[200px] rounded-full pointer-events-none opacity-[0.09]"
+        style={{ background: "radial-gradient(circle at center, hsl(var(--primary)) 0%, transparent 70%)" }}
+      />
+    ) : accent === "destructive" ? (
+      <div
+        aria-hidden
+        className="absolute -top-12 -right-12 w-[160px] h-[160px] rounded-full pointer-events-none opacity-[0.07]"
+        style={{ background: "radial-gradient(circle at center, hsl(var(--destructive)) 0%, transparent 70%)" }}
+      />
+    ) : null;
+  const shadowCls = elevated ? "shadow-md" : "shadow-soft";
   return (
-    <div className="bg-card border rounded-2xl p-4 shadow-soft">
-      <div className="mb-3">
-        <div className="font-display text-[16px] font-medium text-foreground leading-tight">
+    <div className={"relative overflow-hidden bg-card border rounded-2xl p-4 md:p-5 " + shadowCls + " " + (className ?? "")}>
+      {wash}
+      <div className="relative mb-3">
+        <div className="font-display text-[17px] font-medium text-foreground leading-tight">
           {title}
           <span aria-hidden className="font-display-italic text-primary ml-[1px]">.</span>
         </div>
         {subtitle && (
-          <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mt-0.5">
+          <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mt-1">
             {subtitle}
           </div>
         )}
       </div>
-      {children}
+      <div className="relative">{children}</div>
+    </div>
+  );
+}
+
+/**
+ * Compact KPI card with a 2px tone-coded left border. Lets the four
+ * operational vitals read as a related cluster while still color-coding
+ * by intent (emerald = healthy, amber = watch, destructive = debt,
+ * primary = predictive). Sits next to the larger Strategic-radar card
+ * so the eye reads from "the one big number" → "the four metrics."
+ */
+function KpiSmall({
+  label,
+  value,
+  hint,
+  accent,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  accent: "emerald" | "amber" | "destructive" | "primary";
+}) {
+  const accentBorder = {
+    emerald: "border-l-emerald-500/70",
+    amber: "border-l-amber-500/70",
+    destructive: "border-l-destructive/70",
+    primary: "border-l-primary/70",
+  }[accent];
+  return (
+    <div
+      className={
+        "col-span-6 md:col-span-2 bg-card border border-l-2 rounded-2xl p-4 shadow-soft " +
+        accentBorder
+      }
+    >
+      <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground font-medium">
+        {label}
+      </div>
+      <div className="mt-2 font-display text-[24px] md:text-[26px] font-medium leading-[1.05] tracking-[-0.01em] tabular-nums text-foreground">
+        {value}
+      </div>
+      {hint && (
+        <div className="mt-1.5 text-[10px] text-muted-foreground italic">
+          {hint}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Section heading: an uppercase tracked-out eyebrow + a display-italic
+ * title with the brand-standard vermilion period. Used to compose the
+ * page into named zones (Tahlil, Barcha mijozlar) so the eye reads each
+ * one as a deliberate section instead of scrolling past stacked cards.
+ */
+function ZoneTitle({
+  eyebrow,
+  title,
+}: {
+  eyebrow: string;
+  title: string;
+}) {
+  return (
+    <div>
+      <div className="eyebrow !tracking-[0.18em] mb-1.5">{eyebrow}</div>
+      <h2 className="font-display text-[22px] md:text-[26px] font-medium tracking-[-0.01em] leading-[1] text-foreground">
+        {title}
+        <span aria-hidden className="font-display-italic text-primary">.</span>
+      </h2>
     </div>
   );
 }
