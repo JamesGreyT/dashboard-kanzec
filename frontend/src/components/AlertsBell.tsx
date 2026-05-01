@@ -55,14 +55,15 @@ export default function AlertsBell() {
           type="button"
           aria-label={t("alerts.open", { defaultValue: "Open alerts" }) as string}
           className={cn(
-            "relative inline-flex items-center justify-center h-8 w-8 rounded-md",
-            "hover:bg-muted/40 outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "relative inline-flex items-center justify-center h-9 w-9 rounded-full",
+            "text-ink2 hover:text-ink hover:bg-mintbg",
+            "outline-none focus-visible:ring-2 focus-visible:ring-mint focus-visible:ring-offset-2",
           )}
         >
           <Bell className="h-4 w-4" aria-hidden />
           {unread > 0 && (
             <span
-              className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] font-mono tabular-nums flex items-center justify-center"
+              className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-coral text-white text-[10px] font-mono font-medium tabular-nums flex items-center justify-center ring-2 ring-card"
               aria-label={`${unread} unread`}
             >
               {unread > 99 ? "99+" : unread}
@@ -70,7 +71,7 @@ export default function AlertsBell() {
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[340px] p-0">
+      <PopoverContent align="end" className="w-[340px] p-0 rounded-2xl shadow-cardlg border-line">
         <div className="flex items-center justify-between p-3 border-b border-border">
           <div className="eyebrow !tracking-[0.14em] text-primary">
             {t("alerts.title", { defaultValue: "Alerts" })}
