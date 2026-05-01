@@ -71,10 +71,12 @@ const DATA: Item[] = [
   { to: "/data/payments", labelKey: "nav.payments", roles: ["admin", "operator", "viewer"], icon: "payments" },
   { to: "/data/legal-persons", labelKey: "nav.legal_persons", roles: ["admin", "operator", "viewer"], icon: "people" },
 ];
-const COLLECTION: Item[] = [
-  // /collection/worklist still routed (DebtClient.tsx navigates back to it)
-  // but no longer surfaced in the sidebar — operator works from /clients.
-  { to: "/collection/clients",  labelKey: "nav.debt_clients",  roles: ["admin", "viewer"], icon: "people" },
+const CLIENTS: Item[] = [
+  // /collection/worklist is still routed (DebtClient.tsx back-button uses
+  // it) but unsurfaced. /clients is the new Mijozlar 360° intelligence
+  // view; /collection/clients remains the debt-focused list.
+  { to: "/clients",            labelKey: "nav.client_360",   roles: ["admin", "viewer"], icon: "people" },
+  { to: "/collection/clients", labelKey: "nav.debt_clients", roles: ["admin", "viewer"], icon: "ledger" },
 ];
 const ANALYTICS: Item[] = [
   { to: "/analytics/sales",    labelKey: "nav.sales",    roles: ["admin", "viewer"], icon: "trending" },
@@ -157,7 +159,7 @@ export default function Sidebar() {
           role={user.role}
           parentIcon="reports"
         />
-        <NavGroup titleKey="nav.collection" items={COLLECTION} role={user.role} />
+        <NavGroup titleKey="nav.clients_group" items={CLIENTS} role={user.role} />
         <NavGroup titleKey="nav.analytics" items={ANALYTICS} role={user.role} />
         <NavGroup titleKey="nav.operations" items={OPERATIONS} role={user.role} />
         <NavGroup titleKey="nav.admin" items={ADMIN} role={user.role} />
