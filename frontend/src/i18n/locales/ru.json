@@ -69,6 +69,7 @@
     "debt": "Долг",
     "worklist": "Список долгов",
     "clients": "Клиенты",
+    "debt_clients": "Должники",
     "dayslice": "Дневной срез",
     "executive_group": "Стратегия"
   },

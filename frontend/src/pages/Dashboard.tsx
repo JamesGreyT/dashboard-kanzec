@@ -675,9 +675,9 @@ function CollectionTile({
   const over90Pct = total && over90 ? over90 / total : 0;
   return (
     <TileFrame
-      to="/collection/worklist"
+      to="/collection/clients"
       icon={HandCoins}
-      eyebrow={t("nav.worklist") as string}
+      eyebrow={t("nav.debt_clients") as string}
       loading={loading}
       error={error}
     >

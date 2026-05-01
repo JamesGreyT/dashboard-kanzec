@@ -72,8 +72,9 @@ const DATA: Item[] = [
   { to: "/data/legal-persons", labelKey: "nav.legal_persons", roles: ["admin", "operator", "viewer"], icon: "people" },
 ];
 const COLLECTION: Item[] = [
-  { to: "/collection/worklist", labelKey: "nav.worklist", roles: ["admin", "viewer"], icon: "ledger" },
-  { to: "/collection/clients",  labelKey: "nav.clients",  roles: ["admin", "viewer"], icon: "people" },
+  // /collection/worklist still routed (DebtClient.tsx navigates back to it)
+  // but no longer surfaced in the sidebar — operator works from /clients.
+  { to: "/collection/clients",  labelKey: "nav.debt_clients",  roles: ["admin", "viewer"], icon: "people" },
 ];
 const ANALYTICS: Item[] = [
   { to: "/analytics/sales",    labelKey: "nav.sales",    roles: ["admin", "viewer"], icon: "trending" },

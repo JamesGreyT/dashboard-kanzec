@@ -69,6 +69,7 @@
     "debt": "Debt",
     "worklist": "Debt worklist",
     "clients": "Clients",
+    "debt_clients": "Debt clients",
     "dayslice": "Day-slice",
     "executive_group": "Executive"
   },
