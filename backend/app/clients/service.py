@@ -1,31 +1,38 @@
-"""Client 360° / Mijozlar 360° — unified per-client intelligence.
+"""Client 360° / Mijozlar 360° — persona-based per-client intelligence.
 
-Combines RFM segmentation, AR aging, LTV/AOV, predictive next-buy,
-contact-log signals, and a risk score into one row per customer. Two
-endpoints: `intelligence` (paginated row table) and `analytics`
-(page-level aggregates: KPI strip, RFM 5×5 heatmap, aging × manager
-heatmap, top-N action queue, segment distribution).
+The page is table-only: a single paginated row table indexed by **persona**
+(10 archetypes that map to operator action) plus the row's signal stack
+(LTV, recency, debt, aging, predicted next-buy, last contact).
 
-The same SQL machinery powers both — we just GROUP BY differently
-for the aggregate endpoint.
+Persona resolution is mutually exclusive — the **highest urgency** persona
+wins. Resolution order (top-down):
 
-Design notes:
-  - Sotuv aggregates are NET of returns (negative product_amount rows
-    subtract). Same convention as dayslice / comparison so "champions"
-    can't be inflated by reversed deals.
-  - Payment aggregates exclude bank-recorded payments via
-    exclude_kirim_methods_clause() — consistent with dayslice / comparison
-    Kirim totals; the operator's collection effort is what matters.
-  - Predictive next-buy needs ≥3 prior orders. Below that the cycle
-    estimate is one outlier away from nonsense, so we return NULL and
-    the frontend shows '—'.
-  - Risk weights are kept as a Python constant so the operator can
-    re-tune without a SQL review.
+  1. debt_trap          — has any 90+ day overdue debt          → Escalate
+  2. whale_at_risk      — top-decile LTV + recency > 60 days    → Call now
+  3. lost               — last order > 365 days ago             → Archive
+  4. sleeping           — historically active, gone 181-365 d   → Win-back
+  5. one_hit            — exactly 1 lifetime order, > 180 days  → Reactivate
+  6. rookie             — ≤3 lifetime orders, first ≤ 90 d ago  → Nurture
+  7. champion           — top-decile LTV, recent (≤45 d), ≥4 ord → Retain
+  8. loyal              — ≥6 orders + recent (≤45 d)            → Upsell
+  9. bulk               — ≤3 orders BUT top-decile LTV          → Invest
+ 10. regular            — anyone else                            → Maintain
+
+Sotuv aggregates are NET of returns. Bank payments are excluded from
+"collected" via exclude_kirim_methods_clause(). Risk score (0-100) is a
+composite signal — used as a sort key + filter ("high risk only"), but
+not surfaced as a row visualization.
+
+Two endpoints:
+
+  GET /api/clients/intelligence   — paginated rows + persona_counts
+  GET /api/clients/filter_options — distinct managers/regions/directions
+                                    for toolbar dropdowns
 """
 from __future__ import annotations
 
 from datetime import date, timedelta
-from typing import Any, Literal
+from typing import Any
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,28 +42,44 @@ from ..scope import UserScope, clause_for_table
 
 
 # ---------------------------------------------------------------------------
-# Risk score weights — change here to retune without touching SQL
+# Persona thresholds — single source of truth for the SQL CASE
 # ---------------------------------------------------------------------------
 
-RISK_W_AGING_90 = 35           # any 90+ days debt outstanding
-RISK_W_LATE_PAY = 25           # has debt + last payment > 60 days ago
-RISK_W_RFM_SLIP = 15           # RFM in {At risk, Cannot lose them, Hibernating}
-RISK_W_RFM_LOST = 15           # RFM = Lost
-RISK_W_OVERDUE_PROMISE = 10    # has an overdue contact-log promise
+THRESH_RECENT_DAYS = 45            # ≤ recent
+THRESH_SLEEPING_LO = 181           # sleeping starts
+THRESH_SLEEPING_HI = 365           # sleeping ends; lost begins after
+THRESH_ONE_HIT_DAYS = 180          # one-hit-wonder cutoff
+THRESH_ROOKIE_DAYS = 90            # rookie's first-order window
+THRESH_ROOKIE_ORDERS = 3           # rookie's order ceiling
+THRESH_LOYAL_ORDERS = 6            # loyal floor
+THRESH_CHAMPION_ORDERS = 4         # champion order floor
+THRESH_BULK_ORDERS = 3             # bulk's order ceiling
+THRESH_WHALE_RECENCY = 60          # whale-at-risk recency floor
+THRESH_HIGH_RISK = 60              # "high risk" filter cutoff
+THRESH_TRAJECTORY_DEAD = 0.05      # ±5% deadband around flat
 
 
-# ---------------------------------------------------------------------------
-# Segment shortcuts — what the chip ribbon filters mean
-# ---------------------------------------------------------------------------
+# Risk score weights — composite urgency signal, not a per-row visual
+RISK_W_AGING_90 = 35
+RISK_W_LATE_PAY = 25
+RISK_W_RFM_SLIP = 15
+RISK_W_RFM_LOST = 15
+RISK_W_OVERDUE_PROMISE = 10
 
-SEGMENT_FILTERS = (
-    "all", "champions", "loyal", "at_risk",
-    "hibernating", "debt_warning", "predicted",
+
+# Persona keys (must match frontend label keys)
+PERSONA_KEYS = (
+    "debt_trap",
+    "whale_at_risk",
+    "lost",
+    "sleeping",
+    "one_hit",
+    "rookie",
+    "champion",
+    "loyal",
+    "bulk",
+    "regular",
 )
-SegmentFilter = Literal[
-    "all", "champions", "loyal", "at_risk",
-    "hibernating", "debt_warning", "predicted",
-]
 
 
 # ---------------------------------------------------------------------------
@@ -64,41 +87,32 @@ SegmentFilter = Literal[
 # ---------------------------------------------------------------------------
 
 
-def _scope_legal_person(scope: UserScope | None) -> tuple[str, dict]:
-    """Return (sql_fragment, params) restricting to the user's rooms via the
-    person_id subquery pattern. Empty for unscoped users."""
-    if scope is None:
+def _scope_subquery(scope: UserScope | None) -> tuple[str, dict[str, Any]]:
+    """Return ('AND person_id IN (…)', params) restricting to the user's
+    rooms via deal_order. Empty for unscoped users.
+
+    We restrict at the outer SELECT (against the `scored` CTE) so the inner
+    CTEs stay simple — the perf cost is one DISTINCT subquery."""
+    if scope is None or not scope.is_scoped:
         return "", {}
-    frag, params = clause_for_table(scope, "smartup_rep.legal_person")
-    if not frag:
-        return "", {}
-    return f"AND lp.{frag}", params
+    placeholders = ", ".join(f":_scope_r{i}" for i in range(len(scope.room_ids)))
+    params = {f"_scope_r{i}": rid for i, rid in enumerate(scope.room_ids)}
+    return (
+        f"AND person_id::text IN ("
+        f"  SELECT DISTINCT person_id FROM smartup_rep.deal_order"
+        f"   WHERE room_id IN ({placeholders})"
+        f")",
+        params,
+    )
 
 
 # ---------------------------------------------------------------------------
-# The big shared CTE bundle — produces one row per legal_person with every
-# signal we need. Both endpoints derive from this; the difference is
-# whether the caller paginates the result or aggregates it.
+# The big CTE bundle — produces one row per legal_person.person_id with
+# every Client 360° signal. Persona is derived in the final `scored` CTE.
 # ---------------------------------------------------------------------------
 
 
 def _intelligence_cte_sql(*, today: date) -> str:
-    """Return a multi-CTE block that, when wrapped with a SELECT, yields
-    one row per `legal_person.person_id` carrying every Client 360° field.
-
-    Aging follows the operator's mental model: oldest unpaid invoice's age
-    determines the bucket. We don't do a true FIFO matching (the worklist
-    does, but it's slow on a fan-out join); instead we use a simpler
-    per-customer net-outstanding × oldest-unpaid-age proxy. Difference
-    against the worklist's exact aging is small (worklist matches sales
-    LIFO across opening + invoices; this approximation just looks at the
-    oldest order whose cumulative invoiced exceeds total paid). Good
-    enough for a 360° list view; the per-client dossier still does the
-    rigorous version.
-
-    Kirim payments are filtered through exclude_kirim_methods_clause so
-    bank-recorded flows don't inflate "collected" numbers.
-    """
     bank_excl_p = exclude_kirim_methods_clause("p")
     today_iso = today.isoformat()
     twelve_mo = (today - timedelta(days=365)).isoformat()
@@ -108,18 +122,25 @@ def _intelligence_cte_sql(*, today: date) -> str:
     WITH
     -- ----- per-customer order aggregates (LTV, AOV, recency, sku_breadth)
     orders_agg AS (
-      SELECT d.person_id::text AS person_id,
-             SUM(d.product_amount)::numeric(18,2)        AS ltv,
-             COUNT(DISTINCT d.deal_id)                    AS order_count,
-             MAX(d.delivery_date)                         AS last_order_date,
-             MIN(d.delivery_date)                         AS first_order_date,
-             COUNT(DISTINCT NULLIF(TRIM(d.brand), ''))    AS sku_breadth
+      SELECT d.person_id::text                       AS person_id,
+             SUM(d.product_amount)::numeric(18,2)    AS ltv,
+             COUNT(DISTINCT d.deal_id)               AS order_count,
+             MAX(d.delivery_date)                    AS last_order_date,
+             MIN(d.delivery_date)                    AS first_order_date,
+             COUNT(DISTINCT NULLIF(TRIM(d.brand), '')) AS sku_breadth
         FROM smartup_rep.deal_order d
        WHERE d.person_id IS NOT NULL
        GROUP BY d.person_id
     ),
 
-    -- ----- 90-day-current vs 90-day-prior, for the trajectory chip
+    -- ----- LTV decile (1 = top 10%, used for whale/champion/bulk)
+    ltv_ranked AS (
+      SELECT person_id,
+             NTILE(10) OVER (ORDER BY ltv DESC NULLS LAST) AS ltv_decile
+        FROM orders_agg
+    ),
+
+    -- ----- 90-day-current vs 90-day-prior (trajectory text)
     trajectory AS (
       SELECT d.person_id::text AS person_id,
              SUM(d.product_amount) FILTER (
@@ -135,34 +156,7 @@ def _intelligence_cte_sql(*, today: date) -> str:
        GROUP BY d.person_id
     ),
 
-    -- ----- 12-month monthly revenue array, for the per-row sparkline
-    months AS (
-      SELECT generate_series(
-               DATE_TRUNC('month', '{today_iso}'::date - INTERVAL '11 months'),
-               DATE_TRUNC('month', '{today_iso}'::date),
-               INTERVAL '1 month'
-             )::date AS m
-    ),
-    monthly_rev_raw AS (
-      SELECT d.person_id::text                    AS person_id,
-             DATE_TRUNC('month', d.delivery_date)::date AS m,
-             SUM(d.product_amount)::numeric(18,2) AS rev
-        FROM smartup_rep.deal_order d
-       WHERE d.delivery_date >= '{twelve_mo}'::date
-         AND d.person_id IS NOT NULL
-       GROUP BY 1, 2
-    ),
-    monthly_rev AS (
-      SELECT pid AS person_id,
-             ARRAY_AGG(COALESCE(mr.rev, 0)::float8 ORDER BY months.m) AS series
-        FROM (SELECT DISTINCT person_id AS pid FROM monthly_rev_raw) p
-        CROSS JOIN months
-        LEFT JOIN monthly_rev_raw mr
-               ON mr.person_id = p.pid AND mr.m = months.m
-       GROUP BY pid
-    ),
-
-    -- ----- predictive cycle (mean inter-order gap; ≥3 orders required)
+    -- ----- predictive cycle (≥3 orders required; below that NULL)
     order_gaps AS (
       SELECT d.person_id::text AS person_id,
              d.delivery_date,
@@ -174,29 +168,27 @@ def _intelligence_cte_sql(*, today: date) -> str:
     ),
     cycle AS (
       SELECT person_id,
-             AVG(gap_days)::int AS mean_gap_days,
-             COUNT(*) + 1 AS gap_n  -- +1 because LAG produces N-1 gaps from N orders
+             AVG(gap_days)::int AS mean_gap_days
         FROM order_gaps
        WHERE gap_days IS NOT NULL
        GROUP BY person_id
       HAVING COUNT(*) >= 2  -- ≥2 gaps == ≥3 orders
     ),
 
-    -- ----- payments aggregates (last-pay, lifetime collected, bank excluded)
+    -- ----- payments (last-pay date + lifetime collected, bank excluded)
     payments_agg AS (
       SELECT p.person_id::text AS person_id,
-             SUM(p.amount)::numeric(18,2)             AS collected_total,
-             MAX(p.payment_date)::date                AS last_payment_date,
-             COUNT(*) FILTER (WHERE p.payment_date >= '{today_iso}'::date - 90) AS pay_count_90d
+             SUM(p.amount)::numeric(18,2) AS collected_total,
+             MAX(p.payment_date)::date    AS last_payment_date
         FROM smartup_rep.payment p
        WHERE p.person_id IS NOT NULL
          {bank_excl_p}
        GROUP BY p.person_id
     ),
 
-    -- ----- aging: bucket the oldest-unpaid-age. Cheap approximation that
-    -- agrees with the worklist within a few % on most rows; the dossier
-    -- gives the rigorous FIFO version when needed.
+    -- ----- aging proxy: oldest-unpaid-age bucketing.
+    -- Same approximation the current build uses; the rigorous FIFO version
+    -- lives in the per-client dossier.
     oldest_unpaid AS (
       SELECT d.person_id::text AS person_id,
              MIN(d.delivery_date) AS oldest_dt,
@@ -217,7 +209,7 @@ def _intelligence_cte_sql(*, today: date) -> str:
         LEFT JOIN payments_agg pa USING (person_id)
     ),
 
-    -- ----- contact log: latest entry + promise reliability
+    -- ----- contact log: latest entry + promise reliability + overdue flag
     latest_log AS (
       SELECT DISTINCT ON (person_id)
              person_id::text AS person_id,
@@ -228,22 +220,13 @@ def _intelligence_cte_sql(*, today: date) -> str:
         FROM app.debt_contact_log
        ORDER BY person_id, contacted_at DESC
     ),
-    promise_log AS (
-      SELECT person_id::text AS person_id,
-             COUNT(*) FILTER (WHERE outcome = 'promised')          AS total_promises,
-             COUNT(*) FILTER (WHERE outcome = 'paid'
-                              AND promised_amount IS NOT NULL)     AS kept_promises
-        FROM app.debt_contact_log
-       GROUP BY person_id
-    ),
 
-    -- ----- RFM scoring on a 12-month window. Quintiles via NTILE so cutoffs
-    -- are data-driven. Identical formulation to _analytics/rfm so the page
-    -- agrees with the existing /analytics/sales RFM tab.
+    -- ----- RFM 12-month window — used to classify "slipping" customers
+    -- via the segment alias inside the persona CASE
     rfm_base AS (
       SELECT d.person_id::text AS person_id,
              ('{today_iso}'::date - MAX(d.delivery_date)) AS days_since,
-             COUNT(DISTINCT d.deal_id)                   AS deals_window,
+             COUNT(DISTINCT d.deal_id)                    AS deals_window,
              SUM(d.product_amount)::numeric(18,2)         AS revenue_window
         FROM smartup_rep.deal_order d
        WHERE d.delivery_date BETWEEN '{rfm_window}'::date AND '{today_iso}'::date
@@ -252,34 +235,24 @@ def _intelligence_cte_sql(*, today: date) -> str:
     ),
     rfm AS (
       SELECT b.*,
-             (6 - NTILE(5) OVER (ORDER BY b.days_since ASC))     AS r,
-             NTILE(5) OVER (ORDER BY b.deals_window ASC)         AS f,
-             NTILE(5) OVER (ORDER BY b.revenue_window ASC)       AS m
+             (6 - NTILE(5) OVER (ORDER BY b.days_since ASC)) AS r,
+             NTILE(5) OVER (ORDER BY b.deals_window ASC)     AS f,
+             NTILE(5) OVER (ORDER BY b.revenue_window ASC)   AS m
         FROM rfm_base b
     ),
     rfm_seg AS (
       SELECT person_id, r, f, m,
-             (r::text || f::text || m::text) AS score,
              CASE
-               WHEN r = 5 AND f >= 4 AND m >= 4 THEN 'Champions'
-               WHEN r >= 4 AND f >= 3 AND m >= 3 THEN 'Loyal'
-               WHEN r = 5 AND f <= 2             THEN 'New customers'
-               WHEN r >= 3 AND f <= 2 AND m <= 2 THEN 'Promising'
-               WHEN r = 3 AND f = 3              THEN 'Need attention'
-               WHEN r = 3 AND f <= 2             THEN 'About to sleep'
                WHEN r <= 2 AND f >= 3 AND m >= 3 THEN 'At risk'
                WHEN r <= 2 AND f = 5 AND m = 5   THEN 'Cannot lose them'
                WHEN r = 2 AND f <= 2             THEN 'Hibernating'
                WHEN r = 1                         THEN 'Lost'
-               ELSE 'Potential loyalists'
-             END AS segment
+               ELSE 'Other'
+             END AS rfm_class
         FROM rfm
     ),
 
-    -- ----- Final per-client roll-up. legal_person is the spine; everything
-    -- else LEFT JOINs so customers without payments / orders / contact log
-    -- still appear when unfiltered. (We still INNER JOIN orders_agg below
-    -- via WHERE — a customer with zero orders has nothing useful to show.)
+    -- ----- raw per-customer signal block (pre-persona)
     base AS (
       SELECT
         lp.person_id::text                              AS person_id,
@@ -287,40 +260,35 @@ def _intelligence_cte_sql(*, today: date) -> str:
         lp.tin,
         lp.client_group,
         lp.direction,
-        lp.region_name                                   AS region,
-        TRIM(SPLIT_PART(lp.room_names, ',', 1))          AS room,
-        lp.main_phone                                    AS phone,
+        lp.region_name                                  AS region,
+        TRIM(SPLIT_PART(lp.room_names, ',', 1))         AS room,
+        lp.main_phone                                   AS phone,
 
-        oa.ltv, oa.order_count, oa.last_order_date, oa.sku_breadth,
-        ('{today_iso}'::date - oa.last_order_date)       AS recency_days,
+        oa.ltv, oa.order_count, oa.last_order_date, oa.first_order_date, oa.sku_breadth,
+        ('{today_iso}'::date - oa.last_order_date)      AS recency_days,
+        ('{today_iso}'::date - oa.first_order_date)     AS first_order_days,
         CASE WHEN oa.order_count > 0
              THEN (oa.ltv / oa.order_count)::numeric(18,2)
-             ELSE 0 END                                  AS aov,
+             ELSE 0 END                                 AS aov,
 
-        tr.rev_curr_90, tr.rev_prev_90,
+        lr.ltv_decile,
+
         CASE
           WHEN COALESCE(tr.rev_prev_90, 0) > 0
             THEN (COALESCE(tr.rev_curr_90, 0) / tr.rev_prev_90 - 1)::float8
           ELSE NULL
-        END                                              AS trajectory_pct,
-
-        COALESCE(mr.series, ARRAY[]::float8[])           AS monthly_rev,
+        END                                             AS trajectory_pct,
 
         ag.outstanding,
-        ag.age_days                                      AS oldest_unpaid_age,
-        -- Bucket from age. Treats the WHOLE outstanding as living in the
-        -- bucket of its OLDEST invoice — over-attributes to old buckets
-        -- vs FIFO, but operationally that's the right risk classification
-        -- (if your oldest unpaid is 95 days old, the customer is a 90+
-        -- problem regardless of how recent their newer invoices are).
+        ag.age_days                                     AS oldest_unpaid_age,
         CASE WHEN ag.outstanding > 0 AND ag.age_days BETWEEN 0  AND 29 THEN ag.outstanding ELSE 0 END::numeric(18,2) AS aging_b1_30,
         CASE WHEN ag.outstanding > 0 AND ag.age_days BETWEEN 30 AND 59 THEN ag.outstanding ELSE 0 END::numeric(18,2) AS aging_b31_60,
         CASE WHEN ag.outstanding > 0 AND ag.age_days BETWEEN 60 AND 89 THEN ag.outstanding ELSE 0 END::numeric(18,2) AS aging_b61_90,
         CASE WHEN ag.outstanding > 0 AND ag.age_days >= 90              THEN ag.outstanding ELSE 0 END::numeric(18,2) AS aging_b90_plus,
 
-        ('{today_iso}'::date - pa.last_payment_date)     AS days_since_payment,
+        ('{today_iso}'::date - pa.last_payment_date)    AS days_since_payment,
 
-        rs.r, rs.f, rs.m, rs.score, rs.segment,
+        rs.rfm_class,
 
         cy.mean_gap_days,
         CASE WHEN cy.mean_gap_days IS NOT NULL
@@ -331,54 +299,72 @@ def _intelligence_cte_sql(*, today: date) -> str:
                    - (oa.last_order_date + cy.mean_gap_days * INTERVAL '1 day')::date)
              ELSE NULL END                              AS days_overdue_for_repeat,
 
-        ll.contacted_at                                  AS last_contact_at,
-        ll.outcome                                       AS last_contact_outcome,
+        ll.contacted_at                                 AS last_contact_at,
+        ll.outcome                                      AS last_contact_outcome,
         (ll.outcome = 'promised'
          AND ll.promised_by_date IS NOT NULL
-         AND ll.promised_by_date < '{today_iso}'::date)  AS has_overdue_promise,
-
-        pl.total_promises,
-        pl.kept_promises,
-        CASE WHEN COALESCE(pl.total_promises, 0) > 0
-             THEN (pl.kept_promises::float8 / pl.total_promises)
-             ELSE NULL END                              AS promise_kept_pct
+         AND ll.promised_by_date < '{today_iso}'::date) AS has_overdue_promise
 
       FROM smartup_rep.legal_person lp
       LEFT JOIN orders_agg     oa  ON oa.person_id = lp.person_id::text
+      LEFT JOIN ltv_ranked     lr  ON lr.person_id = lp.person_id::text
       LEFT JOIN trajectory     tr  ON tr.person_id = lp.person_id::text
-      LEFT JOIN monthly_rev    mr  ON mr.person_id = lp.person_id::text
       LEFT JOIN payments_agg   pa  ON pa.person_id = lp.person_id::text
       LEFT JOIN aging          ag  ON ag.person_id = lp.person_id::text
       LEFT JOIN rfm_seg        rs  ON rs.person_id = lp.person_id::text
       LEFT JOIN cycle          cy  ON cy.person_id = lp.person_id::text
       LEFT JOIN latest_log     ll  ON ll.person_id = lp.person_id::text
-      LEFT JOIN promise_log    pl  ON pl.person_id = lp.person_id::text
      WHERE oa.person_id IS NOT NULL  -- skip customers with zero orders ever
     ),
 
-    -- ----- risk score (Python constants stay in sync with these weights)
+    -- ----- persona derivation + risk score (mutually exclusive, top-down)
     scored AS (
       SELECT b.*,
+             CASE
+               WHEN aging_b90_plus > 0
+                    THEN 'debt_trap'
+               WHEN ltv_decile = 1 AND recency_days > {THRESH_WHALE_RECENCY}
+                    THEN 'whale_at_risk'
+               WHEN recency_days > {THRESH_SLEEPING_HI}
+                    THEN 'lost'
+               WHEN recency_days BETWEEN {THRESH_SLEEPING_LO} AND {THRESH_SLEEPING_HI}
+                    AND order_count >= 3
+                    THEN 'sleeping'
+               WHEN order_count = 1 AND recency_days > {THRESH_ONE_HIT_DAYS}
+                    THEN 'one_hit'
+               WHEN order_count <= {THRESH_ROOKIE_ORDERS}
+                    AND first_order_days <= {THRESH_ROOKIE_DAYS}
+                    THEN 'rookie'
+               WHEN ltv_decile = 1
+                    AND recency_days <= {THRESH_RECENT_DAYS}
+                    AND order_count >= {THRESH_CHAMPION_ORDERS}
+                    THEN 'champion'
+               WHEN order_count >= {THRESH_LOYAL_ORDERS}
+                    AND recency_days <= {THRESH_RECENT_DAYS}
+                    THEN 'loyal'
+               WHEN order_count <= {THRESH_BULK_ORDERS} AND ltv_decile = 1
+                    THEN 'bulk'
+               ELSE 'regular'
+             END                                              AS persona,
+
              LEAST(100,
                {RISK_W_AGING_90}        * (CASE WHEN aging_b90_plus > 0 THEN 1 ELSE 0 END)
              + {RISK_W_LATE_PAY}        * (CASE WHEN outstanding > 0 AND days_since_payment > 60 THEN 1 ELSE 0 END)
-             + {RISK_W_RFM_SLIP}        * (CASE WHEN segment IN ('At risk', 'Cannot lose them', 'Hibernating') THEN 1 ELSE 0 END)
-             + {RISK_W_RFM_LOST}        * (CASE WHEN segment = 'Lost' THEN 1 ELSE 0 END)
+             + {RISK_W_RFM_SLIP}        * (CASE WHEN rfm_class IN ('At risk', 'Cannot lose them', 'Hibernating') THEN 1 ELSE 0 END)
+             + {RISK_W_RFM_LOST}        * (CASE WHEN rfm_class = 'Lost' THEN 1 ELSE 0 END)
              + {RISK_W_OVERDUE_PROMISE} * (CASE WHEN has_overdue_promise THEN 1 ELSE 0 END)
-             )::int AS risk_score
+             )::int                                           AS risk_score
         FROM base b
     )
     """
 
 
 # ---------------------------------------------------------------------------
-# Helpers — turn a row into the response shape
+# Row payload — the JSON shape the frontend renders
 # ---------------------------------------------------------------------------
 
 
 def _row_to_payload(r: dict) -> dict[str, Any]:
-    """Project a SQL row into the JSON shape the frontend expects.
-    Keeps the SQL clean (every column once, no aliases for nesting)."""
     return {
         "person_id": r["person_id"],
         "name": r["name"],
@@ -388,15 +374,11 @@ def _row_to_payload(r: dict) -> dict[str, Any]:
         "region": r["region"],
         "room": r["room"],
         "phone": r["phone"],
-        "rfm": {
-            "r": r["r"], "f": r["f"], "m": r["m"],
-            "score": r["score"], "segment": r["segment"],
-        } if r["r"] is not None else None,
-        "recency_days": r["recency_days"],
+        "persona": r["persona"],
+        "recency_days": int(r["recency_days"]) if r["recency_days"] is not None else None,
         "ltv": float(r["ltv"] or 0),
         "aov": float(r["aov"] or 0),
         "order_count": int(r["order_count"] or 0),
-        "monthly_rev": [float(x) for x in (r["monthly_rev"] or [])],
         "trajectory_pct": float(r["trajectory_pct"]) if r["trajectory_pct"] is not None else None,
         "sku_breadth": int(r["sku_breadth"] or 0),
         "outstanding": float(r["outstanding"] or 0),
@@ -406,8 +388,6 @@ def _row_to_payload(r: dict) -> dict[str, Any]:
             "b61_90":  float(r["aging_b61_90"] or 0),
             "b90_plus": float(r["aging_b90_plus"] or 0),
         },
-        "promise_kept_pct": float(r["promise_kept_pct"]) if r["promise_kept_pct"] is not None else None,
-        "promise_total": int(r["total_promises"] or 0),
         "risk_score": int(r["risk_score"] or 0),
         "predicted_next_buy": r["predicted_next_buy"].isoformat() if r["predicted_next_buy"] else None,
         "days_overdue_for_repeat": int(r["days_overdue_for_repeat"]) if r["days_overdue_for_repeat"] is not None else None,
@@ -417,36 +397,68 @@ def _row_to_payload(r: dict) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# /api/clients/intelligence — paginated row table
+# Filter helpers — multi-select + toggle predicates
+# ---------------------------------------------------------------------------
+
+
+def _multi_in(values: list[str], param_prefix: str, column: str,
+              params: dict[str, Any]) -> str:
+    """Build an `AND column IN (...)` clause from a list, registering bindings.
+
+    Empty list → no clause (returns ''). All values are bound, never inlined."""
+    if not values:
+        return ""
+    placeholders = []
+    for i, v in enumerate(values):
+        key = f"{param_prefix}_{i}"
+        params[key] = v
+        placeholders.append(f":{key}")
+    return f"AND {column} IN ({', '.join(placeholders)})"
+
+
+def _persona_in(personas: list[str], params: dict[str, Any]) -> str:
+    return _multi_in(personas, "_pers", "persona", params)
+
+
+def _trajectory_clause(traj: str | None) -> str:
+    """Map trajectory bucket (growing/flat/declining) to a SQL predicate.
+
+    Anything NULL trajectory passes through `flat` since the operator's
+    expectation is "no signal = neither growing nor declining"."""
+    if not traj:
+        return ""
+    if traj == "growing":
+        return f"AND trajectory_pct > {THRESH_TRAJECTORY_DEAD}"
+    if traj == "declining":
+        return f"AND trajectory_pct < -{THRESH_TRAJECTORY_DEAD}"
+    if traj == "flat":
+        return (
+            f"AND (trajectory_pct IS NULL "
+            f"     OR (trajectory_pct >= -{THRESH_TRAJECTORY_DEAD} "
+            f"         AND trajectory_pct <= {THRESH_TRAJECTORY_DEAD}))"
+        )
+    return ""
+
+
+# ---------------------------------------------------------------------------
+# Sort whitelist
 # ---------------------------------------------------------------------------
 
 
 _VALID_SORTS = {
-    "risk":      "risk_score DESC NULLS LAST",
-    "ltv":       "ltv DESC NULLS LAST",
+    "recency":     "recency_days ASC NULLS LAST",
+    "ltv":         "ltv DESC NULLS LAST",
     "outstanding": "outstanding DESC NULLS LAST",
-    "recency":   "recency_days ASC NULLS LAST",
-    "trajectory": "trajectory_pct DESC NULLS LAST",
-    "next_buy":  "days_overdue_for_repeat DESC NULLS LAST",
-    "name":      "name ASC",
+    "risk":        "risk_score DESC NULLS LAST",
+    "next_buy":    "days_overdue_for_repeat DESC NULLS LAST",
+    "last_contact": "last_contact_at DESC NULLS LAST",
+    "name":        "name ASC",
 }
 
 
-def _segment_filter_sql(segment: str) -> str:
-    """Return a WHERE fragment matching the segment chip the user selected."""
-    if segment == "champions":
-        return "AND segment = 'Champions'"
-    if segment == "loyal":
-        return "AND segment = 'Loyal'"
-    if segment == "at_risk":
-        return "AND segment IN ('At risk', 'Cannot lose them')"
-    if segment == "hibernating":
-        return "AND segment IN ('Hibernating', 'About to sleep')"
-    if segment == "debt_warning":
-        return "AND (aging_b90_plus > 0 OR (outstanding > 0 AND days_since_payment > 60))"
-    if segment == "predicted":
-        return "AND days_overdue_for_repeat > 0"
-    return ""  # all
+# ---------------------------------------------------------------------------
+# /api/clients/intelligence — paginated rows + persona counts
+# ---------------------------------------------------------------------------
 
 
 async def intelligence(
@@ -454,10 +466,13 @@ async def intelligence(
     *,
     today: date,
     search: str | None,
-    segment: str,
-    manager: str | None,
-    region: str | None,
-    direction: str | None,
+    personas: list[str],
+    managers: list[str],
+    regions: list[str],
+    directions: list[str],
+    has_overdue_debt: bool,
+    high_risk: bool,
+    trajectory: str | None,
     sort: str,
     page: int,
     size: int,
@@ -465,51 +480,70 @@ async def intelligence(
 ) -> dict[str, Any]:
     cte_sql = _intelligence_cte_sql(today=today)
 
-    # Build WHERE on the outer select (against the `scored` CTE columns)
-    where_parts: list[str] = ["TRUE"]
+    # Outer WHERE on the `scored` CTE columns. We split into two parts:
+    #   - secondary_where: text + manager + region + direction + toggles
+    #     (these scope the universe before the persona ribbon does)
+    #   - persona_where: applied on top for the row table only
+    # Persona counts use secondary_where alone so the ribbon counts reflect
+    # the operator's other filters but NOT the chosen personas.
+    secondary_parts: list[str] = ["TRUE"]
     params: dict[str, Any] = {}
 
     if search:
-        where_parts.append("(name ILIKE :search OR tin ILIKE :search)")
-        params["search"] = f"%{search.strip()}%"
-    if manager:
-        where_parts.append("room = :manager")
-        params["manager"] = manager
-    if region:
-        where_parts.append("region = :region")
-        params["region"] = region
-    if direction:
-        where_parts.append("direction = :direction")
-        params["direction"] = direction
-    seg_sql = _segment_filter_sql(segment)
-    where_sql = " AND ".join(where_parts) + " " + seg_sql
-
-    # Scope: restrict to the user's rooms via legal_person.room_id mapping.
-    # Implemented at the CTE base by filtering legal_person.person_id against
-    # the deal_order rooms the user owns. Easier to keep it in the outer
-    # WHERE as a subquery so we don't fork the CTE.
-    if scope is not None and scope.is_scoped:
-        placeholders = ", ".join(f":_scope_r{i}" for i in range(len(scope.room_ids)))
-        params.update({f"_scope_r{i}": rid for i, rid in enumerate(scope.room_ids)})
-        where_sql += (
-            f" AND person_id::text IN ("
-            f"  SELECT DISTINCT person_id FROM smartup_rep.deal_order"
-            f"   WHERE room_id IN ({placeholders}))"
+        secondary_parts.append(
+            "(name ILIKE :_search OR tin ILIKE :_search OR phone ILIKE :_search)"
         )
+        params["_search"] = f"%{search.strip()}%"
 
-    order_by = _VALID_SORTS.get(sort, _VALID_SORTS["risk"])
+    if managers:
+        secondary_parts.append(_multi_in(managers, "_mgr", "room", params)[4:])  # strip leading 'AND '
+    if regions:
+        secondary_parts.append(_multi_in(regions, "_rgn", "region", params)[4:])
+    if directions:
+        secondary_parts.append(_multi_in(directions, "_dir", "direction", params)[4:])
+
+    if has_overdue_debt:
+        secondary_parts.append(
+            "(aging_b90_plus > 0 OR (outstanding > 0 AND days_since_payment > 60))"
+        )
+    if high_risk:
+        secondary_parts.append(f"risk_score >= {THRESH_HIGH_RISK}")
+
+    traj_clause = _trajectory_clause(trajectory)
+    if traj_clause:
+        secondary_parts.append(traj_clause[4:])  # strip leading 'AND '
+
+    scope_clause, scope_params = _scope_subquery(scope)
+    if scope_clause:
+        secondary_parts.append(scope_clause[4:])
+        params.update(scope_params)
+
+    secondary_where = " AND ".join(secondary_parts)
+
+    # Persona filter on top
+    persona_clause = _persona_in(personas, params)  # 'AND persona IN (...)' or ''
+    full_where = secondary_where + " " + persona_clause
+
+    order_by = _VALID_SORTS.get(sort, _VALID_SORTS["recency"])
     offset = max(0, page) * max(1, min(200, size))
 
     rows_sql = f"""
     {cte_sql}
     SELECT * FROM scored
-     WHERE {where_sql}
+     WHERE {full_where}
      ORDER BY {order_by}
      LIMIT :_lim OFFSET :_off
     """
     count_sql = f"""
     {cte_sql}
-    SELECT COUNT(*) AS n FROM scored WHERE {where_sql}
+    SELECT COUNT(*) AS n FROM scored WHERE {full_where}
+    """
+    # Persona ribbon counts: secondary filters applied, persona filter NOT
+    persona_count_sql = f"""
+    {cte_sql}
+    SELECT persona, COUNT(*) AS n FROM scored
+     WHERE {secondary_where}
+     GROUP BY persona
     """
 
     rows = (
@@ -517,171 +551,68 @@ async def intelligence(
                               {**params, "_lim": size, "_off": offset})
     ).mappings().all()
     total = (await session.execute(text(count_sql), params)).scalar_one()
+    persona_rows = (await session.execute(text(persona_count_sql), params)).mappings().all()
+
+    persona_counts = {k: 0 for k in PERSONA_KEYS}
+    for r in persona_rows:
+        persona_counts[r["persona"]] = int(r["n"])
 
     return {
         "rows": [_row_to_payload(dict(r)) for r in rows],
         "total": int(total),
         "page": page,
         "size": size,
+        "persona_counts": persona_counts,
     }
 
 
 # ---------------------------------------------------------------------------
-# /api/clients/analytics — page-level aggregates
+# /api/clients/filter_options — universe of available manager/region/direction
 # ---------------------------------------------------------------------------
 
 
-async def analytics(
+async def filter_options(
     session: AsyncSession,
     *,
-    today: date,
-    manager: str | None,
-    region: str | None,
-    direction: str | None,
     scope: UserScope | None = None,
-) -> dict[str, Any]:
-    cte_sql = _intelligence_cte_sql(today=today)
+) -> dict[str, list[str]]:
+    """Return the distinct manager/region/direction lists across the user's
+    scoped legal_person base. The lists are independent of any current
+    filter selection — they describe the universe of choices, so the
+    operator can always pick another filter combination.
 
-    # Same outer WHERE as intelligence, minus the segment filter (the chip
-    # ribbon controls table rows, not page-level aggregates).
-    where_parts: list[str] = ["TRUE"]
+    Cached aggressively on the frontend (~5 min staleTime) since these
+    rarely change.
+    """
+    scope_frag = ""
     params: dict[str, Any] = {}
-    if manager:
-        where_parts.append("room = :manager")
-        params["manager"] = manager
-    if region:
-        where_parts.append("region = :region")
-        params["region"] = region
-    if direction:
-        where_parts.append("direction = :direction")
-        params["direction"] = direction
     if scope is not None and scope.is_scoped:
-        placeholders = ", ".join(f":_scope_r{i}" for i in range(len(scope.room_ids)))
-        params.update({f"_scope_r{i}": rid for i, rid in enumerate(scope.room_ids)})
-        where_parts.append(
-            f"person_id::text IN ("
-            f"  SELECT DISTINCT person_id FROM smartup_rep.deal_order"
-            f"   WHERE room_id IN ({placeholders}))"
-        )
-    where_sql = " AND ".join(where_parts)
+        frag, p = clause_for_table(scope, "smartup_rep.legal_person")
+        if frag:
+            scope_frag = f"WHERE lp.{frag}"
+            params.update(p)
 
-    # Wrap the filtered scored row set once so every aggregate sees the
-    # same population (avoids re-filtering boilerplate per query).
-    filt_cte = f", filt AS (SELECT * FROM scored WHERE {where_sql})"
-
-    # ----- KPI strip
-    kpi_sql = f"""
-    {cte_sql}{filt_cte},
-    ranked AS (
-      SELECT ltv, ROW_NUMBER() OVER (ORDER BY ltv DESC NULLS LAST) AS rk FROM filt
-    )
+    sql = f"""
     SELECT
-      (SELECT COUNT(*) FILTER (WHERE recency_days IS NOT NULL AND recency_days <= 365) FROM filt) AS active_12m,
-      (SELECT COUNT(*) FILTER (WHERE segment IN ('At risk', 'Cannot lose them')) FROM filt) AS at_risk_count,
-      (SELECT COALESCE(SUM(outstanding), 0)::numeric(18,2) FROM filt) AS outstanding_total,
-      (SELECT COUNT(*) FILTER (WHERE days_overdue_for_repeat BETWEEN 0 AND 7) FROM filt) AS predicted_next_7d,
-      (SELECT COALESCE(SUM(ltv) FILTER (WHERE rk <= 5), 0) / NULLIF(SUM(ltv), 0) FROM ranked)::float8 AS top5_concentration_pct
+      ARRAY(SELECT DISTINCT TRIM(SPLIT_PART(lp.room_names, ',', 1)) AS m
+              FROM smartup_rep.legal_person lp
+             {scope_frag} {'AND' if scope_frag else 'WHERE'}
+                   COALESCE(TRIM(SPLIT_PART(lp.room_names, ',', 1)), '') <> ''
+             ORDER BY m) AS managers,
+      ARRAY(SELECT DISTINCT lp.region_name AS r
+              FROM smartup_rep.legal_person lp
+             {scope_frag} {'AND' if scope_frag else 'WHERE'}
+                   COALESCE(lp.region_name, '') <> ''
+             ORDER BY r) AS regions,
+      ARRAY(SELECT DISTINCT lp.direction AS d
+              FROM smartup_rep.legal_person lp
+             {scope_frag} {'AND' if scope_frag else 'WHERE'}
+                   COALESCE(lp.direction, '') <> ''
+             ORDER BY d) AS directions
     """
-
-    kpi_row = (await session.execute(text(kpi_sql), params)).mappings().one()
-    kpi = {
-        "active_12m": int(kpi_row["active_12m"] or 0),
-        "at_risk_count": int(kpi_row["at_risk_count"] or 0),
-        "outstanding_total": float(kpi_row["outstanding_total"] or 0),
-        "predicted_next_7d": int(kpi_row["predicted_next_7d"] or 0),
-        "top5_concentration_pct": float(kpi_row["top5_concentration_pct"]) if kpi_row["top5_concentration_pct"] is not None else None,
-    }
-
-    # ----- RFM 5×5 heatmap (counts + monetary tint)
-    rfm_sql = f"""
-    {cte_sql}{filt_cte}
-    SELECT r, f, COUNT(*) AS cnt, COALESCE(SUM(ltv), 0)::numeric(18,2) AS monetary
-      FROM filt
-     WHERE r IS NOT NULL AND f IS NOT NULL
-     GROUP BY r, f
-    """
-    rfm_rows = (await session.execute(text(rfm_sql), params)).mappings().all()
-    counts = [[0] * 5 for _ in range(5)]
-    monetary = [[0.0] * 5 for _ in range(5)]
-    for row in rfm_rows:
-        r_idx = int(row["r"]) - 1
-        f_idx = int(row["f"]) - 1
-        counts[r_idx][f_idx] = int(row["cnt"])
-        monetary[r_idx][f_idx] = float(row["monetary"] or 0)
-
-    # ----- aging × manager heatmap
-    aging_sql = f"""
-    {cte_sql}{filt_cte}
-    SELECT room,
-           SUM(GREATEST(outstanding - aging_b1_30 - aging_b31_60 - aging_b61_90 - aging_b90_plus, 0)) AS current,
-           SUM(aging_b1_30)   AS b1_30,
-           SUM(aging_b31_60)  AS b31_60,
-           SUM(aging_b61_90)  AS b61_90,
-           SUM(aging_b90_plus) AS b90_plus
-      FROM filt
-     WHERE room IS NOT NULL AND room <> ''
-     GROUP BY room
-     ORDER BY (SUM(aging_b90_plus) + SUM(aging_b61_90)) DESC
-     LIMIT 25
-    """
-    aging_rows = (await session.execute(text(aging_sql), params)).mappings().all()
-    aging_by_manager = {
-        "row_labels": [r["room"] for r in aging_rows],
-        "col_labels": ["current", "1-30", "31-60", "61-90", "90+"],
-        "values": [
-            [float(r["current"] or 0), float(r["b1_30"] or 0),
-             float(r["b31_60"] or 0), float(r["b61_90"] or 0),
-             float(r["b90_plus"] or 0)]
-            for r in aging_rows
-        ],
-    }
-
-    # ----- action queue: top 10 by (days_overdue × LTV)
-    queue_sql = f"""
-    {cte_sql}{filt_cte}
-    SELECT person_id, name, ltv, days_overdue_for_repeat, phone,
-           predicted_next_buy
-      FROM filt
-     WHERE days_overdue_for_repeat > 0
-     ORDER BY (days_overdue_for_repeat::float * COALESCE(ltv, 0)) DESC
-     LIMIT 10
-    """
-    queue_rows = (await session.execute(text(queue_sql), params)).mappings().all()
-    action_queue = [
-        {
-            "person_id": r["person_id"],
-            "name": r["name"],
-            "ltv": float(r["ltv"] or 0),
-            "days_overdue_for_repeat": int(r["days_overdue_for_repeat"] or 0),
-            "phone": r["phone"],
-            "predicted_next_buy": r["predicted_next_buy"].isoformat() if r["predicted_next_buy"] else None,
-        }
-        for r in queue_rows
-    ]
-
-    # ----- segment distribution for the chip ribbon annotations
-    seg_sql = f"""
-    {cte_sql}{filt_cte}
-    SELECT segment, COUNT(*) AS cnt, COALESCE(SUM(ltv), 0)::numeric(18,2) AS revenue
-      FROM filt
-     WHERE segment IS NOT NULL
-     GROUP BY segment
-    """
-    seg_rows = (await session.execute(text(seg_sql), params)).mappings().all()
-    segment_distribution = [
-        {"segment": r["segment"], "count": int(r["cnt"]), "revenue": float(r["revenue"] or 0)}
-        for r in seg_rows
-    ]
-
+    row = (await session.execute(text(sql), params)).mappings().one()
     return {
-        "kpi": kpi,
-        "rfm_heatmap": {
-            "r_labels": ["1", "2", "3", "4", "5"],
-            "f_labels": ["1", "2", "3", "4", "5"],
-            "counts": counts,
-            "monetary": monetary,
-        },
-        "aging_by_manager": aging_by_manager,
-        "action_queue": action_queue,
-        "segment_distribution": segment_distribution,
+        "managers": list(row["managers"] or []),
+        "regions": list(row["regions"] or []),
+        "directions": list(row["directions"] or []),
     }
