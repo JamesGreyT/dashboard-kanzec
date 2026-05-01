@@ -159,7 +159,7 @@ async def _grid_kirim(
            SUM(p.amount)::numeric(18,2) AS revenue
       FROM slices sl
       JOIN smartup_rep.payment      p  ON p.payment_date::date BETWEEN sl.s AND sl.e
-      JOIN smartup_rep.legal_person lp ON lp.person_id = p.person_id
+      LEFT JOIN smartup_rep.legal_person lp ON lp.person_id = p.person_id
      WHERE TRUE {f_sql} {bank_excl}
      GROUP BY 1, 2
     """
@@ -615,7 +615,7 @@ async def drill(
            p.amount::numeric(18,2) AS amount,
            {room_expr} AS attributed_manager
       FROM smartup_rep.payment      p
-      JOIN smartup_rep.legal_person lp ON lp.person_id = p.person_id
+      LEFT JOIN smartup_rep.legal_person lp ON lp.person_id = p.person_id
      WHERE p.payment_date::date BETWEEN (:s)::date AND (:e)::date
        {mgr_sql}
        {f_sql}
@@ -629,7 +629,7 @@ async def drill(
     SELECT COALESCE(SUM(p.amount), 0)::numeric(18,2) AS total,
            COUNT(*) AS n
       FROM smartup_rep.payment      p
-      JOIN smartup_rep.legal_person lp ON lp.person_id = p.person_id
+      LEFT JOIN smartup_rep.legal_person lp ON lp.person_id = p.person_id
      WHERE p.payment_date::date BETWEEN (:s)::date AND (:e)::date
        {mgr_sql}
        {f_sql}
