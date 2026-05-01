@@ -3,111 +3,115 @@
 @tailwind utilities;
 
 /* ============================================================
-   Linen v2 — punchier sage, coral terra, crisper cream
+   Mobile Card Stream — paper canvas, mint primary, coral danger,
+   amber warning. DM Sans + Fraunces + DM Mono.
    ------------------------------------------------------------
-   v1 was too muddy: sage read olive-green, terra read brown,
-   secondary == muted so inputs disappeared on cards. v2 fixes
-   all three:
-     · Cream canvas cooled and cleaned (still warm, less yellow)
-     · Sage shifted toward emerald (152deg) and saturated
-     · Terra shifted toward coral (14deg) for warmth
-     · Secondary (chips, hover) and muted (input fields) split
-       so inputs read against cards without a visible border
+   The HSL variable map is preserved so shadcn/ui primitives keep
+   working — values are retuned to the new palette. Literal
+   tokens (ink/mint/coral/etc.) live in tailwind.config.js so
+   call sites can use either system.
    ============================================================ */
 
 @layer base {
   :root {
-    --background: 38 50% 97%;
-    --foreground: 150 12% 12%;
+    /* Canvas + ink */
+    --background: 220 14% 98%;          /* paper #FAFAFA */
+    --foreground: 220 39% 11%;          /* ink   #111827 */
     --card: 0 0% 100%;
-    --card-foreground: 150 12% 12%;
+    --card-foreground: 220 39% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 150 12% 12%;
+    --popover-foreground: 220 39% 11%;
 
-    --primary: 152 32% 36%;
-    --primary-foreground: 38 50% 97%;
+    /* Primary: mint #10B981 */
+    --primary: 160 84% 39%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 40 38% 92%;
-    --secondary-foreground: 150 12% 14%;
+    /* Secondary: pale neutral chip bg */
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 39% 11%;
 
-    --muted: 38 32% 95%;
-    --muted-foreground: 145 10% 38%;
+    /* Muted: input field bg */
+    --muted: 220 16% 96%;
+    --muted-foreground: 220 9% 46%;     /* ink3 #6B7280 */
 
-    --accent: 152 24% 88%;
-    --accent-foreground: 152 36% 24%;
+    /* Accent: mint-soft #ECFDF5 / mintdk text */
+    --accent: 152 81% 96%;
+    --accent-foreground: 161 94% 30%;
 
-    --destructive: 14 68% 56%;
-    --destructive-foreground: 38 50% 97%;
+    /* Destructive: coral #F87171 */
+    --destructive: 0 91% 71%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 145 14% 88%;
-    --input: 38 32% 95%;
-    --ring: 152 32% 36%;
-    --radius: 0.75rem;
+    /* Lines / borders / inputs */
+    --border: 218 14% 94%;              /* line #EEF0F2 */
+    --input: 220 16% 96%;
+    --ring: 160 84% 39%;
+    --radius: 1rem;
 
-    /* Charts — fresh emerald-sage, warm coral, honey, dusty blue, rose */
-    --chart-1: 152 32% 36%;
-    --chart-2: 14 68% 56%;
-    --chart-3: 38 70% 56%;
-    --chart-4: 200 32% 50%;
-    --chart-5: 340 40% 58%;
+    /* Charts — mint, coral, amber, sky, violet */
+    --chart-1: 160 84% 39%;
+    --chart-2: 0 91% 71%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 199 89% 48%;
+    --chart-5: 258 90% 66%;
 
-    /* Sidebar — warmer + slightly cooler than the canvas so it lifts off */
-    --sidebar-background: 40 38% 95%;
-    --sidebar-foreground: 150 12% 18%;
-    --sidebar-primary: 152 32% 36%;
-    --sidebar-primary-foreground: 38 50% 97%;
-    --sidebar-accent: 152 24% 88%;
-    --sidebar-accent-foreground: 152 36% 24%;
-    --sidebar-border: 145 14% 88%;
-    --sidebar-ring: 152 32% 36%;
+    /* Sidebar — white card with hairline border (no warm cream lift) */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 39% 11%;
+    --sidebar-primary: 160 84% 39%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 152 81% 96%;
+    --sidebar-accent-foreground: 161 94% 30%;
+    --sidebar-border: 218 14% 94%;
+    --sidebar-ring: 160 84% 39%;
 
-    --font-display: "Onest", ui-sans-serif, system-ui, sans-serif;
-    --font-sans: "Onest", ui-sans-serif, system-ui, sans-serif;
-    --font-mono: "Onest", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Fraunces", ui-serif, Georgia, serif;
+    --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "DM Mono", ui-monospace, SFMono-Regular, monospace;
   }
 
   .dark {
-    /* Linen v2 dark — deep moss + lifted emerald primary */
-    --background: 150 10% 8%;
-    --foreground: 38 30% 92%;
-    --card: 150 10% 11%;
-    --card-foreground: 38 30% 92%;
-    --popover: 150 10% 11%;
-    --popover-foreground: 38 30% 92%;
+    /* Mobile Card Stream dark — deep ink canvas + lifted mint */
+    --background: 220 39% 6%;
+    --foreground: 220 14% 96%;
+    --card: 220 30% 10%;
+    --card-foreground: 220 14% 96%;
+    --popover: 220 30% 10%;
+    --popover-foreground: 220 14% 96%;
 
-    --primary: 152 38% 60%;
-    --primary-foreground: 150 10% 8%;
+    --primary: 156 72% 55%;
+    --primary-foreground: 220 39% 6%;
 
-    --secondary: 150 8% 18%;
-    --secondary-foreground: 38 30% 92%;
+    --secondary: 220 16% 16%;
+    --secondary-foreground: 220 14% 96%;
 
-    --muted: 150 8% 14%;
-    --muted-foreground: 38 14% 64%;
+    --muted: 220 16% 14%;
+    --muted-foreground: 220 9% 64%;
 
-    --accent: 152 14% 20%;
-    --accent-foreground: 152 38% 72%;
+    --accent: 161 50% 18%;
+    --accent-foreground: 156 72% 70%;
 
-    --destructive: 14 70% 62%;
-    --destructive-foreground: 150 10% 8%;
+    --destructive: 0 76% 65%;
+    --destructive-foreground: 220 39% 6%;
 
-    --border: 150 8% 20%;
-    --input: 150 8% 14%;
-    --ring: 152 38% 60%;
+    --border: 220 14% 18%;
+    --input: 220 16% 14%;
+    --ring: 156 72% 55%;
 
-    --chart-1: 152 38% 60%;
-    --chart-2: 14 70% 62%;
-    --chart-3: 38 70% 60%;
-    --chart-4: 200 38% 62%;
-    --chart-5: 340 42% 64%;
+    --chart-1: 156 72% 55%;
+    --chart-2: 0 76% 65%;
+    --chart-3: 38 92% 60%;
+    --chart-4: 199 89% 60%;
+    --chart-5: 258 90% 70%;
 
-    --sidebar-background: 150 12% 6%;
-    --sidebar-foreground: 38 18% 80%;
-    --sidebar-primary: 152 38% 60%;
-    --sidebar-primary-foreground: 150 10% 8%;
-    --sidebar-accent: 150 8% 14%;
-    --sidebar-accent-foreground: 152 38% 72%;
-    --sidebar-border: 150 8% 16%;
-    --sidebar-ring: 152 38% 60%;
+    --sidebar-background: 220 39% 7%;
+    --sidebar-foreground: 220 14% 88%;
+    --sidebar-primary: 156 72% 55%;
+    --sidebar-primary-foreground: 220 39% 6%;
+    --sidebar-accent: 161 50% 18%;
+    --sidebar-accent-foreground: 156 72% 70%;
+    --sidebar-border: 220 14% 16%;
+    --sidebar-ring: 156 72% 55%;
   }
 }
 
@@ -117,7 +121,9 @@
   }
   html {
     font-family: var(--font-sans);
-    font-feature-settings: "ss01", "ss03";
+    font-feature-settings: "ss01", "ss02", "cv11";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
   body {
     @apply bg-background text-foreground;
@@ -139,15 +145,16 @@
 }
 
 /* ============================================================
-   Typography utilities — editorial voice
+   Typography utilities
    ============================================================ */
 @layer utilities {
-  /* Linen uses Onest for everything; these utilities stay so legacy
-     className="font-display" / "font-mono" call sites don't break. */
+  /* Display: Fraunces serif, used for hero KPI values via .kpi-num.
+     Generic .font-display kept for legacy call sites. */
   .font-display {
     font-family: var(--font-display);
     font-weight: 600;
     letter-spacing: -0.025em;
+    font-feature-settings: "ss01", "ss02";
   }
   .font-display-italic {
     font-family: var(--font-display);
@@ -162,18 +169,24 @@
   .num-tabular {
     font-variant-numeric: tabular-nums lining-nums;
   }
+  /* Hero KPI numerals — Fraunces serif, tight tracking, tabular figures. */
+  .kpi-num {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.04em;
+    font-feature-settings: "ss01", "ss02", "tnum";
+    line-height: 0.95;
+  }
   .eyebrow {
-    font-family: var(--font-sans);
+    font-family: var(--font-mono);
     font-size: 0.6875rem;
     line-height: 1;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    font-weight: 600;
-    /* muted-foreground at full strength — clears WCAG AA (~5.6:1 on ivory) */
+    font-weight: 500;
     color: hsl(var(--muted-foreground));
   }
-  /* Visually-hidden for skip-link + aria-live regions. Pixel-tight per WCAG
-     technique H17; becomes visible on focus (skip-link). */
+  /* Visually-hidden for skip-link + aria-live regions. */
   .sr-only-focusable {
     position: absolute;
     left: -9999px;
@@ -190,7 +203,7 @@
     padding: 0.5rem 0.875rem;
     background: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
-    border-radius: 4px;
+    border-radius: 6px;
     z-index: 100;
   }
   .mark-rule {
@@ -205,18 +218,141 @@
 }
 
 /* ============================================================
-   Sidebar — soft warm rail with hairline + ambient shadow.
+   Page chrome — soft warm gradient + film grain.
+   Apply .page-bg .grain to the <main> wrapper.
+   ============================================================ */
+@layer utilities {
+  .page-bg {
+    background:
+      radial-gradient(900px 600px at 12% -10%, rgba(16, 185, 129, 0.06), transparent 60%),
+      radial-gradient(700px 500px at 95% 8%, rgba(248, 113, 113, 0.05), transparent 60%),
+      linear-gradient(#f2f3f5, #efeff1);
+  }
+  .dark .page-bg {
+    background:
+      radial-gradient(900px 600px at 12% -10%, rgba(16, 185, 129, 0.08), transparent 60%),
+      radial-gradient(700px 500px at 95% 8%, rgba(248, 113, 113, 0.06), transparent 60%),
+      linear-gradient(hsl(220 39% 6%), hsl(220 39% 4%));
+  }
+  .grain {
+    position: relative;
+  }
+  .grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.35;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  .dark .grain::after {
+    opacity: 0.18;
+    mix-blend-mode: screen;
+  }
+}
+
+/* ============================================================
+   Buttons + pills — Mobile Card Stream affordances.
+   ============================================================ */
+@layer components {
+  .btn-mint {
+    background: #10b981;
+    color: white;
+    border-radius: 14px;
+    font-weight: 600;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.25) inset,
+      0 8px 20px -8px rgba(16, 185, 129, 0.55),
+      0 1px 0 rgba(0, 0, 0, 0.04);
+    transition:
+      transform 0.12s ease,
+      box-shadow 0.12s ease;
+  }
+  .btn-mint:hover {
+    background: #059669;
+  }
+  .btn-mint:active {
+    transform: translateY(1px);
+    box-shadow: 0 4px 12px -8px rgba(16, 185, 129, 0.5);
+  }
+  .btn-mint-soft {
+    background: #ecfdf5;
+    color: #059669;
+    border-radius: 999px;
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px #d1fae5;
+  }
+  .pill-call {
+    background: #10b981;
+    color: white;
+    border-radius: 999px;
+    padding: 10px 14px;
+    font-weight: 600;
+    font-size: 13px;
+    box-shadow: 0 6px 14px -6px rgba(16, 185, 129, 0.55);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pill-sms {
+    background: white;
+    color: #111827;
+    border-radius: 999px;
+    padding: 10px 14px;
+    font-weight: 600;
+    font-size: 13px;
+    box-shadow: inset 0 0 0 1px #e5e7eb;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pill-call:active,
+  .pill-sms:active {
+    transform: translateY(1px);
+  }
+
+  /* Pull-to-refresh handle (mobile screens). */
+  .pull-handle {
+    width: 36px;
+    height: 5px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #d1d5db, #9ca3af, #d1d5db);
+    background-size: 200% 100%;
+    animation: shimmer 2.4s linear infinite;
+  }
+}
+
+/* ============================================================
+   Sparkline draw-on animation — apply to <path class="spark-path">.
+   Uses the `drawline` keyframe defined in tailwind.config.js.
+   ============================================================ */
+@layer utilities {
+  .spark-path {
+    stroke-dasharray: 600;
+    stroke-dashoffset: 600;
+    animation: drawline 2.4s ease-out forwards;
+  }
+}
+
+/* ============================================================
+   Sidebar — white card with hairline + soft right-edge shadow.
    ============================================================ */
 @layer components {
   [data-sidebar="sidebar"] {
     box-shadow:
       inset -1px 0 0 hsl(var(--sidebar-border)),
-      6px 0 18px -12px hsl(120 15% 30% / 0.18);
+      6px 0 18px -12px rgba(17, 24, 39, 0.08);
+  }
+  .dark [data-sidebar="sidebar"] {
+    box-shadow:
+      inset -1px 0 0 hsl(var(--sidebar-border)),
+      6px 0 18px -12px rgba(0, 0, 0, 0.35);
   }
 }
 
 /* ============================================================
-   Entrance rhythm — stagger-0..5 for page-load unfold
+   Entrance rhythm — stagger-0..5 (kept) + new `rise` helper.
    ============================================================ */
 @layer utilities {
   .stagger-0,
@@ -256,5 +392,12 @@
   .stagger-5 {
     animation: none;
     opacity: 1;
+  }
+  .spark-path {
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+  .pull-handle {
+    animation: none;
   }
 }
