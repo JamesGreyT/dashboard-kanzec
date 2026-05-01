@@ -34,8 +34,8 @@ export default function Pagination({
   };
 
   return (
-    <div className="h-14 px-6 flex items-center justify-between gap-6 border-t">
-      <div className="text-xs text-muted-foreground tabular-nums">
+    <div className="h-14 px-6 flex items-center justify-between gap-6 border-t border-line">
+      <div className="text-xs text-ink3 font-mono tabular-nums">
         {t("common.showing_range", {
           from: from.toLocaleString(),
           to: to.toLocaleString(),
@@ -46,13 +46,13 @@ export default function Pagination({
         {showJump && (
           <form
             onSubmit={submitJump}
-            className="flex items-center gap-2 text-xs text-muted-foreground"
+            className="flex items-center gap-2 text-xs text-ink3 font-mono tabular-nums"
           >
             <span>{currentPage} /</span>
             <Input
               value={jumpDraft}
               onChange={(e) => setJumpDraft(e.target.value.replace(/\D/g, ""))}
-              className="w-14 h-8 text-center tabular-nums"
+              className="w-14 h-8 text-center font-mono tabular-nums border-line focus-visible:ring-mint focus-visible:ring-offset-0"
               placeholder={String(pages)}
               aria-label="Jump to page"
             />
@@ -64,6 +64,7 @@ export default function Pagination({
             size="sm"
             onClick={() => onOffset(Math.max(0, offset - limit))}
             disabled={!canPrev}
+            className="border-line text-ink2 hover:text-ink hover:bg-mintbg disabled:opacity-40"
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
             {t("common.prev")}
@@ -73,6 +74,7 @@ export default function Pagination({
             size="sm"
             onClick={() => onOffset(offset + limit)}
             disabled={!canNext}
+            className="border-line text-ink2 hover:text-ink hover:bg-mintbg disabled:opacity-40"
           >
             {t("common.next")}
             <ChevronRight className="h-4 w-4 ml-1" />
