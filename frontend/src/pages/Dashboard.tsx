@@ -80,12 +80,6 @@ export default function Dashboard() {
     { weekday: "long", day: "numeric", month: "long", year: "numeric" },
   );
 
-  // Split the title across two lines with the italic accent dot trailing
-  // the last word — same trick PageHeading uses.
-  const titleWords = (t("dashboard.title", { defaultValue: "Dashboard" }) as string).trim().split(/\s+/);
-  const titleHead = titleWords.slice(0, -1).join(" ");
-  const titleTail = titleWords[titleWords.length - 1];
-
   // -------------------------------------------------------------------------
   // Queries
   // -------------------------------------------------------------------------
@@ -168,35 +162,23 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8 md:space-y-10 pb-10">
-      {/* MASTHEAD */}
-      <header className="stagger-0 relative pb-5">
-        <div className="grid grid-cols-12 gap-x-6 gap-y-3 items-end">
-          <div className="col-span-12 md:col-span-7">
-            <div className="eyebrow !tracking-[0.18em] mb-2">{dateLabel}</div>
-            <h1 className="font-display text-[28px] sm:text-[36px] md:text-[44px] font-medium leading-[1.05] tracking-[-0.015em] text-foreground">
-              {titleHead && <span>{titleHead} </span>}
-              <span>
-                {titleTail}
-                <span aria-hidden className="font-display-italic text-primary">.</span>
-              </span>
-            </h1>
-          </div>
-          <div className="col-span-12 md:col-span-5 md:pl-6 md:border-l border-border/60 md:self-end pb-1">
-            <p className="text-[12px] md:text-[13px] text-muted-foreground italic leading-relaxed max-w-prose">
-              {t("dashboard.subtitle")}
-            </p>
-          </div>
-        </div>
-        <div className="mark-rule absolute bottom-0 left-0 right-0" aria-hidden />
+      {/* MASTHEAD — single-column PageHeading */}
+      <header className="stagger-0">
+        <div className="eyebrow mb-3">{dateLabel}</div>
+        <h1 className="font-display text-4xl md:text-[44px] font-semibold leading-[1.04] tracking-[-0.04em] text-ink">
+          {t("dashboard.title", { defaultValue: "Dashboard" })}
+        </h1>
+        <p className="mt-3 text-sm text-ink3 max-w-[62ch] leading-relaxed">
+          {t("dashboard.subtitle")}
+        </p>
       </header>
 
-      {/* PULSE STRIP — editorial stat list, hairline dividers between cells */}
+      {/* PULSE STRIP — KPI cells in a single horizontal row, hairline dividers */}
       <section className="stagger-1">
-        <div className="eyebrow !tracking-[0.18em] mb-3 flex items-baseline gap-2">
-          <span>{t("dashboard.pulse_label", { defaultValue: "Bugungi puls" })}</span>
-          <span aria-hidden className="font-display-italic text-primary text-[14px] -ml-0.5">.</span>
+        <div className="eyebrow mb-3">
+          {t("dashboard.pulse_label", { defaultValue: "Bugungi puls" })}
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-0 gap-y-5 md:divide-x divide-border/50">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-0 gap-y-5 md:divide-x divide-line">
           <PulseStat
             label={t("dashboard.today_orders")}
             value={overviewQ.data ? "$" + fmtNum(overviewQ.data.today.orders.amount, true) : "—"}
@@ -239,7 +221,7 @@ export default function Dashboard() {
         loading={sotuvCmpQ.isLoading || kirimCmpQ.isLoading}
         error={!!sotuvCmpQ.error || !!kirimCmpQ.error}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 md:gap-y-0 md:gap-x-10 md:divide-x divide-border/40">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 md:gap-y-0 md:gap-x-10 md:divide-x divide-line">
           <SpotlightHalf
             label={t("comparison.tab_sotuv") as string}
             current={sotuvCmpQ.data?.totals.values.at(-1) ?? null}
@@ -280,38 +262,37 @@ export default function Dashboard() {
 
       {/* TREND — minimal chrome, sits in the page like an inline figure */}
       {trendSeries.length > 0 && (
-        <section className="stagger-4">
-          <div className="flex items-end justify-between mb-3 flex-wrap gap-2">
+        <section className="stagger-4 bg-card border border-line rounded-2xl shadow-card p-5 md:p-7">
+          <div className="flex items-end justify-between mb-4 flex-wrap gap-2">
             <div>
-              <div className="eyebrow !tracking-[0.16em] mb-1">
+              <div className="eyebrow mb-1">
                 {t("dashboard.trend_eyebrow", { defaultValue: "Oxirgi 30 kun" })}
               </div>
-              <h2 className="font-display text-[20px] md:text-[24px] font-medium tracking-[-0.01em] leading-[1] text-foreground">
+              <h2 className="font-display text-[20px] md:text-[24px] font-semibold tracking-[-0.02em] leading-[1] text-ink">
                 {t("dashboard.trend_30d")}
-                <span aria-hidden className="font-display-italic text-primary">.</span>
               </h2>
             </div>
-            <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            <div className="flex items-center gap-3 eyebrow !text-[10px]">
               <LegendDot
-                color="hsl(var(--foreground))"
+                color="#10B981"
                 label={t("dashboard.orders_label") as string}
               />
               <LegendDot
-                color="hsl(var(--primary))"
+                color="#F87171"
                 label={t("dashboard.payments_label") as string}
               />
             </div>
           </div>
-          <div className="border-t border-border/50 pt-3">
-            <TimeSeriesChart
-              data={trendSeries}
-              showYoY
-              primaryLabel={t("dashboard.orders_label") as string}
-              yoyLabel={t("dashboard.payments_label") as string}
-              showArea
-              height={200}
-            />
-          </div>
+          <TimeSeriesChart
+            data={trendSeries}
+            showYoY
+            primaryLabel={t("dashboard.orders_label") as string}
+            yoyLabel={t("dashboard.payments_label") as string}
+            primaryColor="#10B981"
+            yoyColor="#F87171"
+            showArea
+            height={200}
+          />
         </section>
       )}
     </div>
@@ -339,18 +320,18 @@ function PulseStat({
 }) {
   const cls =
     delta == null || !Number.isFinite(delta)
-      ? "text-muted-foreground/60"
+      ? "text-ink4"
       : delta > 0
-      ? "text-emerald-700 dark:text-emerald-400"
+      ? "text-mintdk"
       : delta < 0
-      ? "text-red-700 dark:text-red-400"
-      : "text-muted-foreground";
+      ? "text-coraldk"
+      : "text-ink3";
   return (
     <div className={"flex flex-col gap-1.5 min-w-0 " + (isFirst ? "md:pr-5" : "md:px-5 last:md:pr-0")}>
-      <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground font-medium">
+      <div className="eyebrow">
         {label}
       </div>
-      <div className="font-display text-[24px] md:text-[28px] font-medium leading-[1] tabular-nums text-foreground">
+      <div className="kpi-num text-[28px] md:text-[32px] text-ink">
         {value}
       </div>
       <div className="flex items-baseline gap-2 text-[10px] tabular-nums min-h-[12px]">
@@ -358,10 +339,10 @@ function PulseStat({
           <span className={cls + " font-mono font-medium"}>{fmtPct(delta)}</span>
         )}
         {sub && (
-          <span className="text-muted-foreground italic truncate">{sub}</span>
+          <span className="text-ink3 truncate">{sub}</span>
         )}
         {delta != null && Number.isFinite(delta) && deltaLabel && (
-          <span className="text-muted-foreground/60 italic ml-auto md:ml-0">{deltaLabel}</span>
+          <span className="text-ink4 ml-auto md:ml-0">{deltaLabel}</span>
         )}
       </div>
     </div>
@@ -392,8 +373,8 @@ function SpotlightCard({
       to={to}
       aria-label={`${eyebrow} — open`}
       className={
-        "stagger-2 group relative block bg-card border rounded-2xl p-5 md:p-7 " +
-        "transition-shadow hover:shadow-lg outline-none focus-visible:ring-2 focus-visible:ring-ring " +
+        "stagger-2 group relative block bg-card border border-line rounded-2xl shadow-card p-5 md:p-7 " +
+        "transition-shadow hover:shadow-cardlg outline-none focus-visible:ring-2 focus-visible:ring-mint focus-visible:ring-offset-2 " +
         "overflow-hidden"
       }
     >
@@ -408,18 +389,18 @@ function SpotlightCard({
         }}
       />
       <div className="relative flex items-baseline justify-between mb-6 flex-wrap gap-3">
-        <div className="eyebrow !tracking-[0.18em] flex items-baseline gap-2.5">
-          <span>{eyebrow}</span>
+        <div className="eyebrow flex items-baseline gap-2.5">
+          <span className="text-mintdk">{eyebrow}</span>
           {kicker && (
             <>
-              <span aria-hidden className="text-muted-foreground/40">·</span>
-              <span className="font-mono normal-case text-[10px] text-muted-foreground/80 tabular-nums">
+              <span aria-hidden className="text-ink4">·</span>
+              <span className="font-mono normal-case text-[10px] text-ink3 tabular-nums">
                 {kicker}
               </span>
             </>
           )}
         </div>
-        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70 group-hover:text-foreground transition-colors">
+        <div className="flex items-center gap-1.5 eyebrow !text-[10px] text-ink3 group-hover:text-ink transition-colors">
           <span>{loading ? "…" : "Ochish"}</span>
           <ArrowUpRight className="h-3 w-3" aria-hidden />
         </div>
@@ -448,18 +429,18 @@ function SpotlightHalf({
 }) {
   const yoyCls =
     yoy == null || !Number.isFinite(yoy)
-      ? "text-muted-foreground/60"
+      ? "text-ink4"
       : yoy > 0
-      ? "text-emerald-700 dark:text-emerald-400"
+      ? "text-mintdk"
       : yoy < 0
-      ? "text-red-700 dark:text-red-400"
-      : "text-muted-foreground";
+      ? "text-coraldk"
+      : "text-ink3";
   return (
     <div className={"flex flex-col gap-2 " + (offset ? "md:pl-10" : "")}>
-      <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-medium">
+      <div className="eyebrow">
         {label}
       </div>
-      <div className="font-display text-[36px] md:text-[44px] font-medium leading-[1] tracking-[-0.015em] tabular-nums text-foreground">
+      <div className="kpi-num text-[36px] md:text-[48px] text-ink">
         {current != null ? "$" + fmtNum(current, true) : "—"}
       </div>
       <div className="flex items-baseline gap-2 mt-0.5 text-[11px] tabular-nums flex-wrap">
@@ -469,8 +450,8 @@ function SpotlightHalf({
           </span>
         )}
         {prior != null && yearPrev && (
-          <span className="text-muted-foreground italic">
-            ${fmtNum(prior, true)} <span className="text-muted-foreground/60 not-italic">({yearPrev})</span>
+          <span className="text-ink3">
+            ${fmtNum(prior, true)} <span className="text-ink4">({yearPrev})</span>
           </span>
         )}
       </div>
@@ -482,10 +463,10 @@ function SpotlightSkeleton() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 md:gap-y-0 md:gap-x-10">
       {[0, 1].map((i) => (
-        <div key={i} className="space-y-2 animate-pulse">
-          <div className="h-3 w-16 bg-muted/40 rounded" />
-          <div className="h-10 md:h-12 w-2/3 bg-muted/50 rounded" />
-          <div className="h-3 w-1/2 bg-muted/30 rounded" />
+        <div key={i} className="space-y-2">
+          <div className="h-3 w-16 bg-line rounded animate-pulsemint" />
+          <div className="h-10 md:h-12 w-2/3 bg-line rounded animate-pulsemint" style={{ animationDelay: "150ms" }} />
+          <div className="h-3 w-1/2 bg-line rounded animate-pulsemint" style={{ animationDelay: "300ms" }} />
         </div>
       ))}
     </div>
@@ -494,7 +475,7 @@ function SpotlightSkeleton() {
 
 function SpotlightError() {
   return (
-    <div className="text-[12px] italic text-red-700 dark:text-red-400">
+    <div className="text-[12px] text-coraldk">
       Failed to load.
     </div>
   );
@@ -526,30 +507,30 @@ function TileFrame({
       to={to}
       aria-label={`${eyebrow} — open`}
       className={
-        "group relative block bg-card border rounded-2xl p-5 min-h-[160px] " +
-        "transition-shadow hover:shadow-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        "group relative block bg-card border border-line rounded-2xl shadow-card p-5 min-h-[160px] " +
+        "transition-shadow hover:shadow-cardlg outline-none focus-visible:ring-2 focus-visible:ring-mint focus-visible:ring-offset-2"
       }
     >
       <div className="flex items-baseline justify-between gap-3 mb-4">
         <div className="flex items-center gap-2 min-w-0">
-          <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" aria-hidden />
-          <div className="eyebrow !tracking-[0.16em] truncate">{eyebrow}</div>
+          <Icon className="h-3.5 w-3.5 text-ink3 shrink-0" aria-hidden />
+          <div className="eyebrow truncate">{eyebrow}</div>
           {kicker && (
             <>
-              <span aria-hidden className="text-muted-foreground/40 px-0.5">·</span>
-              <div className="font-mono normal-case text-[10px] text-muted-foreground/70 truncate">
+              <span aria-hidden className="text-ink4 px-0.5">·</span>
+              <div className="font-mono normal-case text-[10px] text-ink3 truncate">
                 {kicker}
               </div>
             </>
           )}
         </div>
         <ArrowUpRight
-          className="h-3.5 w-3.5 text-muted-foreground/50 group-hover:text-foreground transition-colors shrink-0"
+          className="h-3.5 w-3.5 text-ink4 group-hover:text-ink transition-colors shrink-0"
           aria-hidden
         />
       </div>
       {error ? (
-        <div className="text-[12px] italic text-red-700 dark:text-red-400">Failed to load.</div>
+        <div className="text-[12px] text-coraldk">Failed to load.</div>
       ) : loading ? (
         <TileSkeleton />
       ) : (
@@ -561,11 +542,11 @@ function TileFrame({
 
 function TileSkeleton() {
   return (
-    <div className="space-y-2 animate-pulse">
-      <div className="h-2.5 w-20 bg-muted/40 rounded" />
-      <div className="h-7 w-2/3 bg-muted/50 rounded" />
-      <div className="h-2.5 w-1/2 bg-muted/30 rounded" />
-      <div className="h-2.5 w-3/5 bg-muted/30 rounded mt-4" />
+    <div className="space-y-2">
+      <div className="h-2.5 w-20 bg-line rounded animate-pulsemint" />
+      <div className="h-7 w-2/3 bg-line rounded animate-pulsemint" style={{ animationDelay: "150ms" }} />
+      <div className="h-2.5 w-1/2 bg-line rounded animate-pulsemint" style={{ animationDelay: "300ms" }} />
+      <div className="h-2.5 w-3/5 bg-line rounded animate-pulsemint mt-4" style={{ animationDelay: "450ms" }} />
     </div>
   );
 }
@@ -600,7 +581,7 @@ function KunlikKesimTile({
           mtd={data?.current_mtd.sotuv}
           forecast={data?.projection.sotuv.mean}
         />
-        <div className="border-t border-border/40" />
+        <div className="border-t border-line" />
         <ForecastRow
           label={t("comparison.tab_kirim") as string}
           mtd={data?.current_mtd.kirim}
@@ -628,21 +609,21 @@ function ForecastRow({
       : 0;
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground mb-1">
+      <div className="eyebrow mb-1">
         {label}
       </div>
       <div className="flex items-baseline gap-2 mb-1.5">
-        <div className="font-display text-[24px] font-medium leading-[1] tabular-nums text-foreground">
+        <div className="kpi-num text-[24px] text-ink">
           {mtd != null ? "$" + fmtNum(mtd, true) : "—"}
         </div>
-        <div className="text-[11px] text-muted-foreground italic font-mono">
+        <div className="text-[11px] text-ink3 font-mono">
           → ${forecast != null ? fmtNum(forecast, true) : "—"}
         </div>
       </div>
       {/* Hairline progress — MTD as fraction of forecast */}
-      <div className="h-[2px] bg-muted/40 rounded-full overflow-hidden">
+      <div className="h-[3px] bg-line rounded-full overflow-hidden">
         <div
-          className="h-full bg-primary/70 transition-all"
+          className="h-full bg-mint transition-all"
           style={{ width: `${(pct * 100).toFixed(1)}%` }}
         />
       </div>
@@ -683,13 +664,13 @@ function CollectionTile({
     >
       <div className="space-y-3">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground mb-1">
+          <div className="eyebrow mb-1">
             {t("dashboard.metric_total_debt")}
           </div>
-          <div className="font-display text-[28px] md:text-[32px] font-medium leading-[1] tabular-nums text-foreground">
+          <div className="kpi-num text-[28px] md:text-[32px] text-ink">
             {total != null ? "$" + fmtNum(total, true) : "—"}
           </div>
-          <div className="text-[10px] text-muted-foreground italic mt-1">
+          <div className="text-[10px] text-ink3 mt-1">
             {debtors != null
               ? t("dashboard.metric_debtors_n", { n: fmtCount(debtors) })
               : ""}
@@ -698,23 +679,23 @@ function CollectionTile({
 
         {/* 90+ days as portion of total — single hairline bar */}
         <div>
-          <div className="flex items-baseline justify-between text-[10px] uppercase tracking-[0.16em] text-muted-foreground mb-1">
+          <div className="flex items-baseline justify-between eyebrow mb-1">
             <span>{t("dashboard.metric_over_90")}</span>
-            <span className="font-mono tabular-nums normal-case text-muted-foreground/80">
+            <span className="font-mono tabular-nums normal-case text-ink3">
               {(over90Pct * 100).toFixed(0)}%
             </span>
           </div>
-          <div className="h-[2px] bg-muted/40 rounded-full overflow-hidden">
+          <div className="h-[3px] bg-line rounded-full overflow-hidden">
             <div
-              className="h-full bg-destructive/70 transition-all"
+              className="h-full bg-coral transition-all"
               style={{ width: `${(over90Pct * 100).toFixed(1)}%` }}
             />
           </div>
           <div className="flex items-baseline justify-between mt-1.5 text-[11px]">
-            <span className="font-mono tabular-nums text-foreground">
+            <span className="font-mono tabular-nums text-ink">
               {over90 != null ? "$" + fmtNum(over90, true) : "—"}
             </span>
-            <span className="text-muted-foreground italic">
+            <span className="text-ink3">
               {over90Cnt != null
                 ? t("dashboard.metric_debtors_n", { n: fmtCount(over90Cnt) })
                 : ""}
@@ -724,9 +705,9 @@ function CollectionTile({
 
         {/* Prepayments — single understated line */}
         {prepay != null && prepay > 0 && (
-          <div className="text-[10px] text-muted-foreground border-t border-border/40 pt-2 flex items-baseline justify-between">
-            <span className="italic">{t("dashboard.metric_prepayments")}</span>
-            <span className="font-mono tabular-nums text-foreground">
+          <div className="text-[10px] text-ink3 border-t border-line pt-2 flex items-baseline justify-between">
+            <span>{t("dashboard.metric_prepayments")}</span>
+            <span className="font-mono tabular-nums text-ink">
               ${fmtNum(prepay, true)}
             </span>
           </div>
@@ -764,12 +745,12 @@ function RfmTile({
   ];
   const toneCls = (tone: Tone) =>
     tone === "primary"
-      ? "text-primary"
+      ? "text-mintdk"
       : tone === "amber"
-      ? "text-amber-700 dark:text-amber-400"
+      ? "text-amber"
       : tone === "destructive"
-      ? "text-destructive"
-      : "text-foreground";
+      ? "text-coraldk"
+      : "text-ink";
 
   return (
     <TileFrame
@@ -785,13 +766,13 @@ function RfmTile({
           <div key={c.key} className="min-w-0">
             <div
               className={
-                "font-display text-[24px] md:text-[26px] font-medium leading-[1] tabular-nums " +
+                "kpi-num text-[24px] md:text-[28px] " +
                 toneCls(c.tone)
               }
             >
               {fmtCount(c.n)}
             </div>
-            <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground mt-1 truncate">
+            <div className="eyebrow mt-1 truncate">
               {c.label}
             </div>
           </div>
