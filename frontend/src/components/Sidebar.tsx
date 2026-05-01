@@ -113,21 +113,21 @@ export default function Sidebar() {
     <ShadSidebar>
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-3 px-2 py-3">
-          <Avatar className="h-10 w-10 ring-1 ring-sidebar-border">
-            <AvatarFallback className="bg-primary text-primary-foreground font-display italic text-[16px] font-medium !normal-case">
-              {user.username.slice(0, 2).toLowerCase()}
+          <Avatar className="h-10 w-10 ring-1 ring-line">
+            <AvatarFallback className="bg-mint text-white font-sans font-semibold text-[14px] tracking-wide uppercase">
+              {user.username.slice(0, 2)}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <div className="font-display text-[17px] font-medium leading-tight text-sidebar-foreground truncate">
+            <div className="font-sans text-sm font-semibold leading-tight text-sidebar-foreground truncate">
               {user.username}
             </div>
-            <div className="eyebrow mt-1 !text-[10px]">
+            <div className="eyebrow mt-1">
               {t(`roles.${user.role}`)}
             </div>
             {user.scope_rooms.length > 0 && (
               <div
-                className="text-xs text-muted-foreground mt-0.5 truncate italic"
+                className="text-xs text-ink3 mt-0.5 truncate"
                 title={user.scope_rooms.map((r) => r.room_name).join(", ")}
               >
                 {user.scope_rooms.length === 1
@@ -157,16 +157,16 @@ export default function Sidebar() {
         <NavGroup titleKey="nav.admin" items={ADMIN} role={user.role} />
       </SidebarContent>
 
-      <SidebarFooter className="border-t">
-        <div className="flex items-center justify-between px-2 py-1">
+      <SidebarFooter className="border-t border-sidebar-border">
+        <div className="flex items-center justify-between gap-2 px-2 py-2">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => void logout()}
-            className="gap-2"
+            className="gap-2 text-ink2 hover:text-ink hover:bg-sidebar-accent"
           >
             <LogOut className="h-4 w-4" />
-            {t("nav.signout")}
+            <span className="text-sm">{t("nav.signout")}</span>
           </Button>
           <div className="flex items-center gap-1">
             <ThemeToggle />
