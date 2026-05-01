@@ -33,9 +33,9 @@ export function fmtPct(v: number | null | undefined): string {
 }
 
 /**
- * Bigger, more editorial sibling of StatCard — the primary KPI unit on
- * the three new dashboards. No card chrome; sits directly on the page
- * with an eyebrow label above and an optional sparkline / delta chip.
+ * Editorial KPI card — the primary KPI unit on every dashboard page.
+ * Eyebrow label, Fraunces serif value via .kpi-num, optional delta chip
+ * (mint / coral / ink3) and sparkline strip.
  */
 export default function MetricCard({
   label,
@@ -71,14 +71,14 @@ export default function MetricCard({
   const DeltaIcon = deltaTone === "up" ? TrendingUp : deltaTone === "down" ? TrendingDown : Minus;
   const deltaClass =
     deltaTone === "up"
-      ? "text-emerald-700 dark:text-emerald-400"
+      ? "text-mintdk"
       : deltaTone === "down"
-      ? "text-red-700 dark:text-red-400"
-      : "text-muted-foreground";
+      ? "text-coraldk"
+      : "text-ink3";
 
   const Wrapper: any = href ? Link : "div";
   const baseCard =
-    "flex flex-col gap-1.5 min-w-0 bg-card border rounded-2xl shadow-soft p-5";
+    "flex flex-col gap-1.5 min-w-0 bg-card border border-line rounded-2xl shadow-card p-6";
   const wrapperProps: any = href
     ? {
         to: href,
@@ -86,14 +86,14 @@ export default function MetricCard({
         "aria-label": `${label} — open detail`,
         className:
           baseCard +
-          " group transition-shadow hover:shadow-md " +
-          "outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          " group transition-shadow hover:shadow-cardlg " +
+          "outline-none focus-visible:ring-2 focus-visible:ring-mint focus-visible:ring-offset-2",
       }
     : { role: "group", "aria-label": label, className: baseCard };
 
   return (
     <Wrapper {...wrapperProps}>
-      <div className="eyebrow !tracking-[0.18em] flex items-center gap-1">
+      <div className="eyebrow flex items-center gap-1">
         <span>{label}</span>
         {href && (
           <ExternalLink
@@ -103,11 +103,11 @@ export default function MetricCard({
         )}
       </div>
       <div className="flex items-baseline gap-2 flex-wrap">
-        <div className="font-display text-[36px] md:text-[40px] font-medium leading-[1] tracking-tight text-foreground tabular-nums">
+        <div className="kpi-num text-[36px] md:text-[44px] text-ink">
           {value}
         </div>
         {unit && (
-          <div className="text-[13px] text-muted-foreground leading-none pb-1">{unit}</div>
+          <div className="text-[13px] text-ink3 leading-none pb-1">{unit}</div>
         )}
       </div>
       <div className="flex items-center gap-3 min-h-[18px]">
@@ -119,7 +119,7 @@ export default function MetricCard({
             <DeltaIcon className="h-3 w-3" aria-hidden />
             <span>{fmtPct(delta)}</span>
             {deltaLabel && (
-              <span className="text-muted-foreground italic text-[11px] ml-1">{deltaLabel}</span>
+              <span className="text-ink3 text-[11px] ml-1">{deltaLabel}</span>
             )}
           </div>
         )}
@@ -129,9 +129,7 @@ export default function MetricCard({
           </div>
         )}
       </div>
-      {hint && (
-        <div className="text-[11px] text-muted-foreground italic">{hint}</div>
-      )}
+      {hint && <div className="text-[11px] text-ink3">{hint}</div>}
     </Wrapper>
   );
 }
