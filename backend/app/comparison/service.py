@@ -226,7 +226,7 @@ async def _kirim_grid(
            b.label    AS bucket,
            SUM(p.amount)::numeric(18,2) AS revenue
       FROM buckets b
-      JOIN smartup_rep.payment      p  ON p.payment_date BETWEEN b.s AND b.e
+      JOIN smartup_rep.payment      p  ON p.payment_date::date BETWEEN b.s AND b.e
       JOIN smartup_rep.legal_person lp ON lp.person_id = p.person_id
      WHERE TRUE {f_sql} {bank_excl}
      GROUP BY 1, 2
@@ -589,7 +589,7 @@ async def drill(
            {room_expr} AS attributed_manager
       FROM smartup_rep.payment      p
       JOIN smartup_rep.legal_person lp ON lp.person_id = p.person_id
-     WHERE p.payment_date BETWEEN (:s)::date AND (:e)::date
+     WHERE p.payment_date::date BETWEEN (:s)::date AND (:e)::date
        {pred_sql}
        {f_sql}
        {bank_excl}
@@ -603,7 +603,7 @@ async def drill(
            COUNT(*) AS n
       FROM smartup_rep.payment      p
       JOIN smartup_rep.legal_person lp ON lp.person_id = p.person_id
-     WHERE p.payment_date BETWEEN (:s)::date AND (:e)::date
+     WHERE p.payment_date::date BETWEEN (:s)::date AND (:e)::date
        {pred_sql}
        {f_sql}
        {bank_excl}
