@@ -71,7 +71,7 @@ export default function MatrixGrid({
   };
 
   return (
-    <div className="overflow-auto border border-border/60 rounded-md bg-background/70 max-h-[70vh]">
+    <div className="overflow-auto border border-line rounded-2xl bg-card shadow-card max-h-[70vh]">
       <table className="w-full text-[12.5px] border-collapse">
         <thead className="sticky top-0 z-10 bg-muted/80 backdrop-blur">
           <tr>
@@ -251,10 +251,10 @@ function PlanCellAdjunct({
     index == null
       ? "text-muted-foreground/60"
       : index >= 1
-      ? "text-emerald-700 dark:text-emerald-400"
+      ? "text-mintdk"
       : index >= 0.7
-      ? "text-amber-700 dark:text-amber-400"
-      : "text-red-700 dark:text-red-400";
+      ? "text-amber"
+      : "text-coraldk";
   return (
     <div className="text-[10px] text-muted-foreground/80 mt-0.5">
       <span className="font-mono">${fmtNum(plan, true)}</span>
@@ -289,8 +289,8 @@ function RankChip({
   const delta = prev - now; // positive → moved up
   const cls =
     delta > 0
-      ? "text-emerald-700 dark:text-emerald-400"
-      : "text-red-700 dark:text-red-400";
+      ? "text-mintdk"
+      : "text-coraldk";
   const arrow = delta > 0 ? "↑" : "↓";
   return (
     <span className={"text-[10px] font-mono " + cls}>
@@ -314,9 +314,9 @@ function TrendChip({
   }
   const cls =
     value > 0
-      ? "text-emerald-700 dark:text-emerald-400"
+      ? "text-mintdk"
       : value < 0
-      ? "text-red-700 dark:text-red-400"
+      ? "text-coraldk"
       : "text-muted-foreground";
   const sign = value > 0 ? "+" : "";
   // For share view the trend is computed on column-share share, so the

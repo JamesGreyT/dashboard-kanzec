@@ -77,9 +77,10 @@ export default function Pareto({
           contentStyle={{
             backgroundColor: "hsl(var(--card))",
             border: "1px solid hsl(var(--border))",
-            borderRadius: 6,
+            borderRadius: 12,
             fontSize: 12,
             fontFamily: "var(--font-mono)",
+            boxShadow: "0 2px 4px rgba(17,24,39,0.04), 0 24px 48px -16px rgba(17,24,39,0.12)",
           }}
         />
         <Bar yAxisId="left" dataKey="value" fill={barColor} opacity={0.85} radius={[2, 2, 0, 0]} />

@@ -19,13 +19,13 @@ export default function ScopeChip() {
   if (rooms.length === 0) return null;
   return (
     <div
-      className="inline-flex items-center gap-1.5 h-9 px-2.5 rounded-md border border-primary/30 bg-primary/[0.04] text-primary"
+      className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full border border-mint/30 bg-mintbg text-mintdk"
       title={t("scope.tooltip", {
         defaultValue: "Your view is restricted to these rooms by your admin",
       }) as string}
     >
       <Lock className="h-3 w-3" aria-hidden />
-      <span className="text-[10px] uppercase tracking-[0.12em] font-medium">
+      <span className="eyebrow !text-[10px] text-mintdk">
         {t("scope.label", { defaultValue: "Scope" })}
       </span>
       <span className="text-[12px] font-medium">

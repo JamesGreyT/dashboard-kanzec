@@ -138,19 +138,18 @@ export default function PlanGridEditable({
     const ratio = fakt / plan;
     const cls =
       ratio >= 1
-        ? "text-emerald-700 dark:text-emerald-400"
+        ? "text-mintdk"
         : ratio >= 0.7
-        ? "text-amber-700 dark:text-amber-400"
-        : "text-red-700 dark:text-red-400";
+        ? "text-amber"
+        : "text-coraldk";
     return <span className={cls}>{(ratio * 100).toFixed(0)}%</span>;
   };
 
   return (
     <section className="mb-10">
       <div className="flex items-baseline justify-between mb-3 flex-wrap gap-2">
-        <h2 className="font-display text-[22px] md:text-[26px] font-medium tracking-[-0.01em] text-foreground">
+        <h2 className="font-display text-[22px] md:text-[26px] font-semibold tracking-[-0.02em] text-ink">
           {t("dayslice.section_plan")}
-          <span aria-hidden className="font-display-italic text-primary ml-[2px]">.</span>
         </h2>
         <div className="flex items-center gap-3">
           {lastEdit?.updated_at && (
@@ -166,7 +165,7 @@ export default function PlanGridEditable({
           )}
         </div>
       </div>
-      <div className="overflow-x-auto border border-border/60 rounded-md bg-background/70">
+      <div className="overflow-x-auto border border-line rounded-2xl bg-card shadow-card">
         <table className="w-full text-[13px]">
           <thead className="bg-muted/40">
             <tr>
@@ -211,7 +210,7 @@ export default function PlanGridEditable({
                         onChange={(ev) =>
                           setCell(m, "plan_sotuv", ev.target.value)
                         }
-                        className="w-24 text-right border border-border/40 rounded px-1 py-0.5 font-mono tabular-nums bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="w-24 text-right border border-line rounded-md px-2 py-1 font-mono tabular-nums bg-card focus-visible:outline-none focus-visible:border-mint focus-visible:ring-2 focus-visible:ring-mint/15 focus-visible:bg-amberbg/40"
                         aria-label={`Plan Sotuv ${m}`}
                       />
                     ) : (
@@ -236,7 +235,7 @@ export default function PlanGridEditable({
                         onChange={(ev) =>
                           setCell(m, "plan_kirim", ev.target.value)
                         }
-                        className="w-24 text-right border border-border/40 rounded px-1 py-0.5 font-mono tabular-nums bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="w-24 text-right border border-line rounded-md px-2 py-1 font-mono tabular-nums bg-card focus-visible:outline-none focus-visible:border-mint focus-visible:ring-2 focus-visible:ring-mint/15 focus-visible:bg-amberbg/40"
                         aria-label={`Plan Kirim ${m}`}
                       />
                     ) : (

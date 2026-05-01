@@ -23,11 +23,11 @@ export default function Modal({
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent
         style={{ maxWidth: Math.min(width, typeof window !== "undefined" ? window.innerWidth * 0.92 : width) }}
-        className="sm:max-w-[var(--modal-width)]"
+        className="sm:max-w-[var(--modal-width)] rounded-2xl shadow-cardlg border-line"
       >
         {title && (
           <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
+            <DialogTitle className="font-display text-xl font-semibold tracking-[-0.02em] text-ink">{title}</DialogTitle>
           </DialogHeader>
         )}
         {children}

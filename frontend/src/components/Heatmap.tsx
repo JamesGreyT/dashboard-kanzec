@@ -26,9 +26,6 @@ export default function Heatmap({
   rowHeader?: ReactNode;     // optional axis label left of the row labels
   maxHeight?: number;
 }) {
-  // compute the global max for the colour ramp; ignores signs so negative
-  // cells also get tint proportional to magnitude (marker in the negative
-  // palette)
   const max = Math.max(
     1,
     ...values.flatMap((row) => row.map((v) => Math.abs(v ?? 0))),
@@ -39,13 +36,13 @@ export default function Heatmap({
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr>
-            <th className="text-left font-medium text-muted-foreground text-[10px] uppercase tracking-[0.12em] pb-2 pr-3">
+            <th className="text-left eyebrow !text-[10px] !tracking-[0.12em] pb-2 pr-3">
               {rowHeader ?? ""}
             </th>
             {colLabels.map((c, i) => (
               <th
                 key={c + i}
-                className="text-right px-2 pb-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground font-medium"
+                className="text-right px-2 pb-2 eyebrow !text-[10px] !tracking-[0.12em]"
               >
                 {c}
               </th>
@@ -56,7 +53,7 @@ export default function Heatmap({
               <th />
               <th
                 colSpan={colLabels.length}
-                className="pb-1 text-[10px] text-muted-foreground italic text-right"
+                className="pb-1 text-[10px] text-ink3 text-right"
               >
                 {colHeader}
               </th>
@@ -65,18 +62,19 @@ export default function Heatmap({
         </thead>
         <tbody>
           {rowLabels.map((rl, r) => (
-            <tr key={rl + r} className="border-t border-border/40">
-              <td className="pr-3 py-1 text-foreground text-[13px] whitespace-nowrap">
+            <tr key={rl + r} className="border-t border-line">
+              <td className="pr-3 py-1.5 text-ink text-[13px] whitespace-nowrap">
                 {rl}
               </td>
               {colLabels.map((_, c) => {
                 const v = values[r]?.[c] ?? 0;
                 const intensity = Math.abs(v) / max;
-                const alpha = Math.min(0.42, intensity * 0.42);
+                // Mobile Card Stream heatmap: 0.06 → 0.85 mint scale
+                const alpha = v === 0 ? 0 : 0.06 + Math.min(0.79, intensity * 0.79);
                 return (
                   <td
                     key={c}
-                    className="px-2 py-1 text-right font-mono tabular-nums text-[12px]"
+                    className="px-2 py-1.5 text-right font-mono tabular-nums text-[12px] transition-colors hover:ring-2 hover:ring-mint/40 hover:ring-inset"
                     style={{
                       backgroundColor:
                         v === 0
@@ -87,10 +85,10 @@ export default function Heatmap({
                     <span
                       className={
                         v === 0
-                          ? "text-muted-foreground/60"
+                          ? "text-ink4"
                           : v < 0
-                          ? "text-destructive"
-                          : "text-foreground"
+                          ? "text-coraldk"
+                          : "text-ink"
                       }
                     >
                       {formatValue(v)}
