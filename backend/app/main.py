@@ -13,6 +13,7 @@ from .alerts import service as alerts_service
 from .alerts.router import router as alerts_router
 from .annotations.router import router as annotations_router
 from .auth.router import router as auth_router
+from .clients.router import router as clients_router
 from .comparison.router import router as comparison_router
 from .config import settings
 from .dashboard.router import router as dashboard_router
@@ -131,6 +132,7 @@ app.include_router(payments_router)
 app.include_router(returns_router)
 app.include_router(dayslice_router)
 app.include_router(comparison_router)
+app.include_router(clients_router)
 app.include_router(preferences_router)
 app.include_router(annotations_router)
 app.include_router(alerts_router)
