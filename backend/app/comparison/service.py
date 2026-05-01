@@ -163,8 +163,12 @@ def _dim_expr_kirim(dim: Dimension) -> str:
     tie."""
     null = f"'{NULL_BUCKET}'"
     if dim == "manager":
+        # Customer's room from legal_person, with payment.payer as a fallback
+        # for orphan customers whose legal_person row Smartup didn't include.
         return (
-            "COALESCE(NULLIF(TRIM(SPLIT_PART(lp.room_names, ',', 1)),''), "
+            "COALESCE("
+            "NULLIF(TRIM(SPLIT_PART(lp.room_names, ',', 1)), ''),"
+            "NULLIF(TRIM(p.payer), ''),"
             f"{null})"
         )
     if dim == "direction":
@@ -214,7 +218,12 @@ async def _kirim_grid(
     # person_id subquery (room_on="") since payment has no room_id column.
     f_sql, f_params = clause(
         f,
-        manager_expr="TRIM(SPLIT_PART(lp.room_names, ',', 1))",
+        manager_expr=(
+            "COALESCE("
+            "NULLIF(TRIM(SPLIT_PART(lp.room_names, ',', 1)), ''),"
+            "NULLIF(TRIM(p.payer), '')"
+            ")"
+        ),
         room_on="",
     )
     dim_expr = _dim_expr_kirim(dim)
@@ -472,13 +481,17 @@ def _dim_predicate(
         # exactly when the raw column is null/empty/whitespace — match
         # that condition explicitly so EXPLAIN can use the index.
         if dim == "manager":
-            # Sotuv keys off d.sales_manager; Kirim keys off the customer's
-            # first-listed room from legal_person.room_names. Both reduce to
-            # NULL/empty when the operator hasn't filled the field.
+            # Sotuv keys off d.sales_manager. Kirim falls back through
+            # room_names → payer; the null bucket is hit only when BOTH
+            # are empty.
             if measure == "sotuv":
                 col = "d.sales_manager"
-            else:
-                col = "SPLIT_PART(lp.room_names, ',', 1)"
+                return f"AND ({col} IS NULL OR TRIM({col}) = '')", {}
+            return (
+                "AND COALESCE(NULLIF(TRIM(SPLIT_PART(lp.room_names, ',', 1)), ''),"
+                " NULLIF(TRIM(p.payer), '')) IS NULL",
+                {},
+            )
         elif dim == "direction":
             col = "lp.direction"
         elif dim == "brand":
@@ -575,7 +588,13 @@ async def drill(
         }
 
     # measure == "kirim" — customer-room attribution via legal_person.room_names
-    room_expr = "TRIM(SPLIT_PART(lp.room_names, ',', 1))"
+    # See _dim_expr_kirim for rationale: room_names with payer fallback.
+    room_expr = (
+        "COALESCE("
+        "NULLIF(TRIM(SPLIT_PART(lp.room_names, ',', 1)), ''),"
+        "NULLIF(TRIM(p.payer), '')"
+        ")"
+    )
     f_sql, f_params = clause(f, manager_expr=room_expr, room_on="")
     bank_excl = exclude_kirim_methods_clause("p")
     sql = f"""

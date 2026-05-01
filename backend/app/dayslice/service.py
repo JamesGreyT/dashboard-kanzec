@@ -147,7 +147,17 @@ async def _grid_kirim(
     rooms; we attribute to the FIRST room via SPLIT_PART so the totals
     tie. Empty/whitespace room_names land in the `(—)` bucket.
     """
-    room_expr = "TRIM(SPLIT_PART(lp.room_names, ',', 1))"
+    # Customer's room from legal_person, with the payment's collector
+    # (Инкассатор / payer) as a fallback when the customer is missing
+    # from the dimension snapshot or has no room. This catches orphans
+    # like ROVSHAN AKA YUNSOBOD whose legal_person row is excluded by
+    # Smartup's export but whose payments carry "Sergeli 6/4/1/" in payer.
+    room_expr = (
+        "COALESCE("
+        "NULLIF(TRIM(SPLIT_PART(lp.room_names, ',', 1)), ''),"
+        "NULLIF(TRIM(p.payer), '')"
+        ")"
+    )
     f_sql, f_params = clause(
         f, manager_expr=room_expr, room_on="",
     )
@@ -274,7 +284,12 @@ async def _per_year_mtd_and_full(
     else:
         f_sql, f_params = clause(
             f,
-            manager_expr="TRIM(SPLIT_PART(lp.room_names, ',', 1))",
+            manager_expr=(
+                "COALESCE("
+                "NULLIF(TRIM(SPLIT_PART(lp.room_names, ',', 1)), ''),"
+                "NULLIF(TRIM(p.payer), '')"
+                ")"
+            ),
             room_on="",
         )
         bank_excl = exclude_kirim_methods_clause("p")
@@ -596,7 +611,17 @@ async def drill(
         }
 
     # measure == "kirim" — customer-room attribution via legal_person.room_names
-    room_expr = "TRIM(SPLIT_PART(lp.room_names, ',', 1))"
+    # Customer's room from legal_person, with the payment's collector
+    # (Инкассатор / payer) as a fallback when the customer is missing
+    # from the dimension snapshot or has no room. This catches orphans
+    # like ROVSHAN AKA YUNSOBOD whose legal_person row is excluded by
+    # Smartup's export but whose payments carry "Sergeli 6/4/1/" in payer.
+    room_expr = (
+        "COALESCE("
+        "NULLIF(TRIM(SPLIT_PART(lp.room_names, ',', 1)), ''),"
+        "NULLIF(TRIM(p.payer), '')"
+        ")"
+    )
     f_sql, f_params = clause(f, manager_expr=room_expr, room_on="")
     bank_excl = exclude_kirim_methods_clause("p")
     if manager == _NULL_MGR:
