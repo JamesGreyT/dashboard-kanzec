@@ -14,7 +14,6 @@ import Payments from "./pages/Payments";
 import Returns from "./pages/Returns";
 import Sales from "./pages/Sales";
 import Comparison from "./pages/Comparison";
-import ClientIntelligence from "./pages/ClientIntelligence";
 import AdminAlerts from "./pages/AdminAlerts";
 import AdminUsers from "./pages/AdminUsers";
 import AdminAudit from "./pages/AdminAudit";
@@ -44,7 +43,6 @@ export default function App() {
           <Route path="/data/orders" element={<DataViewer lockedTable="deal_order" />} />
           <Route path="/data/payments" element={<DataViewer lockedTable="payment" />} />
           <Route path="/data/legal-persons" element={<DataViewer lockedTable="legal_person" />} />
-          <Route path="/clients" element={<RequireAuth roles={["admin", "viewer"]}><ClientIntelligence /></RequireAuth>} />
           <Route path="/collection/worklist" element={<RequireAuth roles={["admin", "viewer"]}><DebtWorklist /></RequireAuth>} />
           <Route path="/collection/clients" element={<RequireAuth roles={["admin", "viewer"]}><Clients /></RequireAuth>} />
           <Route path="/collection/debt/client/:personId" element={<RequireAuth roles={["admin", "viewer"]}><DebtClient /></RequireAuth>} />

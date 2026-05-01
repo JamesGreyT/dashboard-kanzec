@@ -73,9 +73,7 @@ const DATA: Item[] = [
 ];
 const CLIENTS: Item[] = [
   // /collection/worklist is still routed (DebtClient.tsx back-button uses
-  // it) but unsurfaced. /clients is the new Mijozlar 360° intelligence
-  // view; /collection/clients remains the debt-focused list.
-  { to: "/clients",            labelKey: "nav.client_360",   roles: ["admin", "viewer"], icon: "people" },
+  // it) but unsurfaced from the sidebar.
   { to: "/collection/clients", labelKey: "nav.debt_clients", roles: ["admin", "viewer"], icon: "ledger" },
 ];
 const ANALYTICS: Item[] = [
