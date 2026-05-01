@@ -27,11 +27,11 @@ function YearHeader({ iso }: { iso: string }) {
   const mon = UZ_MONTH_ABBR[d.getUTCMonth()];
   const year = d.getUTCFullYear();
   return (
-    <div className="flex flex-col items-end leading-tight">
-      <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-medium">
+    <div className="flex flex-col items-end leading-tight gap-0.5">
+      <span className="eyebrow !text-[10px]">
         {day} {mon}
       </span>
-      <span className="font-display-italic text-[17px] text-foreground/85">
+      <span className="font-mono text-[15px] font-medium text-ink2 tabular-nums">
         {year}
       </span>
     </div>
@@ -70,7 +70,7 @@ export default function PivotTable({
 
   return (
     <div className="min-w-0">
-      <div className="eyebrow !tracking-[0.18em] mb-3 text-primary">
+      <div className="eyebrow mb-3 text-mintdk">
         {eyebrow}
       </div>
       <div className="overflow-x-auto">
@@ -101,14 +101,14 @@ export default function PivotTable({
               rows.map((r) => (
                 <tr
                   key={r.label}
-                  className="group border-b border-border/40 last:border-b-0"
+                  className="group border-b border-line last:border-b-0"
                 >
-                  <td className="py-2 pr-3 text-foreground text-[13px] truncate max-w-[220px]">
+                  <td className="py-2 pr-3 text-ink text-[13px] truncate max-w-[220px]">
                     {r.label}
                   </td>
                   {r.values.map((v, i) => {
                     const intensity = colMax[i] > 0 ? Math.abs(v) / colMax[i] : 0;
-                    const tintAlpha = Math.min(0.055, intensity * 0.055);
+                    const tintAlpha = Math.min(0.12, intensity * 0.12);
                     return (
                       <td
                         key={i}
@@ -123,10 +123,10 @@ export default function PivotTable({
                         <span
                           className={
                             v === 0
-                              ? "text-muted-foreground/60"
+                              ? "text-ink4"
                               : v < 0
-                                ? "text-primary"
-                                : "text-foreground"
+                                ? "text-coraldk"
+                                : "text-ink"
                           }
                         >
                           {fmt(v, compact)}
@@ -139,28 +139,28 @@ export default function PivotTable({
             )}
 
             {/* Total row(s) */}
-            <tr className="border-t-2 border-primary/30 bg-primary/[0.02]">
-              <td className="py-2.5 pr-3 font-semibold text-foreground text-[13px]">
+            <tr className="border-t-2 border-mint/40 bg-mintbg">
+              <td className="py-2.5 pr-3 font-semibold text-ink text-[13px]">
                 {totalLabel}
               </td>
               {totals.map((v, i) => (
                 <td
                   key={i}
-                  className="py-2.5 pl-4 text-right font-mono tabular-nums font-semibold text-[13px] text-foreground"
+                  className="py-2.5 pl-4 text-right font-mono tabular-nums font-semibold text-[13px] text-ink"
                 >
                   {fmt(v, compact)}
                 </td>
               ))}
             </tr>
             {extraTotals && extraTotalLabel && (
-              <tr className="border-t border-primary/20">
-                <td className="py-2.5 pr-3 font-semibold text-primary text-[13px]">
+              <tr className="border-t border-mint/30">
+                <td className="py-2.5 pr-3 font-semibold text-mintdk text-[13px]">
                   {extraTotalLabel}
                 </td>
                 {extraTotals.map((v, i) => (
                   <td
                     key={i}
-                    className="py-2.5 pl-4 text-right font-mono tabular-nums font-semibold text-[13px] text-primary"
+                    className="py-2.5 pl-4 text-right font-mono tabular-nums font-semibold text-[13px] text-mintdk"
                   >
                     {fmt(v, compact)}
                   </td>

@@ -103,23 +103,23 @@ export default function WindowPicker({
   return (
     <div className="flex flex-wrap items-center gap-3">
       <div className="flex items-center gap-2">
-        <CalendarRange className="h-3.5 w-3.5 text-muted-foreground" />
+        <CalendarRange className="h-3.5 w-3.5 text-ink3" />
         <input
           type="date"
           value={value.from}
           max={value.to || today}
           onChange={(e) => setDates(e.target.value, value.to)}
-          className="h-9 px-2 bg-background border border-input rounded-md text-[13px] font-mono tabular-nums focus-within:ring-2 focus-within:ring-ring/30 outline-none"
+          className="h-9 px-3 bg-card border border-line rounded-lg text-[13px] font-mono tabular-nums outline-none focus-visible:border-mint focus-visible:ring-2 focus-visible:ring-mint/15"
           aria-label={t("window.from") as string}
         />
-        <span className="text-muted-foreground">—</span>
+        <span className="text-ink3">—</span>
         <input
           type="date"
           value={value.to}
           min={value.from}
           max={today}
           onChange={(e) => setDates(value.from, e.target.value)}
-          className="h-9 px-2 bg-background border border-input rounded-md text-[13px] font-mono tabular-nums focus-within:ring-2 focus-within:ring-ring/30 outline-none"
+          className="h-9 px-3 bg-card border border-line rounded-lg text-[13px] font-mono tabular-nums outline-none focus-visible:border-mint focus-visible:ring-2 focus-visible:ring-mint/15"
           aria-label={t("window.to") as string}
         />
       </div>
@@ -133,11 +133,11 @@ export default function WindowPicker({
               onClick={() => onChange(windowFor(p.alias))}
               aria-pressed={active}
               className={cn(
-                "text-[11px] uppercase tracking-[0.08em] px-2 py-1 rounded transition outline-none",
-                "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
+                "eyebrow !text-[10px] !font-medium px-2.5 py-1 rounded-full transition outline-none",
+                "focus-visible:ring-2 focus-visible:ring-mint focus-visible:ring-offset-2",
                 active
-                  ? "bg-primary/10 text-primary font-medium"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                  ? "bg-mintbg text-mintdk"
+                  : "text-ink3 hover:text-ink hover:bg-mintbg/40",
               )}
             >
               {t(p.key)}

@@ -43,24 +43,24 @@ function ChartTooltip({ active, payload, label, annotations }: {
   // string compare works.
   const notes = (annotations ?? []).filter((a) => a.x_date === label);
   return (
-    <div className="bg-card border border-border rounded-md p-2.5 shadow-lg text-[12px] relative overflow-hidden max-w-[320px]">
-      <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-primary" />
-      <div className="font-mono text-muted-foreground mb-1 pl-1.5">{label ? fmtDate(label) : ""}</div>
+    <div className="bg-card border border-line rounded-2xl p-3 shadow-cardlg text-[12px] relative overflow-hidden max-w-[320px]">
+      <div className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-mint" />
+      <div className="font-mono text-ink3 mb-1.5 pl-2">{label ? fmtDate(label) : ""}</div>
       {payload.map((p) => (
-        <div key={p.dataKey} className="flex items-center gap-2 pl-1.5 tabular-nums">
+        <div key={p.dataKey} className="flex items-center gap-2 pl-2 tabular-nums">
           <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
-          <span className="text-foreground capitalize">{p.name}</span>
+          <span className="text-ink capitalize">{p.name}</span>
           <span className="ml-auto font-mono">{(p.value ?? 0).toLocaleString("en-US")}</span>
         </div>
       ))}
       {notes.length > 0 && (
-        <div className="mt-2 pt-2 border-t border-border/60 pl-1.5">
+        <div className="mt-2 pt-2 border-t border-line pl-2">
           {notes.map((n) => (
             <div key={n.id} className="leading-snug mb-1 last:mb-0">
-              <div className="text-[11px] font-medium text-primary uppercase tracking-[0.08em]">
+              <div className="eyebrow text-mintdk">
                 Note{n.created_by_name ? ` · ${n.created_by_name}` : ""}
               </div>
-              <div className="text-[12px] text-foreground">{n.note}</div>
+              <div className="text-[12px] text-ink">{n.note}</div>
             </div>
           ))}
         </div>
@@ -85,9 +85,9 @@ export default function TimeSeriesChart({
   primaryLabel = "value",
   yoyLabel = "yoy",
   maLabel = "7d MA",
-  primaryColor = "hsl(var(--foreground))",
+  primaryColor = "hsl(var(--primary))",
   yoyColor = "hsl(var(--muted-foreground))",
-  maColor = "hsl(var(--primary))",
+  maColor = "hsl(var(--foreground))",
   overlays,
   annotations,
 }: {
@@ -166,8 +166,10 @@ export default function TimeSeriesChart({
             name={primaryLabel}
             stroke={primaryColor}
             fill={primaryColor}
-            fillOpacity={0.18}
-            strokeWidth={1.75}
+            fillOpacity={0.16}
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
             dot={false}
           />
         ) : (
