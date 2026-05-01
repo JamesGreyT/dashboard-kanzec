@@ -71,6 +71,9 @@ const DATA: Item[] = [
   { to: "/data/payments", labelKey: "nav.payments", roles: ["admin", "operator", "viewer"], icon: "payments" },
   { to: "/data/legal-persons", labelKey: "nav.legal_persons", roles: ["admin", "operator", "viewer"], icon: "people" },
 ];
+const COLLECTION: Item[] = [
+  { to: "/collection/worklist", labelKey: "nav.debt_clients", roles: ["admin", "viewer"], icon: "ledger" },
+];
 const ANALYTICS: Item[] = [
   { to: "/analytics/sales",    labelKey: "nav.sales",    roles: ["admin", "viewer"], icon: "trending" },
   { to: "/analytics/payments", labelKey: "nav.payments_dash", roles: ["admin", "viewer"], icon: "payments" },
@@ -152,6 +155,7 @@ export default function Sidebar() {
           role={user.role}
           parentIcon="reports"
         />
+        <NavGroup titleKey="nav.collection" items={COLLECTION} role={user.role} />
         <NavGroup titleKey="nav.analytics" items={ANALYTICS} role={user.role} />
         <NavGroup titleKey="nav.operations" items={OPERATIONS} role={user.role} />
         <NavGroup titleKey="nav.admin" items={ADMIN} role={user.role} />
