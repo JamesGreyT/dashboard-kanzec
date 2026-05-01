@@ -13,6 +13,7 @@ from typing import Any
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .._analytics.filters import exclude_kirim_methods_clause
 from ..scope import UserScope, clause_for_table
 
 _TZ = "Asia/Tashkent"
@@ -65,6 +66,9 @@ async def overview(session: AsyncSession, scope: UserScope | None = None) -> dic
     yest_orders = {"count": int(yrow.orders_count), "amount": float(yrow.orders_amount)}
 
     # --- today: payments sum -------------------------------------------------
+    # Bank-recorded payments are excluded from every Kirim aggregate; see
+    # _analytics.filters.exclude_kirim_methods_clause for the rationale.
+    bank_excl = exclude_kirim_methods_clause("")
     prow = (
         await session.execute(
             text(f"""
@@ -73,6 +77,7 @@ async def overview(session: AsyncSession, scope: UserScope | None = None) -> dic
                   FROM smartup_rep.payment
                  WHERE (payment_date AT TIME ZONE '{_TZ}')::date = {today_sql}
                    {payment_and}
+                   {bank_excl}
             """),
             payment_params,
         )
@@ -86,6 +91,7 @@ async def overview(session: AsyncSession, scope: UserScope | None = None) -> dic
                   FROM smartup_rep.payment
                  WHERE (payment_date AT TIME ZONE '{_TZ}')::date = {today_sql} - 1
                    {payment_and}
+                   {bank_excl}
             """),
             payment_params,
         )
@@ -142,6 +148,7 @@ async def overview(session: AsyncSession, scope: UserScope | None = None) -> dic
                     FROM smartup_rep.payment
                    WHERE (payment_date AT TIME ZONE '{_TZ}')::date >= {today_sql} - 29
                      {payment_and}
+                     {bank_excl}
                    GROUP BY 1
                 )
                 SELECT d.d AS day,

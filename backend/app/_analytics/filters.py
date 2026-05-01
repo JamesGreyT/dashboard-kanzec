@@ -90,3 +90,31 @@ def clause(f: Filters, *, person_alias: str = "lp",
 
 def is_active(f: Filters) -> bool:
     return bool(f.direction or f.region or f.manager or f.client)
+
+
+# Payment methods to exclude from every Kirim (collections) aggregate.
+# The operator's "Kirim" mental model is cash receipts only — bank-recorded
+# payments (interbank transfers, intercompany flows) come in through the
+# Smartup integration but aren't part of any sales-rep's collection effort
+# and would otherwise inflate manager attribution and DSO.
+# To include them — e.g. for a CFO-level total — query smartup_rep.payment
+# directly without this clause.
+_EXCLUDED_KIRIM_METHODS: tuple[str, ...] = ("Банк",)
+
+
+def exclude_kirim_methods_clause(alias: str = "p") -> str:
+    """Return an `AND <alias>.payment_method NOT IN (...)` fragment that drops
+    bank-recorded payments from a Kirim aggregate (or empty string when
+    nothing is excluded).
+
+    `COALESCE(..., '')` keeps NULL `payment_method` rows in the result — a
+    plain `NOT IN ('Банк')` predicate evaluates to NULL on those, which the
+    SQL filter treats as falsy and silently drops them. The operator's data
+    has a non-trivial number of NULL methods (older rows pre-dating the
+    method column); excluding them would understate Kirim by ~5-10%.
+    """
+    if not _EXCLUDED_KIRIM_METHODS:
+        return ""
+    quoted = ", ".join(f"'{m}'" for m in _EXCLUDED_KIRIM_METHODS)
+    col = f"{alias}.payment_method" if alias else "payment_method"
+    return f"AND COALESCE({col}, '') NOT IN ({quoted})"

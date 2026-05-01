@@ -30,7 +30,7 @@ from typing import Any
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .._analytics.filters import Filters, clause
+from .._analytics.filters import Filters, clause, exclude_kirim_methods_clause
 
 
 @dataclass(frozen=True)
@@ -140,6 +140,7 @@ async def _grid_kirim(
 ) -> dict[str, dict[int, float]]:
     """Kirim grouped by manager-of-most-recent-prior-order (LATERAL)."""
     f_sql, f_params = clause(f, manager_table="lp", room_on="")
+    bank_excl = exclude_kirim_methods_clause("p")
     sql = f"""
     {_slices_cte()}
     SELECT COALESCE(NULLIF(TRIM(rm.manager), ''), '(—)') AS manager,
@@ -157,7 +158,7 @@ async def _grid_kirim(
          ORDER BY d.delivery_date DESC
          LIMIT 1
       ) rm ON TRUE
-     WHERE TRUE {f_sql}
+     WHERE TRUE {f_sql} {bank_excl}
      GROUP BY 1, 2
     """
     rows = (await session.execute(text(sql), {
@@ -270,6 +271,7 @@ async def _per_year_mtd_and_full(
         """
     else:
         f_sql, f_params = clause(f, manager_table="lp", room_on="")
+        bank_excl = exclude_kirim_methods_clause("p")
         sql = f"""
         WITH years AS (SELECT generate_series((:y_start)::int, (:y_end)::int) AS y),
         slices AS (
@@ -292,7 +294,7 @@ async def _per_year_mtd_and_full(
           LEFT JOIN smartup_rep.payment p
             ON p.payment_date BETWEEN sl.s AND sl.month_e
           LEFT JOIN smartup_rep.legal_person lp ON lp.person_id = p.person_id
-         WHERE TRUE {f_sql}
+         WHERE TRUE {f_sql} {bank_excl}
          GROUP BY sl.y
          ORDER BY sl.y
         """
@@ -589,6 +591,7 @@ async def drill(
 
     # measure == "kirim"
     f_sql, f_params = clause(f, manager_table="lp", room_on="")
+    bank_excl = exclude_kirim_methods_clause("p")
     if manager == _NULL_MGR:
         mgr_sql = "AND (rm.manager IS NULL OR TRIM(rm.manager) = '')"
         mgr_params = {}
@@ -617,6 +620,7 @@ async def drill(
      WHERE p.payment_date BETWEEN (:s)::date AND (:e)::date
        {mgr_sql}
        {f_sql}
+       {bank_excl}
      ORDER BY p.payment_date DESC, p.payment_id
      LIMIT :limit
     """
@@ -638,6 +642,7 @@ async def drill(
      WHERE p.payment_date BETWEEN (:s)::date AND (:e)::date
        {mgr_sql}
        {f_sql}
+       {bank_excl}
     """
     total = (await session.execute(text(total_sql), params)).mappings().first() or {}
     return {

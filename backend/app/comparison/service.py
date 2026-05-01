@@ -21,7 +21,7 @@ from typing import Any, Literal
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .._analytics.filters import Filters, clause
+from .._analytics.filters import Filters, clause, exclude_kirim_methods_clause
 
 
 Mode = Literal["yearly", "monthly", "daily"]
@@ -224,6 +224,7 @@ async def _kirim_grid(
         if needs_lateral else ""
     )
 
+    bank_excl = exclude_kirim_methods_clause("p")
     sql = f"""
     {cte_sql}
     SELECT {dim_expr} AS dim,
@@ -233,7 +234,7 @@ async def _kirim_grid(
       JOIN smartup_rep.payment      p  ON p.payment_date BETWEEN b.s AND b.e
       JOIN smartup_rep.legal_person lp ON lp.person_id = p.person_id
       {lateral_sql}
-     WHERE TRUE {f_sql}
+     WHERE TRUE {f_sql} {bank_excl}
      GROUP BY 1, 2
     """
     rows = (await session.execute(text(sql), {**cte_params, **f_params})).mappings().all()
@@ -575,6 +576,7 @@ async def drill(
 
     # measure == "kirim"
     f_sql, f_params = clause(f, manager_table="rm", room_on="")
+    bank_excl = exclude_kirim_methods_clause("p")
     sql = f"""
     SELECT p.payment_date::date AS dt,
            p.payment_id,
@@ -597,6 +599,7 @@ async def drill(
      WHERE p.payment_date BETWEEN (:s)::date AND (:e)::date
        {pred_sql}
        {f_sql}
+       {bank_excl}
      ORDER BY p.payment_date DESC, p.payment_id
      LIMIT :limit
     """
@@ -618,6 +621,7 @@ async def drill(
      WHERE p.payment_date BETWEEN (:s)::date AND (:e)::date
        {pred_sql}
        {f_sql}
+       {bank_excl}
     """
     total = (await session.execute(text(total_sql), params)).mappings().first() or {}
     return {
