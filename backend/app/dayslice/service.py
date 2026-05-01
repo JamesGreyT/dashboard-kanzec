@@ -138,26 +138,28 @@ async def _grid_kirim(
     year_start: int, year_end: int,
     sl: Slice, f: Filters,
 ) -> dict[str, dict[int, float]]:
-    """Kirim grouped by manager-of-most-recent-prior-order (LATERAL)."""
-    f_sql, f_params = clause(f, manager_table="lp", room_on="")
+    """Kirim grouped by the customer's room (legal_person.room_names).
+
+    Each customer's payments are credited to their assigned room/manager
+    on legal_person — i.e. one stable manager per customer regardless of
+    which sales rep happened to take a specific deal. A small number of
+    customers (5 of 947 at last check) carry multiple comma-separated
+    rooms; we attribute to the FIRST room via SPLIT_PART so the totals
+    tie. Empty/whitespace room_names land in the `(—)` bucket.
+    """
+    room_expr = "TRIM(SPLIT_PART(lp.room_names, ',', 1))"
+    f_sql, f_params = clause(
+        f, manager_expr=room_expr, room_on="",
+    )
     bank_excl = exclude_kirim_methods_clause("p")
     sql = f"""
     {_slices_cte()}
-    SELECT COALESCE(NULLIF(TRIM(rm.manager), ''), '(—)') AS manager,
+    SELECT COALESCE(NULLIF({room_expr}, ''), '(—)') AS manager,
            sl.y AS year,
            SUM(p.amount)::numeric(18,2) AS revenue
       FROM slices sl
-      JOIN smartup_rep.payment p
-        ON p.payment_date BETWEEN sl.s AND sl.e
+      JOIN smartup_rep.payment      p  ON p.payment_date BETWEEN sl.s AND sl.e
       JOIN smartup_rep.legal_person lp ON lp.person_id = p.person_id
-      LEFT JOIN LATERAL (
-        SELECT d.sales_manager AS manager
-          FROM smartup_rep.deal_order d
-         WHERE d.person_id = p.person_id::text
-           AND d.delivery_date <= p.payment_date::date
-         ORDER BY d.delivery_date DESC
-         LIMIT 1
-      ) rm ON TRUE
      WHERE TRUE {f_sql} {bank_excl}
      GROUP BY 1, 2
     """
@@ -270,7 +272,11 @@ async def _per_year_mtd_and_full(
          ORDER BY sl.y
         """
     else:
-        f_sql, f_params = clause(f, manager_table="lp", room_on="")
+        f_sql, f_params = clause(
+            f,
+            manager_expr="TRIM(SPLIT_PART(lp.room_names, ',', 1))",
+            room_on="",
+        )
         bank_excl = exclude_kirim_methods_clause("p")
         sql = f"""
         WITH years AS (SELECT generate_series((:y_start)::int, (:y_end)::int) AS y),
@@ -589,14 +595,15 @@ async def drill(
             "limit": limit,
         }
 
-    # measure == "kirim"
-    f_sql, f_params = clause(f, manager_table="lp", room_on="")
+    # measure == "kirim" — customer-room attribution via legal_person.room_names
+    room_expr = "TRIM(SPLIT_PART(lp.room_names, ',', 1))"
+    f_sql, f_params = clause(f, manager_expr=room_expr, room_on="")
     bank_excl = exclude_kirim_methods_clause("p")
     if manager == _NULL_MGR:
-        mgr_sql = "AND (rm.manager IS NULL OR TRIM(rm.manager) = '')"
+        mgr_sql = f"AND ({room_expr} IS NULL OR {room_expr} = '')"
         mgr_params = {}
     else:
-        mgr_sql = "AND TRIM(rm.manager) = :mgr"
+        mgr_sql = f"AND {room_expr} = :mgr"
         mgr_params = {"mgr": manager}
     sql = f"""
     SELECT p.payment_date::date AS dt,
@@ -606,17 +613,9 @@ async def drill(
            lp.direction,
            p.payment_method,
            p.amount::numeric(18,2) AS amount,
-           rm.manager AS attributed_manager
-      FROM smartup_rep.payment p
+           {room_expr} AS attributed_manager
+      FROM smartup_rep.payment      p
       JOIN smartup_rep.legal_person lp ON lp.person_id = p.person_id
-      LEFT JOIN LATERAL (
-        SELECT d.sales_manager AS manager
-          FROM smartup_rep.deal_order d
-         WHERE d.person_id = p.person_id::text
-           AND d.delivery_date <= p.payment_date::date
-         ORDER BY d.delivery_date DESC
-         LIMIT 1
-      ) rm ON TRUE
      WHERE p.payment_date BETWEEN (:s)::date AND (:e)::date
        {mgr_sql}
        {f_sql}
@@ -629,16 +628,8 @@ async def drill(
     total_sql = f"""
     SELECT COALESCE(SUM(p.amount), 0)::numeric(18,2) AS total,
            COUNT(*) AS n
-      FROM smartup_rep.payment p
+      FROM smartup_rep.payment      p
       JOIN smartup_rep.legal_person lp ON lp.person_id = p.person_id
-      LEFT JOIN LATERAL (
-        SELECT d.sales_manager AS manager
-          FROM smartup_rep.deal_order d
-         WHERE d.person_id = p.person_id::text
-           AND d.delivery_date <= p.payment_date::date
-         ORDER BY d.delivery_date DESC
-         LIMIT 1
-      ) rm ON TRUE
      WHERE p.payment_date BETWEEN (:s)::date AND (:e)::date
        {mgr_sql}
        {f_sql}

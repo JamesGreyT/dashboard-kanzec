@@ -49,14 +49,21 @@ def _split(csv: str) -> list[str]:
 
 def clause(f: Filters, *, person_alias: str = "lp",
            manager_table: str = "d",
+           manager_expr: str | None = None,
            room_on: str = "d") -> tuple[str, dict[str, Any]]:
     """Return `(and_sql, params)` you can append to an outer WHERE clause.
     `and_sql` always starts with an `AND` or is empty — callers need a
     preceding WHERE.
 
+    `manager_expr` overrides the default `<manager_table>.sales_manager`
+    expression for the manager filter. Use this for Kirim queries that
+    attribute by `legal_person.room_names` rather than by `deal_order.
+    sales_manager` — pass e.g. `"TRIM(SPLIT_PART(lp.room_names, ',', 1))"`
+    so the filter matches whatever the Kirim grid is grouping by.
+
     `room_on` is the alias of the table that has a `room_id` column.
     For deal_order-rooted queries it's `d`. For payment-rooted queries
-    pass `None` to fall back to a client-based scope (see below)."""
+    pass an empty string to fall back to a client-based scope (see below)."""
     parts: list[str] = []
     params: dict[str, Any] = {}
     if f.direction:
@@ -66,7 +73,8 @@ def clause(f: Filters, *, person_alias: str = "lp",
         parts.append(f"AND {person_alias}.region_name = ANY(:_f_reg)")
         params["_f_reg"] = f.region
     if f.manager:
-        parts.append(f"AND {manager_table}.sales_manager = ANY(:_f_mgr)")
+        mgr_sql = manager_expr or f"{manager_table}.sales_manager"
+        parts.append(f"AND {mgr_sql} = ANY(:_f_mgr)")
         params["_f_mgr"] = f.manager
     if f.client:
         parts.append(f"AND {person_alias}.person_id::text = ANY(:_f_cli)")

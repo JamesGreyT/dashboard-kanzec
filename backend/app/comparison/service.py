@@ -156,11 +156,17 @@ def _dim_expr_sotuv(dim: Dimension) -> str:
 
 
 def _dim_expr_kirim(dim: Dimension) -> str:
-    """Kirim equivalents. Manager attribution flows through `rm.manager`,
-    the LATERAL most-recent-prior-order alias added in `kirim_grid()`."""
+    """Kirim equivalents. Manager attribution comes from
+    `legal_person.room_names` (the customer's assigned room) — one stable
+    manager per customer, not per-deal. A small minority of customers carry
+    a comma-separated list of rooms; we attribute to the FIRST so totals
+    tie."""
     null = f"'{NULL_BUCKET}'"
     if dim == "manager":
-        return f"COALESCE(NULLIF(TRIM(rm.manager),''), {null})"
+        return (
+            "COALESCE(NULLIF(TRIM(SPLIT_PART(lp.room_names, ',', 1)),''), "
+            f"{null})"
+        )
     if dim == "direction":
         return f"COALESCE(NULLIF(TRIM(lp.direction),''), {null})"
     if dim == "region":
@@ -203,26 +209,15 @@ async def _kirim_grid(
     spec: BucketSpec, dim: Dimension, f: Filters,
 ) -> dict[str, dict[str, float]]:
     cte_sql, cte_params = _buckets_cte(spec)
-    # Manager filters apply to the attributed manager (rm.manager); other
-    # filters key off legal_person, so room scope must go via person_id
-    # (existing pattern at dayslice/service.py:142).
-    f_sql, f_params = clause(f, manager_table="rm", room_on="")
-    dim_expr = _dim_expr_kirim(dim)
-
-    needs_lateral = dim == "manager" or bool(f.manager)
-    lateral_sql = (
-        """
-      LEFT JOIN LATERAL (
-        SELECT d.sales_manager AS manager
-          FROM smartup_rep.deal_order d
-         WHERE d.person_id = p.person_id::text
-           AND d.delivery_date <= p.payment_date::date
-         ORDER BY d.delivery_date DESC
-         LIMIT 1
-      ) rm ON TRUE
-        """
-        if needs_lateral else ""
+    # Kirim manager filter targets legal_person.room_names directly — same
+    # expression we GROUP BY in _dim_expr_kirim. Room-scope goes via the
+    # person_id subquery (room_on="") since payment has no room_id column.
+    f_sql, f_params = clause(
+        f,
+        manager_expr="TRIM(SPLIT_PART(lp.room_names, ',', 1))",
+        room_on="",
     )
+    dim_expr = _dim_expr_kirim(dim)
 
     bank_excl = exclude_kirim_methods_clause("p")
     sql = f"""
@@ -233,7 +228,6 @@ async def _kirim_grid(
       FROM buckets b
       JOIN smartup_rep.payment      p  ON p.payment_date BETWEEN b.s AND b.e
       JOIN smartup_rep.legal_person lp ON lp.person_id = p.person_id
-      {lateral_sql}
      WHERE TRUE {f_sql} {bank_excl}
      GROUP BY 1, 2
     """
@@ -478,7 +472,13 @@ def _dim_predicate(
         # exactly when the raw column is null/empty/whitespace — match
         # that condition explicitly so EXPLAIN can use the index.
         if dim == "manager":
-            col = "d.sales_manager" if measure == "sotuv" else "rm.manager"
+            # Sotuv keys off d.sales_manager; Kirim keys off the customer's
+            # first-listed room from legal_person.room_names. Both reduce to
+            # NULL/empty when the operator hasn't filled the field.
+            if measure == "sotuv":
+                col = "d.sales_manager"
+            else:
+                col = "SPLIT_PART(lp.room_names, ',', 1)"
         elif dim == "direction":
             col = "lp.direction"
         elif dim == "brand":
@@ -574,8 +574,9 @@ async def drill(
             "limit": limit,
         }
 
-    # measure == "kirim"
-    f_sql, f_params = clause(f, manager_table="rm", room_on="")
+    # measure == "kirim" — customer-room attribution via legal_person.room_names
+    room_expr = "TRIM(SPLIT_PART(lp.room_names, ',', 1))"
+    f_sql, f_params = clause(f, manager_expr=room_expr, room_on="")
     bank_excl = exclude_kirim_methods_clause("p")
     sql = f"""
     SELECT p.payment_date::date AS dt,
@@ -585,17 +586,9 @@ async def drill(
            lp.direction,
            p.payment_method,
            p.amount::numeric(18,2) AS amount,
-           rm.manager AS attributed_manager
+           {room_expr} AS attributed_manager
       FROM smartup_rep.payment      p
       JOIN smartup_rep.legal_person lp ON lp.person_id = p.person_id
-      LEFT JOIN LATERAL (
-        SELECT d.sales_manager AS manager
-          FROM smartup_rep.deal_order d
-         WHERE d.person_id = p.person_id::text
-           AND d.delivery_date <= p.payment_date::date
-         ORDER BY d.delivery_date DESC
-         LIMIT 1
-      ) rm ON TRUE
      WHERE p.payment_date BETWEEN (:s)::date AND (:e)::date
        {pred_sql}
        {f_sql}
@@ -610,14 +603,6 @@ async def drill(
            COUNT(*) AS n
       FROM smartup_rep.payment      p
       JOIN smartup_rep.legal_person lp ON lp.person_id = p.person_id
-      LEFT JOIN LATERAL (
-        SELECT d.sales_manager AS manager
-          FROM smartup_rep.deal_order d
-         WHERE d.person_id = p.person_id::text
-           AND d.delivery_date <= p.payment_date::date
-         ORDER BY d.delivery_date DESC
-         LIMIT 1
-      ) rm ON TRUE
      WHERE p.payment_date BETWEEN (:s)::date AND (:e)::date
        {pred_sql}
        {f_sql}
