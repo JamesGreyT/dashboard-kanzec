@@ -143,7 +143,7 @@ export default function Returns() {
         <ScopeChip />
       </div>
 
-      <p className="text-[12px] italic text-muted-foreground mb-8 max-w-3xl leading-relaxed">
+      <p className="text-[12px] italic text-ink3 mb-8 max-w-3xl leading-relaxed">
         {t("returns.disclosure")}
       </p>
 
@@ -179,11 +179,11 @@ export default function Returns() {
       {/* Timeline */}
       <section className="mb-12 stagger-3">
         <div className="flex items-baseline justify-between mb-3">
-          <h2 className="font-display text-[22px] md:text-[26px] font-medium tracking-[-0.01em] text-foreground">
+          <h2 className="font-display text-[22px] md:text-[26px] font-medium tracking-[-0.01em] text-ink">
             {t("returns.section_timeline")}
-            <span aria-hidden className="font-display-italic text-primary ml-[2px]">.</span>
+            <span aria-hidden className="font-display text-mintdk ml-[2px]">.</span>
           </h2>
-          <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+          <div className="text-[10px] uppercase tracking-[0.16em] text-ink3">
             {t("returns.timeline_legend")}
           </div>
         </div>
@@ -211,7 +211,7 @@ export default function Returns() {
 
           <TabsContent value="brand">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-              <p className="text-[12px] italic text-muted-foreground max-w-3xl">
+              <p className="text-[12px] italic text-ink3 max-w-3xl">
                 {t("returns.heatmap_hint")}
               </p>
               <div className="flex gap-1" role="group" aria-label={t("returns.heatmap_mode") as string}>
@@ -222,8 +222,8 @@ export default function Returns() {
                   className={
                     "px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] rounded border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring " +
                     (heatMode === "rate"
-                      ? "border-foreground/70 bg-background ring-2 ring-foreground/30 text-foreground font-medium"
-                      : "border-border/60 bg-muted/40 hover:bg-muted/60 text-muted-foreground")
+                      ? "border-foreground/70 bg-background ring-2 ring-foreground/30 text-ink font-medium"
+                      : "border-line/60 bg-muted/40 hover:bg-muted/60 text-ink3")
                   }
                 >
                   {t("returns.mode_rate")}
@@ -235,8 +235,8 @@ export default function Returns() {
                   className={
                     "px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] rounded border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring " +
                     (heatMode === "amount"
-                      ? "border-foreground/70 bg-background ring-2 ring-foreground/30 text-foreground font-medium"
-                      : "border-border/60 bg-muted/40 hover:bg-muted/60 text-muted-foreground")
+                      ? "border-foreground/70 bg-background ring-2 ring-foreground/30 text-ink font-medium"
+                      : "border-line/60 bg-muted/40 hover:bg-muted/60 text-ink3")
                   }
                 >
                   {t("returns.mode_amount")}
@@ -258,7 +258,7 @@ export default function Returns() {
                 rowHeader={t("returns.col_brand")}
               />
             ) : (
-              <div className="text-muted-foreground italic text-sm py-10 text-center">—</div>
+              <div className="text-ink3 italic text-sm py-10 text-center">—</div>
             )}
           </TabsContent>
 
@@ -298,13 +298,13 @@ function formatMonthLabel(iso: string): string {
 function CLIENT_COLUMNS(t: any): ColumnDef<any>[] {
   return [
     { key: "name", label: t("returns.col_client"), sortable: true,
-      render: (r) => <span className="text-foreground">{r.name}</span> },
+      render: (r) => <span className="text-ink">{r.name}</span> },
     { key: "manager", label: t("returns.col_manager"), sortable: false,
-      render: (r) => <span className="text-muted-foreground">{r.manager ?? "—"}</span> },
+      render: (r) => <span className="text-ink3">{r.manager ?? "—"}</span> },
     { key: "direction", label: t("returns.col_direction"), sortable: false,
-      render: (r) => <span className="text-muted-foreground">{r.direction ?? "—"}</span> },
+      render: (r) => <span className="text-ink3">{r.direction ?? "—"}</span> },
     { key: "region", label: t("returns.col_region"), sortable: false,
-      render: (r) => <span className="text-muted-foreground">{r.region ?? "—"}</span> },
+      render: (r) => <span className="text-ink3">{r.region ?? "—"}</span> },
     { key: "returns", label: t("returns.col_returns"), sortable: true, numeric: true,
       render: (r) => "$" + fmtNum(r.returns),
       footer: (totals) => "$" + fmtNum(totals.returns) },
@@ -315,14 +315,14 @@ function CLIENT_COLUMNS(t: any): ColumnDef<any>[] {
       render: (r) => fmtCount(r.lines),
       footer: (totals) => fmtCount(totals.lines) },
     { key: "last_return", label: t("returns.col_last_return"), sortable: true, numeric: true,
-      render: (r) => <span className="text-muted-foreground">{r.last_return ?? "—"}</span> },
+      render: (r) => <span className="text-ink3">{r.last_return ?? "—"}</span> },
   ];
 }
 
 function REGION_COLUMNS(t: any): ColumnDef<any>[] {
   return [
     { key: "label", label: t("returns.col_region"), sortable: true,
-      render: (r) => <span className="text-foreground">{r.label}</span> },
+      render: (r) => <span className="text-ink">{r.label}</span> },
     { key: "returns", label: t("returns.col_returns"), sortable: true, numeric: true,
       render: (r) => "$" + fmtNum(r.returns) },
     { key: "rate", label: t("returns.col_rate"), sortable: true, numeric: true,
@@ -335,11 +335,11 @@ function REGION_COLUMNS(t: any): ColumnDef<any>[] {
 }
 
 function yoyChip(v: number | null | undefined) {
-  if (v === null || v === undefined || !Number.isFinite(v)) return <span className="text-muted-foreground/60">—</span>;
+  if (v === null || v === undefined || !Number.isFinite(v)) return <span className="text-ink3/60">—</span>;
   // For returns, *increasing* YoY is bad — invert tone.
   const sign = v > 0 ? "+" : "";
-  const cls = v > 0.005 ? "text-red-700 dark:text-red-400"
-            : v < -0.005 ? "text-emerald-700 dark:text-emerald-400"
-            : "text-muted-foreground";
+  const cls = v > 0.005 ? "text-coraldk"
+            : v < -0.005 ? "text-mintdk"
+            : "text-ink3";
   return <span className={`${cls} font-mono tabular-nums`}>{sign}{(v * 100).toFixed(1)}%</span>;
 }
