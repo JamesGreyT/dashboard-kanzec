@@ -106,6 +106,20 @@
     "clearFilter": "clear filter",
     "clearAll": "clear all",
     "clickToRemove": "Click to remove",
+    "filters": {
+      "label": "Filters",
+      "hint": "click any column header to filter",
+      "dateRange": "Date range",
+      "from": "From",
+      "to": "To",
+      "presets": {
+        "today": "Today",
+        "last7": "7 days",
+        "thisMonth": "This month",
+        "lastMonth": "Last month",
+        "ytd": "YTD"
+      }
+    },
     "empty": {
       "line1": "The registry holds no entries",
       "line2": "under these conditions today.",

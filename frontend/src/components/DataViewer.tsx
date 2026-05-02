@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { X, ChevronDown, Filter } from 'lucide-react'
+import { X, ChevronDown } from 'lucide-react'
 
 import {
   useDataTables,
@@ -26,6 +26,7 @@ import {
   pickHeadlineColumn,
 } from '@/lib/format'
 import PageHeader from '@/components/PageHeader'
+import FilterBar from '@/components/FilterBar'
 import { cn } from '@/lib/utils'
 
 const PLAYFAIR = "'Playfair Display', Georgia, serif"
@@ -128,6 +129,19 @@ export default function DataViewer({ tableKey, title, editable = false }: Props)
     // Replace any existing filter on this column; if `f` is null, just remove.
     const others = filters.filter((existing) => existing.col !== col)
     const next = f ? [...others, f] : others
+    const params = writeFilters(next, searchParams)
+    params.set('offset', '0')
+    setSearchParams(params, { replace: false })
+  }
+  const upsertRange = (col: string, fromIso: string | null, toIso: string | null) => {
+    // Replace BOTH `>=` and `<=` filter triples on `col` with the given range.
+    // Either side can be null (meaning "no lower/upper bound").
+    const others = filters.filter(
+      (existing) => existing.col !== col || (existing.op !== '>=' && existing.op !== '<='),
+    )
+    const next = [...others]
+    if (fromIso) next.push({ col, op: '>=', value: fromIso })
+    if (toIso) next.push({ col, op: '<=', value: toIso })
     const params = writeFilters(next, searchParams)
     params.set('offset', '0')
     setSearchParams(params, { replace: false })
@@ -245,11 +259,17 @@ export default function DataViewer({ tableKey, title, editable = false }: Props)
         </div>
       </header>
 
-      {/* ── Active filter chips (only when filters exist) ───────────────── */}
-      {schema && filters.length > 0 && (
-        <ActiveFilterChips
+      {/* ── Filter bar — featured filters + active chips ──────────────────
+          Always visible; surfaces the highest-value filters per table
+          (date range + 1-3 enum-like columns) as discoverable controls,
+          plus chips for any non-featured filter set via column-header
+          chevrons. */}
+      {schema && (
+        <FilterBar
           schema={schema}
           filters={filters}
+          onUpsert={upsertFilter}
+          onUpsertRange={upsertRange}
           onRemove={removeFilter}
           onClearAll={clearAll}
         />
@@ -403,54 +423,6 @@ export default function DataViewer({ tableKey, title, editable = false }: Props)
           onClose={() => setDrawerPk(null)}
         />
       )}
-    </div>
-  )
-}
-
-// ── Active filter chips strip ─────────────────────────────────────────────
-
-function ActiveFilterChips({
-  schema,
-  filters,
-  onRemove,
-  onClearAll,
-}: {
-  schema: TableSchema
-  filters: FilterTriple[]
-  onRemove: (idx: number) => void
-  onClearAll: () => void
-}) {
-  const { t } = useTranslation()
-  return (
-    <div
-      className="flex flex-wrap items-center gap-2 mt-4 animate-fade-up animate-fade-up-delay-2"
-      style={{ fontFamily: DM_SANS }}
-    >
-      <Filter size={11} className="text-muted-foreground/60 shrink-0" aria-hidden />
-      {filters.map((f, i) => {
-        const colMeta = schema.columns.find((c) => c.name === f.col)
-        return (
-          <button
-            key={`${f.col}-${f.op}-${i}`}
-            type="button"
-            onClick={() => onRemove(i)}
-            className="month-btn active inline-flex items-center gap-1.5 group"
-            title={t('data.clickToRemove')}
-          >
-            <span>{colMeta?.label ?? f.col}</span>
-            <span className="text-muted-foreground/80">{f.op}</span>
-            <span className="font-semibold">{f.value}</span>
-            <X size={10} className="text-muted-foreground/60 group-hover:text-red-500 transition-colors" aria-hidden />
-          </button>
-        )
-      })}
-      <button
-        type="button"
-        onClick={onClearAll}
-        className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground hover:text-[#9E7B2F] transition-colors ml-1"
-      >
-        {t('data.clearAll')}
-      </button>
     </div>
   )
 }

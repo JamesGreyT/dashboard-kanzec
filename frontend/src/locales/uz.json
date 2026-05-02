@@ -106,6 +106,20 @@
     "clearFilter": "filtrni tozalash",
     "clearAll": "barchasini tozalash",
     "clickToRemove": "Olib tashlash uchun bosing",
+    "filters": {
+      "label": "Filtrlar",
+      "hint": "ustun nomini bosib filtrlang",
+      "dateRange": "Sana oralig'i",
+      "from": "Boshi",
+      "to": "Oxiri",
+      "presets": {
+        "today": "Bugun",
+        "last7": "7 kun",
+        "thisMonth": "Bu oy",
+        "lastMonth": "O'tgan oy",
+        "ytd": "Yil boshidan"
+      }
+    },
     "empty": {
       "line1": "Ushbu sahifada yozuv yo'q.",
       "line2": "Hozircha bo'sh.",
