@@ -479,6 +479,11 @@
       "dateRange": "Date range",
       "from": "From",
       "to": "To",
+      "searchValues": "Search values…",
+      "selectAll": "Select all",
+      "selectNone": "Clear",
+      "noValues": "No values found.",
+      "limitedHint": "Showing first 200 values — use search to narrow down.",
       "presets": {
         "today": "Today",
         "last7": "7 days",

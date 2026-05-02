@@ -45,7 +45,7 @@ CATALOG: dict[str, TableDef] = {
         default_sort=(("delivery_date", "desc"),),
         columns={
             "delivery_date":      ColumnDef("Date", "date",    ("=", ">=", "<=", ">", "<"), True),
-            "room_name":          ColumnDef("Room", "text",    ("=", "ilike", "in"), True),
+            "room_name":          ColumnDef("Sales manager", "text", ("=", "ilike", "in"), True),
             "room_id":            ColumnDef("Room ID", "text", ("=", "in"), False, id_column=True),
             "deal_id":            ColumnDef("Deal", "text",    ("=", "in"), True, id_column=True),
             "sales_manager":      ColumnDef("Sales", "text",   ("=", "ilike", "in"), False),
@@ -61,7 +61,7 @@ CATALOG: dict[str, TableDef] = {
             "product_measure":    ColumnDef("Unit", "text",    ("=", "in"), False),
             "product_local_code": ColumnDef("Local Code", "text", ("=", "ilike"), False),
             "brand":              ColumnDef("Group", "text",   ("=", "ilike", "in"), True),
-            "model":              ColumnDef("Category", "text", ("=", "ilike", "in"), False),
+            "model":              ColumnDef("Category", "text", ("=", "ilike", "in"), True),
             "sub_model":          ColumnDef("Brand", "text",   ("=", "ilike", "in"), False),
             "sold_quant":         ColumnDef("Qty", "numeric",  (">=", "<=", "=", ">", "<"), True, numeric=True),
             "product_amount":     ColumnDef("Amount", "numeric", (">=", "<=", "=", ">", "<"), True, numeric=True, currency="USD"),
