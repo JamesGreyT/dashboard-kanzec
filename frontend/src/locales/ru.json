@@ -337,11 +337,8 @@
       "mtdAt": "день",
       "ofMonthMean": "от среднего",
       "drillTitle": "Детали",
-      "editPlan": "Изменить план",
-      "manager": "Менеджер",
-      "noManagers": "Менеджеров нет.",
-      "saveFailed": "Не удалось сохранить.",
-      "planSaved": "План сохранён."
+      "month": "Месяц",
+      "thisMonth": "Текущий месяц"
     }
   },
   "analytics": {

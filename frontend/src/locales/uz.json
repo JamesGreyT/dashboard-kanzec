@@ -337,11 +337,8 @@
       "mtdAt": "kun",
       "ofMonthMean": "o'rtachadan",
       "drillTitle": "Tafsilotlar",
-      "editPlan": "Reja tahriri",
-      "manager": "Manager",
-      "noManagers": "Managerlar yo'q.",
-      "saveFailed": "Saqlash muvaffaqiyatsiz.",
-      "planSaved": "Reja saqlandi."
+      "month": "Oy",
+      "thisMonth": "Joriy oy"
     }
   },
   "analytics": {
