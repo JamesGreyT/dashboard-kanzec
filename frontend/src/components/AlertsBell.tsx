@@ -107,7 +107,7 @@ export default function AlertsBell() {
               >
                 <div className={cn(
                   "w-1.5 rounded-sm shrink-0 self-stretch",
-                  e.read_at ? "bg-line" : "bg-mint",
+                  e.read_at ? "bg-muted" : "bg-primary",
                 )} />
                 <div className="flex-1 min-w-0">
                   <div className="text-[13px] text-foreground leading-snug">

@@ -58,12 +58,13 @@ export default function YearMatrix({
 
   return (
     <section className="mb-10">
-      <h2 className="font-display text-[22px] md:text-[26px] font-semibold tracking-[-0.02em] text-ink mb-3">
+      <h2 className="font-display text-[22px] md:text-[26px] font-medium tracking-[-0.01em] text-foreground mb-3">
         {title}
+        <span aria-hidden className="font-display-italic text-primary ml-[2px]">.</span>
       </h2>
 
       {/* Desktop table */}
-      <div className="hidden lg:block overflow-x-auto border border-line rounded-2xl bg-card shadow-card">
+      <div className="hidden lg:block overflow-x-auto border border-border/60 rounded-md bg-background/70">
         <table className="w-full text-[13px]">
           <thead className="bg-muted/40">
             <tr>
@@ -75,7 +76,7 @@ export default function YearMatrix({
                   key={y}
                   className={
                     "text-right px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-medium " +
-                    (y === currentYear ? "bg-mintbg/60" : "")
+                    (y === currentYear ? "bg-primary/[0.04]" : "")
                   }
                 >
                   {y}
@@ -102,7 +103,7 @@ export default function YearMatrix({
                     const baseClass =
                       "px-3 py-1.5 text-right font-mono tabular-nums " +
                       (y === currentYear
-                        ? "bg-mintbg/60 text-foreground"
+                        ? "bg-primary/[0.04] text-foreground"
                         : "text-muted-foreground");
                     if (drillable) {
                       return (
@@ -162,7 +163,7 @@ export default function YearMatrix({
                   key={i}
                   className={
                     "px-3 py-2 text-right font-mono tabular-nums font-medium text-foreground " +
-                    (yearColumns[i] === currentYear ? "bg-mintbg/80" : "")
+                    (yearColumns[i] === currentYear ? "bg-primary/[0.06]" : "")
                   }
                 >
                   {v === 0 ? "—" : "$" + fmtNum(v)}
@@ -237,9 +238,9 @@ function yoyChip(v: number | null) {
   const sign = v > 0 ? "+" : "";
   const cls =
     v > 0.005
-      ? "text-mintdk"
+      ? "text-emerald-700 dark:text-emerald-400"
       : v < -0.005
-      ? "text-coraldk"
+      ? "text-red-700 dark:text-red-400"
       : "text-muted-foreground";
   return (
     <span className={cls}>

@@ -15,7 +15,7 @@ import {
   useState,
 } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
@@ -246,37 +246,67 @@ export default function Debt() {
 
   return (
     <div>
-      {/* MASTHEAD — single-column PageHeading + live indicator on the right */}
-      <header className="stagger-0 pb-6">
-        <div className="eyebrow mb-3 flex items-center gap-2 flex-wrap">
-          <span className="text-ink3">{t("dashboard.crumb_dashboard")}</span>
-          <span className="text-ink4">/</span>
-          <span className="text-ink3">{t("nav.collection")}</span>
-          <span className="text-ink4">/</span>
-          <span className="text-ink2">{t("nav.debt")}</span>
+      {/* ============================================================
+          Masthead
+          ============================================================ */}
+      <div className="">
+        <div className="caption text-muted-foreground">
+          <span>{t("dashboard.crumb_dashboard")}</span>
+          <span className="mx-2 text-muted-foreground/60">·</span>
+          <span>{t("nav.collection")}</span>
+          <span className="mx-2 text-muted-foreground/60">·</span>
+          <span className="text-foreground/80">{t("nav.debt")}</span>
         </div>
-        <div className="flex items-end justify-between gap-6 flex-wrap">
+
+        <div className="mt-3 grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
           <div>
-            <h1 className="font-display text-4xl md:text-[44px] font-semibold leading-[1.04] tracking-[-0.04em] text-ink">
-              {t("debt.title")}
+            <h1 className="text-4xl font-semibold tracking-tight text-foreground leading-[0.95]">
+              <span className="font-semibold italic">{t("debt.title")}</span>
+              <span className="">.</span>
             </h1>
-            <p className="mt-3 text-sm text-ink3 max-w-[62ch] leading-relaxed">
+            <p className="text-sm text-foreground/80 mt-3 max-w-[52ch]">
               {t("debt.blurb")}
             </p>
           </div>
-          <div className="inline-flex items-center gap-2 px-3 h-9 rounded-full bg-mintbg text-mintdk eyebrow !text-[10px]">
-            <span className="w-1.5 h-1.5 rounded-full bg-mint animate-pulsemint inline-block" />
-            <span>
+
+          <div className="md:text-right">
+            <div
+              className="text-xs text-muted-foreground uppercase tracking-wider font-medium text-muted-foreground"
+              style={{ letterSpacing: "0.18em" }}
+            >
+              {t("debt.kpi.total_ar")}
+            </div>
+            <div className="nums text-[3rem] md:text-[3.6rem] leading-none text-primary mt-2 tabular-nums">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.span
+                  key={String(worklist.data?.summary.total_outstanding ?? 0)}
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 4 }}
+                  transition={{ duration: 0.3, ease: [0.2, 0.8, 0.2, 1] }}
+                  className="inline-block"
+                >
+                  {formatUsd(worklist.data?.summary.total_outstanding ?? 0)}
+                </motion.span>
+              </AnimatePresence>
+            </div>
+            <div className="mt-1 caption text-muted-foreground tabular-nums">
               {worklist.data
                 ? t("debt.updated_ago", { s: ageSec ?? 0 })
                 : t("common.loading")}
-            </span>
+              <span className="ml-2 inline-flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
+                <span className="caption text-muted-foreground">{t("common.live")}</span>
+              </span>
+            </div>
           </div>
         </div>
-      </header>
+
+        <div className="border-t border-border my-3 mt-8" />
+      </div>
 
       {/* Tabs */}
-      <div className="flex items-end justify-between gap-6 border-b border-line">
+      <div className="flex items-end justify-between gap-6">
         <div className="flex items-center gap-8">
           {(["worklist", "prepayments"] as const).map((k) => (
             <button
@@ -286,27 +316,27 @@ export default function Debt() {
                 setOffset(0);
               }}
               className={[
-                "pb-3 relative transition-colors",
-                tab === k ? "text-mintdk" : "text-ink3 hover:text-ink",
+                "pb-2 relative transition-colors",
+                tab === k ? "text-primary" : "text-foreground/80 hover:text-foreground",
               ].join(" ")}
             >
-              <span className="font-display text-lg md:text-xl font-semibold tracking-[-0.02em] leading-none">
+              <span className="font-semibold italic text-xl font-semibold leading-none">
                 {t(`debt.tab.${k}`)}
               </span>
               {tab === k && (
                 <motion.span
                   layoutId="debt-tab-underline"
-                  className="absolute left-0 right-0 -bottom-px h-[2px] bg-mint rounded-t-full"
+                  className="absolute left-0 right-0 -bottom-px h-[2px] bg-primary"
                 />
               )}
             </button>
           ))}
         </div>
         {tab === "worklist" && (
-          <div className="text-xs text-ink3 tabular-nums font-mono pb-3">
+          <div className="caption text-muted-foreground tabular-nums">
             {worklist.data?.summary.debtor_count ?? 0}{" "}
             {t("debt.col.debtors").toLowerCase()} ·{" "}
-            <span className="text-coraldk">
+            <span className="text-red-700 dark:text-red-400">
               {worklist.data?.summary.debtor_over_90_count ?? 0}{" "}
               {t("debt.kpi.over_90_count").toLowerCase()}
             </span>
@@ -316,8 +346,8 @@ export default function Debt() {
 
       {tab === "worklist" ? (
         <>
-          {/* KPI strip — 4 mini cards in a row */}
-          <Card className="mt-6" accent>
+          {/* Editorial masthead — "Today's posting" */}
+          <Card className="mt-4" accent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-y-4 gap-x-6">
               <MastheadStat
                 label={t("debt.kpi.total_ar")}
@@ -342,9 +372,103 @@ export default function Debt() {
             </div>
           </Card>
 
-          {/* Filter bar */}
+          {showByCollector && (
+            <Card className="mt-6 p-0 overflow-hidden">
+              <div className="px-5 md:px-7 pt-5 md:pt-7 pb-4 flex items-baseline justify-between">
+                <div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium" style={{ letterSpacing: "0.18em" }}>
+                    {t("debt.by_collector")}
+                  </div>
+                  <div className="font-semibold italic text-xl font-semibold text-foreground mt-1">
+                    {t("debt.by_collector_title")}
+                  </div>
+                </div>
+                {salesRoomId && (
+                  <button
+                    onClick={() => {
+                      setSalesRoomId("");
+                      setOffset(0);
+                    }}
+                    className="caption text-foreground/80 hover:text-primary hover:underline decoration-primary underline-offset-[3px]"
+                  >
+                    {t("debt.clear_filter")}
+                  </button>
+                )}
+              </div>
+              <table className="w-full border-separate border-spacing-0">
+                <thead>
+                  <tr>
+                    {[
+                      "debt.col.sales_person",
+                      "debt.col.outstanding",
+                      "debt.col.over_90",
+                      "debt.col.debtors",
+                      "debt.col.collected_mtd",
+                    ].map((k, i) => (
+                      <th
+                        key={k}
+                        className={[
+                          "h-10 px-5 md:px-7 border-y border-border text-xs text-muted-foreground uppercase tracking-wider font-medium text-muted-foreground",
+                          i === 0 ? "text-left" : "text-right",
+                        ].join(" ")}
+                        style={{ letterSpacing: "0.16em" }}
+                      >
+                        {t(k)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {worklist.data?.by_collector.map((r, i) => {
+                    const active = salesRoomId === r.room_id;
+                    return (
+                      <tr
+                        key={r.room_id}
+                        onClick={() => {
+                          setSalesRoomId(active ? "" : r.room_id);
+                          setOffset(0);
+                        }}
+                        className={[
+                          "transition-colors cursor-pointer",
+                          active
+                            ? "bg-primary/10/40"
+                            : i % 2 === 0
+                              ? "hover:bg-muted"
+                              : "bg-muted/40 hover:bg-muted",
+                        ].join(" ")}
+                      >
+                        <td className="h-[48px] px-5 md:px-7 border-b border-border text-sm text-foreground relative">
+                          {active && (
+                            <span
+                              aria-hidden
+                              className="absolute left-0 top-2 bottom-2 w-[2px] bg-primary rounded-r"
+                            />
+                          )}
+                          <span className="font-semibold italic">{r.room_name}</span>
+                        </td>
+                        <td className="h-[48px] px-5 md:px-7 border-b border-border text-right text-foreground tabular-nums">
+                          {formatUsd(r.outstanding)}
+                        </td>
+                        <td className="h-[48px] px-5 md:px-7 border-b border-border text-right text-red-700 dark:text-red-400 tabular-nums">
+                          {formatUsd(r.over_90)}
+                        </td>
+                        <td className="h-[48px] px-5 md:px-7 border-b border-border text-right caption text-foreground/80 tabular-nums">
+                          {r.debtors_count}
+                        </td>
+                        <td className="h-[48px] px-5 md:px-7 border-b border-border text-right text-emerald-700 dark:text-emerald-400 tabular-nums">
+                          {formatUsd(r.collected_mtd)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </Card>
+          )}
+
+          {/* Filter masthead */}
           <div className="mt-8">
-            <div className="eyebrow mb-3">
+            <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-3" style={{ letterSpacing: "0.18em" }}>
               {t("debt.filter.title")}
             </div>
             <div className="flex flex-col md:flex-row md:items-center gap-3">
@@ -420,10 +544,10 @@ export default function Debt() {
               />
               <label
                 className={[
-                  "inline-flex items-center gap-2 h-10 px-3 rounded-xl border transition-colors cursor-pointer select-none",
+                  "inline-flex items-center gap-2 h-10 px-3 rounded-[10px] border transition-colors cursor-pointer select-none",
                   overdueOnly
-                    ? "border-mint bg-mintbg text-mintdk"
-                    : "border-line bg-card text-ink2 hover:border-mint/40 hover:bg-mintbg/40",
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border bg-card text-foreground/80 hover:border-border",
                 ].join(" ")}
               >
                 <input
@@ -439,19 +563,19 @@ export default function Debt() {
                   aria-hidden
                   className={[
                     "inline-block h-3 w-3 rounded-sm transition-colors",
-                    overdueOnly ? "bg-mint" : "border border-ink4",
+                    overdueOnly ? "bg-primary" : "border border-ink-3/50",
                   ].join(" ")}
                 />
-                <span className="text-xs">{t("debt.filter.overdue_only")}</span>
+                <span className="caption">{t("debt.filter.overdue_only")}</span>
               </label>
             </div>
           </div>
 
-          {/* Ledger table — full-width debtor list */}
+          {/* Ledger table — replaces the old dossier card stream */}
           <div className="mt-6">
             {worklist.isLoading && (
               <Card className="p-8">
-                <div className="text-xs text-ink3 text-center">
+                <div className="caption text-muted-foreground text-center">
                   {t("common.loading")}
                 </div>
               </Card>
@@ -460,10 +584,11 @@ export default function Debt() {
             {!worklist.isLoading && worklistRows.length === 0 && (
               <Card className="py-16 md:py-24">
                 <div className="text-center">
-                  <div className="font-display text-2xl font-semibold tracking-[-0.02em] text-ink">
+                  <div className="font-semibold italic text-2xl font-semibold tracking-tight text-foreground">
                     {t("debt.empty_title")}
+                    <span className="">.</span>
                   </div>
-                  <div className="text-sm text-ink3 mt-3 max-w-[40ch] mx-auto">
+                  <div className="text-sm text-foreground/80 mt-3 max-w-[40ch] mx-auto">
                     {t("debt.empty_worklist")}
                   </div>
                 </div>
@@ -490,100 +615,6 @@ export default function Debt() {
               </Card>
             </div>
           )}
-
-          {/* By-collector rollup — full-width section BELOW the debtor list (admin-only) */}
-          {showByCollector && (
-            <Card className="mt-8 p-0 overflow-hidden">
-              <div className="px-5 md:px-7 pt-5 md:pt-7 pb-4 flex items-baseline justify-between">
-                <div>
-                  <div className="eyebrow">
-                    {t("debt.by_collector")}
-                  </div>
-                  <div className="font-display text-xl font-semibold tracking-[-0.02em] text-ink mt-1">
-                    {t("debt.by_collector_title")}
-                  </div>
-                </div>
-                {salesRoomId && (
-                  <button
-                    onClick={() => {
-                      setSalesRoomId("");
-                      setOffset(0);
-                    }}
-                    className="text-xs text-ink2 hover:text-mintdk hover:underline decoration-mint underline-offset-[3px]"
-                  >
-                    {t("debt.clear_filter")}
-                  </button>
-                )}
-              </div>
-              <table className="w-full border-separate border-spacing-0">
-                <thead>
-                  <tr>
-                    {[
-                      "debt.col.sales_person",
-                      "debt.col.outstanding",
-                      "debt.col.over_90",
-                      "debt.col.debtors",
-                      "debt.col.collected_mtd",
-                    ].map((k, i) => (
-                      <th
-                        key={k}
-                        className={[
-                          "h-10 px-5 md:px-7 border-y border-line eyebrow !text-[10px] !tracking-[0.14em]",
-                          i === 0 ? "text-left" : "text-right",
-                        ].join(" ")}
-                      >
-                        {t(k)}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {worklist.data?.by_collector.map((r, i) => {
-                    const active = salesRoomId === r.room_id;
-                    return (
-                      <tr
-                        key={r.room_id}
-                        onClick={() => {
-                          setSalesRoomId(active ? "" : r.room_id);
-                          setOffset(0);
-                        }}
-                        className={[
-                          "transition-colors cursor-pointer",
-                          active
-                            ? "bg-mintbg/60"
-                            : i % 2 === 0
-                              ? "hover:bg-mintbg/40"
-                              : "bg-paper/40 hover:bg-mintbg/40",
-                        ].join(" ")}
-                      >
-                        <td className="h-[48px] px-5 md:px-7 border-b border-line text-sm text-ink relative">
-                          {active && (
-                            <span
-                              aria-hidden
-                              className="absolute left-0 top-2 bottom-2 w-[3px] bg-mint rounded-r-full"
-                            />
-                          )}
-                          <span className="font-medium">{r.room_name}</span>
-                        </td>
-                        <td className="h-[48px] px-5 md:px-7 border-b border-line text-right text-ink font-mono tabular-nums">
-                          {formatUsd(r.outstanding)}
-                        </td>
-                        <td className="h-[48px] px-5 md:px-7 border-b border-line text-right text-coraldk font-mono tabular-nums">
-                          {formatUsd(r.over_90)}
-                        </td>
-                        <td className="h-[48px] px-5 md:px-7 border-b border-line text-right text-xs text-ink2 font-mono tabular-nums">
-                          {r.debtors_count}
-                        </td>
-                        <td className="h-[48px] px-5 md:px-7 border-b border-line text-right text-mintdk font-mono tabular-nums">
-                          {formatUsd(r.collected_mtd)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </Card>
-          )}
         </>
       ) : (
         <>
@@ -598,7 +629,7 @@ export default function Debt() {
                 }}
               />
             </div>
-            <div className="text-xs text-ink3 shrink-0 font-mono tabular-nums">
+            <div className="caption text-muted-foreground shrink-0 tabular-nums">
               {(prepayments.data?.total ?? 0).toLocaleString()}{" "}
               {t("debt.tab.prepayments").toLowerCase()}
             </div>
@@ -613,10 +644,11 @@ export default function Debt() {
               (prepayments.data?.rows.length ?? 0) === 0 && (
                 <Card className="py-16 md:py-24">
                   <div className="text-center">
-                    <div className="font-display text-2xl font-semibold tracking-[-0.02em] text-ink">
+                    <div className="font-semibold italic text-2xl font-semibold tracking-tight text-foreground">
                       {t("debt.empty_prepayments_title")}
+                      <span className="">.</span>
                     </div>
-                    <div className="text-sm text-ink3 mt-3 max-w-[40ch] mx-auto">
+                    <div className="text-sm text-foreground/80 mt-3 max-w-[40ch] mx-auto">
                       {t("debt.empty_prepayments")}
                     </div>
                   </div>
@@ -653,19 +685,19 @@ function MastheadStat({
   tone?: "ink" | "mark" | "risk" | "good" | "quiet";
 }) {
   const toneClass = {
-    ink: "text-ink",
-    mark: "text-mintdk",
-    risk: "text-coraldk",
-    good: "text-mintdk",
-    quiet: "text-ink3",
+    ink: "text-foreground",
+    mark: "text-primary",
+    risk: "text-red-700 dark:text-red-400",
+    good: "text-emerald-700 dark:text-emerald-400",
+    quiet: "text-muted-foreground",
   }[tone];
   return (
-    <div className="flex flex-col gap-1.5">
-      <span className="eyebrow">
+    <div className="flex flex-col gap-1">
+      <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium text-muted-foreground" style={{ letterSpacing: "0.18em" }}>
         {label}
       </span>
       <span
-        className={`kpi-num text-[28px] md:text-[36px] ${toneClass}`}
+        className={` nums text-[1.75rem] md:text-[2rem] leading-none tabular-nums ${toneClass}`}
       >
         {value}
       </span>
@@ -689,17 +721,22 @@ function ChipSelect({
   return (
     <label
       className={[
-        "relative inline-flex items-center gap-2 h-10 pl-3 pr-8 rounded-xl border transition-colors cursor-pointer",
+        "relative inline-flex items-center gap-2 h-10 pl-3 pr-8 rounded-[10px] border transition-colors cursor-pointer",
         active
-          ? "border-mint bg-mintbg text-mintdk"
-          : "border-line bg-card text-ink2 hover:border-mint/40 hover:bg-mintbg/40",
+          ? "border-primary bg-primary/10 text-primary"
+          : "border-border bg-card text-foreground/80 hover:border-border hover:text-foreground",
       ].join(" ")}
     >
-      <span className="eyebrow">{label}</span>
+      <span
+        className="caption text-muted-foreground uppercase"
+        style={{ letterSpacing: "0.14em" }}
+      >
+        {label}
+      </span>
       <span className="text-sm">{current}</span>
       <span
         aria-hidden
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-ink3"
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
       >
         ▾
       </span>
@@ -724,23 +761,23 @@ function PrepaymentCard({ row, locale }: { row: PrepayRow; locale: string }) {
   return (
     <Card className="p-5 md:p-7 grid gap-4 md:grid-cols-[minmax(0,1fr)_auto]">
       <div>
-        <h3 className="font-display text-xl font-semibold tracking-[-0.02em] text-ink leading-tight">
+        <h3 className="font-semibold italic text-xl font-semibold text-foreground leading-tight">
           {row.name ?? "—"}
         </h3>
-        <div className="mt-1 text-xs text-ink3 flex items-center gap-x-2 flex-wrap">
+        <div className="mt-1 caption text-muted-foreground flex items-center gap-x-2 flex-wrap">
           {row.region_name && <span>{row.region_name}</span>}
           {row.tin && (
             <>
-              <span className="text-ink4">·</span>
+              <span className="text-muted-foreground/50">·</span>
               <span className="font-mono text-xs">{row.tin}</span>
             </>
           )}
           {row.last_payment_date && (
             <>
-              <span className="text-ink4">·</span>
+              <span className="text-muted-foreground/50">·</span>
               <span>
                 {t("debt.col.last_payment")}:{" "}
-                <span className="font-medium text-ink2">
+                <span className="font-semibold italic">
                   {renderDate(row.last_payment_date, locale)}
                 </span>
               </span>
@@ -749,16 +786,16 @@ function PrepaymentCard({ row, locale }: { row: PrepayRow; locale: string }) {
         </div>
       </div>
       <div className="md:text-right">
-        <div className="eyebrow">
+        <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium text-muted-foreground" style={{ letterSpacing: "0.18em" }}>
           {t("debt.col.credit")}
         </div>
         <div
-          className="kpi-num text-mintdk leading-none mt-2"
+          className="nums tabular-nums text-emerald-700 dark:text-emerald-400 leading-none mt-2"
           style={{ fontSize: "2rem" }}
         >
           + {formatUsd(row.credit_balance)}
         </div>
-        <div className="text-xs text-ink3 mt-2 font-mono tabular-nums">
+        <div className="caption text-muted-foreground mt-2 tabular-nums">
           {t("debt.of_n_invoiced", {
             amount: formatUsd(row.gross_invoiced),
           })}
@@ -778,25 +815,25 @@ function PrepaymentCard({ row, locale }: { row: PrepayRow; locale: string }) {
 // Map Yoʻnalish direction → tone class pair. Anything not in the map falls
 // back to a neutral stone tag.
 const DIRECTION_TONE: Record<string, string> = {
-  "B2B":         "bg-mintbg text-mintdk",
-  "Yangi":       "bg-mintbg text-mintdk",
-  "MATERIAL":    "bg-mintbg text-mintdk",
-  "Export":      "bg-amberbg text-amber",
-  "Цех":         "bg-line text-ink2",
-  "Marketplace": "bg-amberbg text-amber",
-  "Online":      "bg-line text-ink2",
-  "Doʻkon":      "bg-mintbg text-mintdk",
-  "BAZA":        "bg-amberbg text-amber",
+  "B2B":         "bg-primary/10 text-primary",
+  "Yangi":       "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400",
+  "MATERIAL":    "bg-primary/10 text-primary",
+  "Export":      "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400",
+  "Цех":         "bg-[rgba(136,125,110,0.2)] text-foreground/80",
+  "Marketplace": "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400",
+  "Online":      "bg-[rgba(107,115,133,0.15)] text-foreground/80",
+  "Doʻkon":      "bg-primary/10 text-primary",
+  "BAZA":        "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400",
 };
 
 const OUTCOME_PILL: Record<Outcome, string> = {
-  called:      "bg-line text-ink2",
-  no_answer:   "bg-line text-ink3",
-  promised:    "bg-mintbg text-mintdk",
-  refused:     "bg-coralbg text-coraldk",
-  paid:        "bg-mintbg text-mintdk",
-  rescheduled: "bg-amberbg text-amber",
-  note:        "bg-line text-ink3",
+  called:      "bg-foreground-2/10 text-foreground/80",
+  no_answer:   "bg-foreground-3/15 text-muted-foreground",
+  promised:    "bg-primary/10 text-primary",
+  refused:     "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400",
+  paid:        "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400",
+  rescheduled: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400",
+  note:        "bg-foreground-3/15 text-muted-foreground",
 };
 
 type BucketKey = "0_30" | "30_60" | "60_90" | "90_plus";
@@ -808,10 +845,10 @@ function agingDominance(r: WorklistRow) {
     tone: "ok" | "warn" | "hot";
     className: string;
   }> = [
-    { key: "0_30",    v: r.aging_0_30,    tone: "ok",   className: "bg-mint" },
-    { key: "30_60",   v: r.aging_30_60,   tone: "warn", className: "bg-amber" },
+    { key: "0_30",    v: r.aging_0_30,    tone: "ok",   className: "bg-emerald-500" },
+    { key: "30_60",   v: r.aging_30_60,   tone: "warn", className: "bg-amber-500" },
     { key: "60_90",   v: r.aging_60_90,   tone: "hot",  className: "bg-[#cc8027]" },
-    { key: "90_plus", v: r.aging_90_plus, tone: "hot",  className: "bg-coraldk" },
+    { key: "90_plus", v: r.aging_90_plus, tone: "hot",  className: "bg-red-500" },
   ];
   const total = buckets.reduce((s, b) => s + b.v, 0);
   if (total === 0) return { pct: 0, top: null, total: 0, buckets };
@@ -893,14 +930,14 @@ function LedgerTh({
   return (
     <th
       className={[
-        "eyebrow !text-[10px] !tracking-[0.14em] !font-medium px-4 py-3",
-        "border-b border-line bg-paper/80 whitespace-nowrap",
+        "font-mono text-[10.5px] tracking-[0.12em] uppercase text-foreground font-semibold px-4 py-3",
+        "border-b-[1.5px] border-ink bg-card whitespace-nowrap",
         align === "right" ? "text-right" : "text-left",
       ].join(" ")}
     >
       {children}
       <span
-        className={`ml-1.5 ${sort ? "text-mint" : "text-ink4"}`}
+        className={`ml-1.5 ${sort ? "text-primary" : "text-rule-2"}`}
         aria-hidden
       >
         {sort === "asc" ? "▲" : sort === "desc" ? "▼" : "⇅"}
@@ -928,22 +965,22 @@ function LedgerRow({
     <tr
       onClick={onOpen}
       className={[
-        "group border-b border-line last:border-b-0 cursor-pointer",
-        "hover:bg-mintbg/40 transition-colors relative",
+        "group border-b border-border last:border-b-0 cursor-pointer",
+        "hover:bg-[color:color-mix(in_srgb,var(--mark)_4%,transparent)]",
+        "transition-colors",
       ].join(" ")}
     >
       {/* Mijoz */}
-      <td className="px-4 py-3 align-middle relative">
-        <span aria-hidden className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-transparent group-hover:bg-mint transition-colors" />
-        <div className="font-medium text-ink text-[14px] leading-tight truncate">
+      <td className="px-4 py-3 align-middle group-hover:[box-shadow:inset_2px_0_0_var(--mark)]">
+        <div className="font-medium text-foreground text-[14px] leading-tight truncate">
           {row.name ?? "—"}
         </div>
-        <div className="mt-1 text-[11.5px] text-ink3 truncate">
+        <div className="mt-1 text-[11.5px] text-muted-foreground truncate">
           {row.direction && (
             <span
               className={[
                 "inline-block font-mono text-[9.5px] font-semibold uppercase",
-                "tracking-[0.06em] px-1.5 py-[2px] rounded-md mr-2 align-[1px]",
+                "tracking-[0.06em] px-1.5 py-[2px] rounded-[3px] mr-2 align-[1px]",
                 directionTone,
               ].join(" ")}
             >
@@ -960,7 +997,7 @@ function LedgerRow({
           {row.primary_room_name && (
             <>
               <span className="opacity-50 mx-1.5">·</span>
-              <span className="text-ink2">{row.primary_room_name}</span>
+              <span className="text-foreground/80">{row.primary_room_name}</span>
             </>
           )}
         </div>
@@ -970,20 +1007,20 @@ function LedgerRow({
       <td className="px-4 py-3 text-right align-middle">
         <div
           className={[
-            "font-mono text-[17px] font-semibold leading-none tabular-nums",
-            isHot ? "text-coraldk" : "text-ink",
+            "font- text-[17px] font-medium leading-none tabular-nums",
+            isHot ? "text-primary" : "text-foreground",
           ].join(" ")}
         >
           {formatUsd(row.outstanding)}
         </div>
-        <div className="mt-1 font-mono text-[10.5px] text-ink3 tabular-nums">
+        <div className="mt-1 font-mono text-[10.5px] text-muted-foreground tabular-nums">
           {t("debt.of_n_invoiced", { amount: formatUsd(row.gross_invoiced) })}
         </div>
       </td>
 
       {/* Eskirish */}
       <td className="px-4 py-3 align-middle">
-        <div className="flex gap-[1px] h-[10px] w-full max-w-[160px] rounded-full overflow-hidden bg-line">
+        <div className="flex gap-[1px] h-[10px] w-full max-w-[160px] rounded-[3px] overflow-hidden bg-muted">
           {aging.buckets.map((b) =>
             b.v > 0 ? (
               <div key={b.key} className={b.className} style={{ flex: b.v }} />
@@ -994,8 +1031,8 @@ function LedgerRow({
           <div
             className={[
               "mt-[5px] font-mono text-[10.5px] tabular-nums font-semibold",
-              aging.top.tone === "hot" ? "text-coraldk" :
-              aging.top.tone === "warn" ? "text-amber" : "text-mintdk",
+              aging.top.tone === "hot" ? "text-red-700 dark:text-red-400" :
+              aging.top.tone === "warn" ? "text-amber-700 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400",
             ].join(" ")}
           >
             {aging.pct}% · {t(`debt.aging.${aging.top.key}`)}
@@ -1008,12 +1045,12 @@ function LedgerRow({
         <div
           className={[
             "font-mono text-[13px] font-medium tabular-nums",
-            overdue ? "text-coraldk" : "text-ink2",
+            overdue ? "text-red-700 dark:text-red-400" : "text-foreground/80",
           ].join(" ")}
         >
           {row.days_since_payment != null ? `${row.days_since_payment} d` : "—"}
         </div>
-        <div className="mt-1 font-mono text-[10.5px] text-ink3 tabular-nums">
+        <div className="mt-1 font-mono text-[10.5px] text-muted-foreground tabular-nums">
           {row.last_payment_date ? renderDate(row.last_payment_date, locale) : "—"}
         </div>
       </td>
@@ -1025,7 +1062,7 @@ function LedgerRow({
             <span
               className={[
                 "inline-flex items-center gap-[5px] font-mono text-[10px] tracking-[0.05em]",
-                "uppercase font-semibold px-2 py-[3px] rounded-full whitespace-nowrap",
+                "uppercase font-semibold px-2 py-[3px] rounded-[3px] whitespace-nowrap",
                 OUTCOME_PILL[row.last_contact_outcome],
               ].join(" ")}
             >
@@ -1033,19 +1070,19 @@ function LedgerRow({
               {t(`debt.outcome.${row.last_contact_outcome}`)}
             </span>
             {row.last_contact_outcome === "promised" && row.last_promised_amount != null ? (
-              <div className="mt-1 text-[12px] text-mintdk whitespace-nowrap font-medium font-mono tabular-nums">
+              <div className="mt-1 font- italic text-[12px] text-primary whitespace-nowrap">
                 {formatUsd(row.last_promised_amount)}
                 {row.last_promised_by_date &&
                   ` · ${renderDate(row.last_promised_by_date, locale)}`}
               </div>
             ) : (
-              <div className="mt-1 font-mono text-[10.5px] text-ink3 tabular-nums whitespace-nowrap">
+              <div className="mt-1 font-mono text-[10.5px] text-muted-foreground tabular-nums whitespace-nowrap">
                 {relativeTime(row.last_contact_at, t)}
               </div>
             )}
           </>
         ) : (
-          <span className="text-ink3 text-[12.5px]">
+          <span className="font- italic text-muted-foreground text-[12.5px]">
             — {t("debt.no_contact_yet")}
           </span>
         )}
@@ -1059,13 +1096,13 @@ function LedgerRow({
               href={`tel:${row.main_phone.replace(/[^+\d]/g, "")}`}
               onClick={(e) => e.stopPropagation()}
               title={t("debt.action.call")}
-              className="w-[26px] h-[26px] border border-line rounded-md bg-card grid place-items-center text-ink3 hover:border-mint hover:bg-mintbg hover:text-mintdk transition-colors"
+              className="w-[26px] h-[26px] border border-border rounded-[5px] bg-card grid place-items-center text-muted-foreground hover:border-primary hover:text-primary"
             >
               <PhoneGlyph />
             </a>
           )}
         </span>
-        <span className="text-ink4 text-[18px] pl-1.5 align-middle group-hover:text-mint transition-colors">
+        <span className="text-muted-foreground text-[18px] font- pl-1.5 align-middle group-hover:text-primary transition-colors">
           ›
         </span>
       </td>

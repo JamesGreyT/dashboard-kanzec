@@ -302,8 +302,8 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
               }}
               className={`h-5 w-5 grid place-items-center rounded-sm transition-colors ${
                 openFilterCol === c.name || hasActive(filters[c.name])
-                  ? "text-mintdk"
-                  : "text-ink3 hover:text-ink"
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
               aria-label={`Filter ${c.label}`}
             >
@@ -400,35 +400,35 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
       <div className="">
         {locked && activeTable ? (
           <div>
-            <div className="text-xs text-ink3">
+            <div className="caption text-muted-foreground">
               <span>{t("dashboard.crumb_dashboard")}</span>
               <span className="mx-2">·</span>
               <span>{t("data.crumb_data")}</span>
               <span className="mx-2">·</span>
-              <span className="text-ink2">
+              <span className="text-foreground/80">
                 {t(TABLE_LABEL_KEYS[activeTable.key] ?? activeTable.label)}
               </span>
             </div>
             <div className="mt-2 flex items-center gap-4">
               <TableGlyph kind={lockedIcon} />
-              <h1 className="text-4xl font-semibold tracking-tight text-ink leading-none">
+              <h1 className="text-4xl font-semibold tracking-tight text-foreground leading-none">
                 {lockedTitleKey ? t(lockedTitleKey) : activeTable.label}
                 <span className="">.</span>
               </h1>
             </div>
             {lockedSubtitleKey && (
-              <p className="text-sm text-ink2 mt-3 max-w-2xl">
+              <p className="text-sm text-foreground/80 mt-3 max-w-2xl">
                 {t(lockedSubtitleKey)}
               </p>
             )}
             {rowsQ.data && (
-              <p className="text-xs text-ink3 mt-2 tabular-nums">
+              <p className="caption text-muted-foreground mt-2 tabular-nums">
                 {t("data.subtitle_rows", {
                   n: rowsQ.data.total.toLocaleString(),
                 })}
               </p>
             )}
-            <div className="border-t border-line my-3 mt-6" />
+            <div className="border-t border-border my-3 mt-6" />
           </div>
         ) : (
           <PageHeading
@@ -452,7 +452,7 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
       {/* Table tabs — hidden in locked mode where the page is dedicated to
           a single table (each has its own sidebar entry + URL). */}
       {!locked && (
-      <div className="mt-8 flex items-center gap-6 border-b border-line">
+      <div className="mt-8 flex items-center gap-6 border-b border-border">
         {tablesList.map((tab) => (
           <button
             key={tab.key}
@@ -465,8 +465,8 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
             className={[
               "pb-3 text-sm transition-colors",
               tab.key === activeKey
-                ? "text-mintdk border-b-2 border-mint -mb-px"
-                : "text-ink2 hover:text-ink border-b-2 border-transparent",
+                ? "text-primary border-b-2 border-primary -mb-px"
+                : "text-foreground/80 hover:text-foreground border-b-2 border-transparent",
             ].join(" ")}
           >
             {t(TABLE_LABEL_KEYS[tab.key] ?? tab.label)}
@@ -490,15 +490,15 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
         </div>
         <div className="flex items-center justify-between md:justify-end gap-4">
           {/* Density toggle is meaningless in card view — hide on mobile. */}
-          <div className="hidden md:flex items-center gap-3 text-xs text-ink3">
+          <div className="hidden md:flex items-center gap-3 caption text-muted-foreground">
             <span>{t("common.density")}</span>
             <button
               type="button"
               onClick={() => setDensity("compact")}
-              className={`text-xs transition-colors ${
+              className={`caption transition-colors ${
                 density === "compact"
-                  ? "text-mintdk underline decoration-mint underline-offset-[3px]"
-                  : "text-ink2 hover:text-ink"
+                  ? "text-primary underline decoration-primary underline-offset-[3px]"
+                  : "text-foreground/80 hover:text-foreground"
               }`}
             >
               {t("common.compact")}
@@ -507,10 +507,10 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
             <button
               type="button"
               onClick={() => setDensity("comfortable")}
-              className={`text-xs transition-colors ${
+              className={`caption transition-colors ${
                 density === "comfortable"
-                  ? "text-mintdk underline decoration-mint underline-offset-[3px]"
-                  : "text-ink2 hover:text-ink"
+                  ? "text-primary underline decoration-primary underline-offset-[3px]"
+                  : "text-foreground/80 hover:text-foreground"
               }`}
             >
               {t("common.comfortable")}
@@ -522,9 +522,9 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
               type="button"
               onClick={() => setAddFilterMenuOpen((o) => !o)}
               disabled={!activeTable}
-              className="inline-flex items-center justify-center gap-2 h-10 px-4 text-sm font-medium rounded-[10px] transition-colors active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 bg-transparent text-ink2 border border-line hover:bg-muted hover:text-ink"
+              className="inline-flex items-center justify-center gap-2 h-10 px-4 text-sm font-medium rounded-[10px] transition-colors active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 bg-transparent text-foreground/80 border border-border hover:bg-muted hover:text-foreground"
             >
-              <span aria-hidden className="text-ink3">+</span>
+              <span aria-hidden className="text-muted-foreground">+</span>
               {t("data.add_filter")}
             </button>
             {addFilterMenuOpen && activeTable && (
@@ -589,15 +589,15 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
                 <button
                   key={`${chip.col}-${chip.op}-${i}`}
                   onClick={() => updateFilter(chip.col, undefined)}
-                  className="group inline-flex items-center gap-2 h-7 pl-3 pr-2 rounded-full bg-mintbg/60 hover:bg-mintbg border border-mint/40 hover:border-mint transition-colors caption text-ink"
+                  className="group inline-flex items-center gap-2 h-7 pl-3 pr-2 rounded-full bg-primary/10/60 hover:bg-primary/10 border border-primary-2/70 hover:border-primary transition-colors caption text-foreground"
                   title="Click to remove"
                 >
-                  <span className="text-ink2">{colMeta.label}</span>
-                  <span className="font-mono text-xs text-ink3">{chip.op}</span>
-                  <span className="text-ink tabular-nums">{chip.val}</span>
+                  <span className="text-foreground/80">{colMeta.label}</span>
+                  <span className="font-mono text-xs text-muted-foreground">{chip.op}</span>
+                  <span className="text-foreground tabular-nums">{chip.val}</span>
                   <span
                     aria-hidden
-                    className="text-[16px] leading-none text-ink3 group-hover:text-mintdk transition-colors ml-0.5"
+                    className="text-[16px] leading-none text-muted-foreground group-hover:text-primary transition-colors ml-0.5"
                   >
                     ✕
                   </span>
@@ -606,7 +606,7 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
             })}
             <button
               onClick={clearAllFilters}
-              className="text-xs text-ink2 hover:text-mintdk hover:underline decoration-mint underline-offset-[3px] ml-2"
+              className="caption text-foreground/80 hover:text-primary hover:underline decoration-primary underline-offset-[3px] ml-2"
             >
               {t("common.clear_all")}
             </button>
@@ -652,7 +652,7 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
         onNext={openRowIdx != null && openRowIdx < rows.length - 1 ? () => setOpenRowIdx(openRowIdx + 1) : undefined}
         footer={
           openRowIdx != null && rows.length > 0 ? (
-            <div className="text-xs text-ink3 tabular-nums flex items-center justify-between">
+            <div className="caption text-muted-foreground tabular-nums flex items-center justify-between">
               <span>
                 {t("data.drawer_row_of_page", {
                   n: openRowIdx + 1,
@@ -675,14 +675,14 @@ export default function DataViewer({ lockedTable }: { lockedTable?: string } = {
                 key={c.name}
                 className="flex items-baseline gap-2 py-1.5"
               >
-                <span className="text-xs text-ink3 uppercase tracking-wider font-medium text-right shrink-0" style={{ width: 140 }}>
+                <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium text-right shrink-0" style={{ width: 140 }}>
                   {c.label}
                 </span>
-                <span className="border-b border-dotted border-line flex-1 mx-2" />
+                <span className="border-b border-dotted border-border flex-1 mx-2" />
                 <span
                   className={[
                     "text-sm shrink-0 text-right",
-                    c.id_column ? "font-mono text-xs text-ink2" : "text-ink",
+                    c.id_column ? "font-mono text-xs text-foreground/80" : "text-foreground",
                     c.numeric ? " nums tabular-nums" : "",
                   ].join(" ")}
                   style={{ maxWidth: "60%" }}
@@ -714,12 +714,12 @@ function widthFor(c: {
 }
 
 function formatDetail(v: unknown, currency: string | null) {
-  if (v == null || v === "") return <span className="text-ink3">—</span>;
+  if (v == null || v === "") return <span className="text-muted-foreground">—</span>;
   if (typeof v === "number") {
     const s = v.toLocaleString("en-US", { maximumFractionDigits: 4 });
     return currency ? (
       <span>
-        {s} <span className="text-xs text-ink3 font-sans not-italic">{currency}</span>
+        {s} <span className="caption text-muted-foreground font-sans not-italic">{currency}</span>
       </span>
     ) : (
       s
@@ -839,7 +839,7 @@ function DirectionCell({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -2 }}
             transition={{ duration: 0.18 }}
-            className="text-xs font-semibold text-mintdk pointer-events-none"
+            className="font-semibold italic caption text-emerald-700 dark:text-emerald-400 pointer-events-none"
           >
             ✓
           </motion.span>
@@ -850,7 +850,7 @@ function DirectionCell({
             initial={{ opacity: 0, y: 2 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="text-xs font-semibold text-coraldk pointer-events-none max-w-[200px] truncate"
+            className="font-semibold italic caption text-red-700 dark:text-red-400 pointer-events-none max-w-[200px] truncate"
             title={error}
           >
             ! {error}
@@ -904,15 +904,15 @@ const DirectionTag = ({
   const base =
     "inline-flex items-center gap-1.5 rounded-[7px] whitespace-nowrap text-[13px] leading-none transition-colors";
   const idle = isUnset
-    ? "text-ink3 font- italic border border-dashed border-line px-2.5 py-[5px]"
-    : "text-ink bg-muted border border-line px-2.5 py-[5px]";
+    ? "text-muted-foreground font- italic border border-dashed border-border px-2.5 py-[5px]"
+    : "text-foreground bg-muted border border-border px-2.5 py-[5px]";
 
   const content = (
     <>
       {isManual && !isUnset && (
         <span
           aria-hidden
-          className="w-1.5 h-1.5 rounded-full bg-mint shrink-0"
+          className="w-1.5 h-1.5 rounded-full bg-primary shrink-0"
           title="manually set"
         />
       )}
@@ -926,7 +926,7 @@ const DirectionTag = ({
           height="9"
           viewBox="0 0 10 10"
           fill="none"
-          className="text-ink3 shrink-0"
+          className="text-muted-foreground shrink-0"
         >
           <path
             d="M2 3.5 5 6.5 8 3.5"
@@ -952,8 +952,8 @@ const DirectionTag = ({
       className={[
         base,
         idle,
-        "hover:border-ink3 hover:text-ink",
-        active ? "border-mint text-mintdk ring-2 ring-mint/15" : "",
+        "hover:border-ink-3 hover:text-foreground",
+        active ? "border-primary text-primary ring-1 ring-ring/$1" : "",
       ].join(" ")}
       title={
         source === "excel"
@@ -1098,28 +1098,28 @@ function DirectionMenu({
       }}
       role="dialog"
       aria-label="Yoʻnalish tanlash"
-      className="rounded-[10px] border border-line bg-card shadow-[0_20px_60px_-20px_rgba(0,0,0,0.25)] overflow-hidden"
+      className="rounded-[10px] border border-border bg-card shadow-[0_20px_60px_-20px_rgba(0,0,0,0.25)] overflow-hidden"
     >
-      <div className="px-3.5 pt-3 pb-2.5 border-b border-line bg-background">
-        <div className="text-[11px] font-medium text-ink3 uppercase tracking-[0.08em]">
+      <div className="px-3.5 pt-3 pb-2.5 border-b border-border bg-background">
+        <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-[0.08em]">
           Yoʻnalish
         </div>
-        <div className="mt-1 flex items-center gap-2 text-[13.5px] leading-tight text-ink">
-          <span className={current ? "" : "text-ink3 italic"}>
+        <div className="mt-1 flex items-center gap-2 text-[13.5px] leading-tight text-foreground">
+          <span className={current ? "" : "text-muted-foreground italic"}>
             {current ?? "tanlanmagan"}
           </span>
           {dirty && (
             <>
-              <span className="text-ink3" aria-hidden>
+              <span className="text-muted-foreground" aria-hidden>
                 →
               </span>
-              <span className="font-semibold text-mintdk">
+              <span className="font-semibold text-primary">
                 {staged ?? "tanlanmagan"}
               </span>
             </>
           )}
           {pending && (
-            <span className="ml-auto text-[11px] text-ink3">saqlanmoqda…</span>
+            <span className="ml-auto text-[11px] text-muted-foreground">saqlanmoqda…</span>
           )}
         </div>
       </div>
@@ -1148,10 +1148,10 @@ function DirectionMenu({
                 className={[
                   "w-full text-left px-3.5 py-2 flex items-center gap-2.5 text-[13.5px] transition-colors",
                   isStaged
-                    ? "bg-mintbg text-mintdk font-medium"
+                    ? "bg-primary/10 text-primary font-medium"
                     : isFocused
-                      ? "bg-muted text-ink"
-                      : "text-ink",
+                      ? "bg-muted text-foreground"
+                      : "text-foreground",
                   pending ? "cursor-wait opacity-60" : "cursor-pointer",
                 ].join(" ")}
               >
@@ -1160,8 +1160,8 @@ function DirectionMenu({
                   className={[
                     "w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0",
                     isStaged
-                      ? "border-mint bg-mint"
-                      : "border-line bg-card",
+                      ? "border-primary bg-primary"
+                      : "border-border bg-card",
                   ].join(" ")}
                 >
                   {isStaged && (
@@ -1170,7 +1170,7 @@ function DirectionMenu({
                 </span>
                 <span className="flex-1">{d}</span>
                 {isCurrent && !isStaged && (
-                  <span className="text-[10px] text-ink3 uppercase tracking-wider">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
                     joriy
                   </span>
                 )}
@@ -1179,8 +1179,8 @@ function DirectionMenu({
           );
         })}
       </ul>
-      <div className="px-3.5 py-2.5 border-t border-line bg-background flex items-center justify-between gap-2">
-        <div className="min-w-0 flex-1 flex flex-col text-[11px] leading-tight text-ink3">
+      <div className="px-3.5 py-2.5 border-t border-border bg-background flex items-center justify-between gap-2">
+        <div className="min-w-0 flex-1 flex flex-col text-[11px] leading-tight text-muted-foreground">
           <span className="truncate">{sourceCopy}</span>
           {renderUpdated() && (
             <span className="truncate">{renderUpdated()}</span>
@@ -1190,7 +1190,7 @@ function DirectionMenu({
           type="button"
           onClick={onClose}
           disabled={pending}
-          className="text-[12.5px] px-3 py-1.5 rounded-[6px] text-ink2 hover:text-ink hover:bg-muted transition-colors disabled:opacity-50"
+          className="text-[12.5px] px-3 py-1.5 rounded-[6px] text-foreground/80 hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
         >
           Bekor
         </button>
@@ -1201,8 +1201,8 @@ function DirectionMenu({
           className={[
             "text-[12.5px] px-3 py-1.5 rounded-[6px] font-medium transition-colors",
             dirty && staged && !pending
-              ? "bg-mint text-white hover:bg-mintdk"
-              : "bg-muted text-ink3 cursor-not-allowed",
+              ? "bg-primary text-card hover:brightness-110"
+              : "bg-muted text-muted-foreground cursor-not-allowed",
           ].join(" ")}
         >
           Saqlash
@@ -1302,11 +1302,11 @@ function GroupCell({
         className={[
           "inline-flex items-center justify-center rounded-[7px] w-7 h-7",
           "text-[13px] leading-none font-mono transition-colors",
-          "bg-muted border border-line text-ink",
+          "bg-muted border border-border text-foreground",
           editable
-            ? "hover:border-ink3 cursor-pointer"
+            ? "hover:border-ink-3 cursor-pointer"
             : "cursor-default",
-          open ? "border-mint text-mintdk ring-2 ring-mint/15" : "",
+          open ? "border-primary text-primary ring-1 ring-ring/$1" : "",
           pending ? "opacity-50" : "",
         ].join(" ")}
         aria-haspopup="listbox"
@@ -1319,7 +1319,7 @@ function GroupCell({
         <ul
           role="listbox"
           aria-label="Guruh"
-          className="absolute top-full left-0 mt-1 z-50 min-w-[72px] rounded-[8px] border border-line bg-card shadow-[0_20px_60px_-20px_rgba(0,0,0,0.25)] overflow-hidden"
+          className="absolute top-full left-0 mt-1 z-50 min-w-[72px] rounded-[8px] border border-border bg-card shadow-[0_20px_60px_-20px_rgba(0,0,0,0.25)] overflow-hidden"
         >
           {LEGAL_PERSON_GROUPS.map((g) => {
             const isCurrent = g === displayed;
@@ -1356,7 +1356,7 @@ function GroupCell({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -2 }}
             transition={{ duration: 0.18 }}
-            className="text-xs font-semibold text-mintdk pointer-events-none"
+            className="font-semibold italic caption text-emerald-700 dark:text-emerald-400 pointer-events-none"
           >
             ✓
           </motion.span>
@@ -1367,7 +1367,7 @@ function GroupCell({
             initial={{ opacity: 0, y: 2 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="text-xs font-semibold text-coraldk pointer-events-none max-w-[200px] truncate"
+            className="font-semibold italic caption text-red-700 dark:text-red-400 pointer-events-none max-w-[200px] truncate"
             title={error}
           >
             ! {error}
@@ -1494,9 +1494,9 @@ function InstalmentDaysCell({
         className={[
           "inline-flex items-center gap-1 rounded-[7px] px-2.5 py-[5px]",
           "text-[13px] leading-none tabular-nums transition-colors",
-          "bg-muted border border-line text-ink",
-          editable ? "hover:border-ink3 cursor-pointer" : "cursor-default",
-          open ? "border-mint text-mintdk ring-2 ring-mint/15" : "",
+          "bg-muted border border-border text-foreground",
+          editable ? "hover:border-ink-3 cursor-pointer" : "cursor-default",
+          open ? "border-primary text-primary ring-1 ring-ring/$1" : "",
           pending ? "opacity-50" : "",
         ].join(" ")}
         aria-haspopup="dialog"
@@ -1512,7 +1512,7 @@ function InstalmentDaysCell({
         {isManual && (
           <span
             aria-hidden
-            className="w-1.5 h-1.5 rounded-full bg-mint shrink-0"
+            className="w-1.5 h-1.5 rounded-full bg-primary shrink-0"
           />
         )}
         <span>{pending ? "…" : displayed}</span>
@@ -1523,7 +1523,7 @@ function InstalmentDaysCell({
             height="9"
             viewBox="0 0 10 10"
             fill="none"
-            className="text-ink3 shrink-0"
+            className="text-muted-foreground shrink-0"
           >
             <path
               d="M2 3.5 5 6.5 8 3.5"
@@ -1539,18 +1539,18 @@ function InstalmentDaysCell({
         <div
           role="dialog"
           aria-label="Instalment kunlari"
-          className="absolute top-full left-0 mt-1 z-50 w-[240px] rounded-[10px] border border-line bg-card shadow-[0_20px_60px_-20px_rgba(0,0,0,0.25)] overflow-hidden"
+          className="absolute top-full left-0 mt-1 z-50 w-[240px] rounded-[10px] border border-border bg-card shadow-[0_20px_60px_-20px_rgba(0,0,0,0.25)] overflow-hidden"
         >
-          <div className="px-3.5 pt-3 pb-2.5 border-b border-line bg-background">
-            <div className="text-[11px] font-medium text-ink3 uppercase tracking-[0.08em]">
+          <div className="px-3.5 pt-3 pb-2.5 border-b border-border bg-background">
+            <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-[0.08em]">
               Instalment (kun)
             </div>
             <div className="mt-1 flex items-center gap-2 text-[13.5px] leading-tight">
               <span className="tabular-nums">{displayed}</span>
               {dirty && (
                 <>
-                  <span className="text-ink3" aria-hidden>→</span>
-                  <span className={`font-semibold ${valid ? "text-mintdk" : "text-red-600"}`}>
+                  <span className="text-muted-foreground" aria-hidden>→</span>
+                  <span className={`font-semibold ${valid ? "text-primary" : "text-red-600"}`}>
                     {staged}
                   </span>
                 </>
@@ -1567,8 +1567,8 @@ function InstalmentDaysCell({
                   className={[
                     "text-[12.5px] px-2.5 py-1 rounded-[6px] tabular-nums border transition-colors",
                     staged === d
-                      ? "bg-mint text-white border-mint"
-                      : "bg-card text-ink border-line hover:border-ink3",
+                      ? "bg-primary text-card border-primary"
+                      : "bg-card text-foreground border-border hover:border-ink-3",
                   ].join(" ")}
                 >
                   {d}
@@ -1592,18 +1592,18 @@ function InstalmentDaysCell({
                   commit();
                 }
               }}
-              className="w-full text-[13.5px] tabular-nums bg-background border border-line rounded-[6px] px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-ring focus:border-ring"
+              className="w-full text-[13.5px] tabular-nums bg-background border border-border rounded-[6px] px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-ring focus:border-ring"
             />
             {!valid && (
               <div className="text-[11.5px] text-red-600">1 dan 365 kungacha</div>
             )}
           </div>
-          <div className="px-3.5 py-2.5 border-t border-line bg-background flex items-center justify-end gap-2">
+          <div className="px-3.5 py-2.5 border-t border-border bg-background flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={() => setOpen(false)}
               disabled={pending}
-              className="text-[12.5px] px-3 py-1.5 rounded-[6px] text-ink2 hover:text-ink hover:bg-muted transition-colors disabled:opacity-50"
+              className="text-[12.5px] px-3 py-1.5 rounded-[6px] text-foreground/80 hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
             >
               Bekor
             </button>
@@ -1614,8 +1614,8 @@ function InstalmentDaysCell({
               className={[
                 "text-[12.5px] px-3 py-1.5 rounded-[6px] font-medium transition-colors",
                 valid && dirty && !pending
-                  ? "bg-mint text-white hover:bg-mintdk"
-                  : "bg-muted text-ink3 cursor-not-allowed",
+                  ? "bg-primary text-card hover:brightness-110"
+                  : "bg-muted text-muted-foreground cursor-not-allowed",
               ].join(" ")}
             >
               Saqlash
@@ -1631,7 +1631,7 @@ function InstalmentDaysCell({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -2 }}
             transition={{ duration: 0.18 }}
-            className="text-xs font-semibold text-mintdk pointer-events-none"
+            className="font-semibold italic caption text-emerald-700 dark:text-emerald-400 pointer-events-none"
           >
             ✓
           </motion.span>
@@ -1642,7 +1642,7 @@ function InstalmentDaysCell({
             initial={{ opacity: 0, y: 2 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="text-xs font-semibold text-coraldk pointer-events-none max-w-[200px] truncate"
+            className="font-semibold italic caption text-red-700 dark:text-red-400 pointer-events-none max-w-[200px] truncate"
             title={error}
           >
             ! {error}
@@ -1700,7 +1700,7 @@ function TableGlyph({ kind }: { kind: "orders" | "payments" | "people" | undefin
   return (
     <span
       aria-hidden
-      className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-full bg-muted text-ink"
+      className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-full bg-muted text-foreground"
     >
       <Icon className="h-5 w-5" />
     </span>
@@ -1804,12 +1804,12 @@ function AddFilterMenu({
         visibility: pos ? "visible" : "hidden",
         zIndex: 50,
       }}
-      className="rounded-[10px] border border-line bg-background shadow-lg"
+      className="rounded-[10px] border border-border bg-background shadow-lg"
       role="menu"
     >
-      <div className="p-2 border-b border-line">
-        <div className="flex items-center gap-2 h-9 bg-muted px-2.5 rounded-md border border-line transition-colors focus-within:border-mint focus-within:ring-4 focus-within:ring-mint/15">
-          <span className="text-ink3">
+      <div className="p-2 border-b border-border">
+        <div className="flex items-center gap-2 h-9 bg-muted px-2.5 rounded-md border border-border transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-ring/$1">
+          <span className="text-muted-foreground">
             <SearchIcon />
           </span>
           <input
@@ -1818,13 +1818,13 @@ function AddFilterMenu({
             value={search}
             onChange={(e) => onSearch(e.target.value)}
             placeholder={t("data.add_filter_placeholder")}
-            className="flex-1 bg-transparent text-sm text-ink outline-none border-0 placeholder:italic placeholder:text-ink3 min-w-0"
+            className="flex-1 bg-transparent text-sm text-foreground outline-none border-0 placeholder:italic placeholder:text-muted-foreground min-w-0"
           />
         </div>
       </div>
       <div className="max-h-[360px] overflow-y-auto py-1">
         {items.length === 0 && (
-          <div className="px-3 py-6 text-xs text-ink3 text-center">
+          <div className="px-3 py-6 caption text-muted-foreground text-center">
             {t("data.add_filter_no_matches")}
           </div>
         )}
@@ -1840,12 +1840,12 @@ function AddFilterMenu({
               <span
                 aria-hidden
                 className={`inline-block h-1.5 w-1.5 rounded-full shrink-0 ${
-                  active ? "bg-mint" : "bg-transparent"
+                  active ? "bg-primary" : "bg-transparent"
                 }`}
               />
-              <span className="text-ink flex-1 truncate">{c.label}</span>
+              <span className="text-foreground flex-1 truncate">{c.label}</span>
               {!c.visible && (
-                <span className="text-xs text-ink3 shrink-0">
+                <span className="caption text-muted-foreground shrink-0">
                   {t("data.add_filter_hidden")}
                 </span>
               )}

@@ -1,6 +1,6 @@
 import { ReactNode, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronUp, ChevronDown, Search, ArrowLeft, ArrowRight, Download } from "lucide-react";
+import { ChevronUp, ChevronDown, Search, Loader2, ArrowLeft, ArrowRight, Download } from "lucide-react";
 import Sparkline from "./Sparkline";
 import { cn } from "@/lib/utils";
 import { getAccessToken } from "../lib/api";
@@ -126,20 +126,20 @@ export default function RankedTable<R extends Record<string, any>>({
     <div className="min-w-0">
       {eyebrow && (
         <div className="flex items-baseline justify-between mb-3">
-          <div className="eyebrow text-mintdk">{eyebrow}</div>
-          <div className="eyebrow !text-[10px]">
+          <div className="eyebrow !tracking-[0.18em] text-primary">{eyebrow}</div>
+          <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
             {total.toLocaleString("en-US")} {t("ranked.rows")}
           </div>
         </div>
       )}
       <div className="flex items-center gap-3 mb-3">
         <div className="relative flex-1 max-w-[360px]">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-ink3" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <input
             value={search}
             onChange={(e) => commit({ search: e.target.value, page: 0 })}
             placeholder={t("ranked.search") as string}
-            className="w-full h-9 pl-8 pr-2 bg-card border border-line rounded-xl text-[13px] outline-none focus-visible:border-mint focus-visible:ring-4 focus-visible:ring-mint/15 placeholder:text-ink4"
+            className="w-full h-9 pl-8 pr-2 bg-background border border-input rounded-md text-[13px] focus-within:ring-2 focus-within:ring-ring/30 outline-none"
           />
         </div>
         <div className="ml-auto flex items-center gap-2 text-[11px] text-muted-foreground">
@@ -171,8 +171,8 @@ export default function RankedTable<R extends Record<string, any>>({
                 }
               }}
               className={cn(
-                "inline-flex items-center gap-1 h-8 px-3 rounded-full border border-line text-ink2 hover:text-ink hover:bg-mintbg transition",
-                "focus-visible:ring-2 focus-visible:ring-mint focus-visible:ring-offset-2 outline-none",
+                "inline-flex items-center gap-1 h-8 px-2.5 rounded border border-input text-foreground hover:bg-muted/40 transition",
+                "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 outline-none",
               )}
               aria-label={t("ranked.export") as string}
             >
@@ -186,7 +186,7 @@ export default function RankedTable<R extends Record<string, any>>({
           <select
             value={size}
             onChange={(e) => commit({ size: Number(e.target.value), page: 0 })}
-            className="h-8 px-2 bg-card border border-line rounded-md text-[12px] focus-visible:border-mint focus-visible:ring-2 focus-visible:ring-mint/15 outline-none"
+            className="h-8 px-2 bg-background border border-input rounded text-[12px]"
           >
             {pageSizes.map((s) => (
               <option key={s} value={s}>
@@ -200,16 +200,12 @@ export default function RankedTable<R extends Record<string, any>>({
       {/* Mobile: card list. Renders at <lg (1024px). */}
       <div className="lg:hidden space-y-2">
         {loading && (!data || data.rows.length === 0) ? (
-          <div className="py-10 flex flex-col items-center gap-2 text-center text-ink3 italic text-sm border border-line rounded-2xl">
-            <span className="flex gap-1" aria-hidden>
-              {[0, 200, 400].map((d) => (
-                <span key={d} className="block w-2 h-2 rounded-full bg-mint animate-pulsemint" style={{ animationDelay: `${d}ms` }} />
-              ))}
-            </span>
+          <div className="py-10 text-center text-muted-foreground italic text-sm border border-border/60 rounded-md">
+            <Loader2 className="inline h-4 w-4 animate-spin mr-2" />
             {t("ranked.loading")}
           </div>
         ) : data && data.rows.length === 0 ? (
-          <div className="py-10 text-center text-ink3 italic text-sm border border-line rounded-2xl">
+          <div className="py-10 text-center text-muted-foreground italic text-sm border border-border/60 rounded-md">
             {empty ?? t("ranked.empty")}
           </div>
         ) : (
@@ -235,8 +231,8 @@ export default function RankedTable<R extends Record<string, any>>({
                 tabIndex={onRowClick ? 0 : undefined}
                 role={onRowClick ? "button" : undefined}
                 className={cn(
-                  "bg-card rounded-2xl shadow-card border border-line p-4 outline-none",
-                  onRowClick && "cursor-pointer hover:shadow-cardlg focus-visible:ring-2 focus-visible:ring-mint focus-visible:ring-offset-2",
+                  "border border-border/60 rounded-md bg-background/70 p-3 outline-none",
+                  onRowClick && "cursor-pointer hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring",
                 )}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -281,8 +277,8 @@ export default function RankedTable<R extends Record<string, any>>({
         )}
         {/* Mobile total strip */}
         {data?.totals && (
-          <div className="flex flex-wrap gap-x-4 gap-y-1 px-4 py-3 bg-mintbg border border-mint/30 rounded-2xl">
-            <div className="eyebrow text-mintdk">
+          <div className="flex flex-wrap gap-x-4 gap-y-1 px-3 py-2.5 bg-primary/[0.04] border border-primary/20 rounded-md">
+            <div className="eyebrow !tracking-[0.14em] text-primary">
               {t("ranked.total", { defaultValue: "Total" })}
             </div>
             {Object.entries(data.totals).map(([k, v]) => (
@@ -298,9 +294,9 @@ export default function RankedTable<R extends Record<string, any>>({
       </div>
 
       {/* Desktop: table. */}
-      <div className="hidden lg:block overflow-x-auto border border-line rounded-2xl bg-card shadow-card">
+      <div className="hidden lg:block overflow-x-auto border border-border/60 rounded-md bg-background/70">
         <table className="w-full border-collapse text-[13px]">
-          <thead className="sticky top-0 z-10 bg-paper/80 backdrop-blur">
+          <thead className="sticky top-0 z-10 bg-muted/50 backdrop-blur">
             <tr>
               {columns.map((c) => {
                 const isSorted = sortKey === c.key;
@@ -318,7 +314,7 @@ export default function RankedTable<R extends Record<string, any>>({
                     aria-sort={ariaSort as any}
                     scope="col"
                     className={cn(
-                      "px-3 py-2.5 eyebrow !text-[10px] !tracking-[0.14em] !font-medium select-none border-b border-line",
+                      "px-3 py-2 text-[10px] uppercase tracking-[0.14em] font-medium text-muted-foreground select-none border-b border-border/80",
                     )}
                   >
                     {clickable ? (
@@ -354,18 +350,14 @@ export default function RankedTable<R extends Record<string, any>>({
           <tbody>
             {loading && (!data || data.rows.length === 0) ? (
               <tr>
-                <td colSpan={columns.length} className="py-10 text-center text-ink3">
-                  <span className="inline-flex gap-1 mr-2 align-middle" aria-hidden>
-                    {[0, 200, 400].map((d) => (
-                      <span key={d} className="block w-1.5 h-1.5 rounded-full bg-mint animate-pulsemint" style={{ animationDelay: `${d}ms` }} />
-                    ))}
-                  </span>
+                <td colSpan={columns.length} className="py-10 text-center text-muted-foreground">
+                  <Loader2 className="inline h-4 w-4 animate-spin mr-2" />
                   {t("ranked.loading")}
                 </td>
               </tr>
             ) : data && data.rows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="py-10 text-center text-ink3 italic">
+                <td colSpan={columns.length} className="py-10 text-center text-muted-foreground italic">
                   {empty ?? t("ranked.empty")}
                 </td>
               </tr>
@@ -387,9 +379,9 @@ export default function RankedTable<R extends Record<string, any>>({
                   tabIndex={onRowClick ? 0 : undefined}
                   role={onRowClick ? "button" : undefined}
                   className={cn(
-                    "border-b border-line last:border-b-0 transition-colors outline-none",
-                    onRowClick && "cursor-pointer hover:bg-mintbg/40 focus-visible:ring-2 focus-visible:ring-mint focus-visible:ring-inset",
-                    i % 2 === 1 && "bg-paper/40",
+                    "border-b border-border/40 last:border-b-0 transition-colors outline-none",
+                    onRowClick && "cursor-pointer hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+                    i % 2 === 1 && "bg-muted/[0.02]",
                   )}
                 >
                   {columns.map((c) => {
@@ -413,7 +405,7 @@ export default function RankedTable<R extends Record<string, any>>({
             )}
           </tbody>
           {data?.totals && (
-            <tfoot className="sticky bottom-0 bg-mintbg border-t-2 border-mint/40">
+            <tfoot className="sticky bottom-0 bg-primary/[0.03] border-t-2 border-primary/30">
               <tr>
                 {columns.map((c) => {
                   const align = c.align ?? (c.numeric ? "right" : "left");
@@ -422,7 +414,7 @@ export default function RankedTable<R extends Record<string, any>>({
                       key={c.key}
                       style={{ textAlign: align }}
                       className={cn(
-                        "px-3 py-2.5 font-semibold text-ink text-[12.5px]",
+                        "px-3 py-2.5 font-semibold text-foreground text-[12.5px]",
                         c.numeric && "font-mono tabular-nums",
                       )}
                     >
@@ -447,7 +439,7 @@ export default function RankedTable<R extends Record<string, any>>({
           <button
             disabled={page === 0 || loading}
             onClick={() => commit({ page: Math.max(0, page - 1) })}
-            className="h-8 px-2.5 rounded-full border border-line text-ink2 hover:text-ink hover:bg-mintbg disabled:opacity-40 flex items-center gap-1 transition-colors"
+            className="h-8 px-2 rounded border border-input disabled:opacity-40 hover:bg-muted/50 flex items-center gap-1"
           >
             <ArrowLeft className="h-3 w-3" /> {t("ranked.prev")}
           </button>
@@ -457,7 +449,7 @@ export default function RankedTable<R extends Record<string, any>>({
           <button
             disabled={page + 1 >= totalPages || loading}
             onClick={() => commit({ page: page + 1 })}
-            className="h-8 px-2.5 rounded-full border border-line text-ink2 hover:text-ink hover:bg-mintbg disabled:opacity-40 flex items-center gap-1 transition-colors"
+            className="h-8 px-2 rounded border border-input disabled:opacity-40 hover:bg-muted/50 flex items-center gap-1"
           >
             {t("ranked.next")} <ArrowRight className="h-3 w-3" />
           </button>

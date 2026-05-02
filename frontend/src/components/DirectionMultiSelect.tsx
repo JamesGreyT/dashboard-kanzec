@@ -47,15 +47,15 @@ export default function DirectionMultiSelect({
             variant="outline"
             role="combobox"
             size="sm"
-            className="h-9 gap-2 justify-between min-w-[160px] font-normal border-line rounded-lg hover:bg-mintbg hover:border-mint/40"
+            className="h-9 gap-2 justify-between min-w-[160px] font-normal"
           >
-            <span className="eyebrow">
+            <span className="text-xs uppercase tracking-[0.1em] text-muted-foreground">
               {t("direction_filter.label")}
             </span>
             <ChevronsUpDown className="h-3 w-3 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[260px] p-0 rounded-xl shadow-cardlg border-line" align="start">
+        <PopoverContent className="w-[260px] p-0" align="start">
           <Command>
             <CommandInput placeholder={t("direction_filter.search") as string} />
             <CommandList>
@@ -67,7 +67,7 @@ export default function DirectionMultiSelect({
                     <CommandItem key={o} onSelect={() => toggle(o)}>
                       <Check
                         className={cn(
-                          "mr-2 h-4 w-4 text-mint",
+                          "mr-2 h-4 w-4 text-primary",
                           checked ? "opacity-100" : "opacity-0",
                         )}
                       />
@@ -89,7 +89,7 @@ export default function DirectionMultiSelect({
           <button
             key={v}
             onClick={() => onChange(value.filter((x) => x !== v))}
-            className="group flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-mintbg text-mintdk text-[12px] font-medium hover:bg-mint/15 transition"
+            className="group flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[12px] font-medium hover:bg-primary/20 transition"
           >
             <span>{v}</span>
             <X className="h-3 w-3 opacity-50 group-hover:opacity-100" />

@@ -179,10 +179,10 @@ export default function ColumnFilter({
         width: POP_WIDTH,
         visibility: pos ? "visible" : "hidden",
       }}
-      className="z-50 bg-card text-ink rounded-2xl shadow-cardlg border border-line p-4 animate-in fade-in-0 zoom-in-95"
+      className="z-50 bg-popover text-popover-foreground rounded-md shadow-md border p-4 animate-in fade-in-0 zoom-in-95"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="font-display text-base font-semibold tracking-[-0.01em] text-ink">
+      <div className="text-sm font-medium text-foreground">
         {t("data.filter", { label: col.label })}
       </div>
       <Separator className="my-3" />

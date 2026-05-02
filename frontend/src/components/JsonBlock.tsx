@@ -6,7 +6,7 @@ export default function JsonBlock({ value }: { value: unknown }) {
     text = String(value);
   }
   return (
-    <pre className="font-mono text-xs text-ink bg-paper border border-line p-4 rounded-xl overflow-auto whitespace-pre-wrap">
+    <pre className="font-mono text-xs text-foreground bg-muted p-4 rounded-md overflow-auto whitespace-pre-wrap border">
       {text}
     </pre>
   );

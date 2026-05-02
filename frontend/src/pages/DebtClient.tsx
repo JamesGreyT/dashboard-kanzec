@@ -195,9 +195,9 @@ function CopyableAction({
           setTimeout(() => setCopied(false), 1200);
         }
       }}
-      className="group inline-flex items-center gap-2 text-sm text-ink2 hover:text-mintdk transition-colors"
+      className="group inline-flex items-center gap-2 text-sm text-foreground/80 hover:text-primary transition-colors"
     >
-      <Glyph className="shrink-0 text-ink3 group-hover:text-mintdk transition-colors" />
+      <Glyph className="shrink-0 text-muted-foreground group-hover:text-primary transition-colors" />
       <span className="font-mono text-xs tabular-nums">{children}</span>
       <AnimatePresence>
         {copied && (
@@ -205,7 +205,7 @@ function CopyableAction({
             initial={{ opacity: 0, y: 2 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -2 }}
-            className="text-xs text-mintdk"
+            className="caption text-emerald-700 dark:text-emerald-400"
           >
             ✓
           </motion.span>
@@ -218,13 +218,13 @@ function CopyableAction({
 function OutcomeKicker({ outcome }: { outcome: Outcome }) {
   const { t } = useTranslation();
   const tone: Record<Outcome, string> = {
-    called: "text-ink2",
-    no_answer: "text-ink3",
-    promised: "text-mintdk",
-    rescheduled: "text-amber",
-    refused: "text-coraldk",
-    paid: "text-mintdk",
-    note: "text-ink3",
+    called: "text-foreground/80",
+    no_answer: "text-muted-foreground",
+    promised: "text-primary",
+    rescheduled: "text-amber-700 dark:text-amber-400",
+    refused: "text-red-700 dark:text-red-400",
+    paid: "text-emerald-700 dark:text-emerald-400",
+    note: "text-muted-foreground",
   };
   return (
     <span
@@ -300,36 +300,36 @@ function LedgerOverview({
   return (
     <Card className="p-0 overflow-hidden">
       <div className="px-5 md:px-7 pt-5 pb-3">
-        <div className="eyebrow">{t("debt.ledger.title")}</div>
+        <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium-font-mono">{t("debt.ledger.title")}</div>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4">
         {items.map((it, i) => {
           const toneClass =
             it.tone === "mark"
-              ? "text-mintdk"
+              ? "text-primary"
               : it.tone === "good"
-                ? "text-mintdk"
+                ? "text-emerald-700 dark:text-emerald-400"
                 : it.tone === "risk"
-                  ? "text-coraldk"
-                  : "text-ink";
+                  ? "text-red-700 dark:text-red-400"
+                  : "text-foreground";
           return (
             <div
               key={i}
               className={[
                 "px-5 md:px-7 py-5 md:py-6",
-                i > 0 ? "md:border-l md:border-line" : "",
-                i > 1 ? "border-t md:border-t-0 border-line" : "",
-                i === 1 ? "border-t md:border-t-0 border-line md:border-none" : "",
+                i > 0 ? "md:border-l md:border-border" : "",
+                i > 1 ? "border-t md:border-t-0 border-border" : "",
+                i === 1 ? "border-t md:border-t-0 border-border md:border-none" : "",
               ].join(" ")}
             >
-              <div className="eyebrow text-ink3">{it.label}</div>
+              <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium-font-mono text-muted-foreground">{it.label}</div>
               <div
-                className={`kpi-num text-[28px] md:text-[36px] mt-1 ${toneClass}`}
+                className={` tabular-nums text-[1.9rem] md:text-[2.25rem] leading-[1.1] mt-1 ${toneClass} font-medium`}
               >
                 {formatUsd(it.value ?? 0)}
               </div>
               {it.sub && (
-                <div className="text-xs text-ink3 mt-1">{it.sub}</div>
+                <div className="caption text-muted-foreground mt-1">{it.sub}</div>
               )}
             </div>
           );
@@ -350,9 +350,9 @@ function ContactCard({ contact }: { contact: Record<string, any> }) {
     contact.owner_name;
   return (
     <Card className="p-5 md:p-6">
-      <div className="eyebrow mb-3">{t("debt.drawer.contact")}</div>
+      <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium-font-mono mb-3">{t("debt.drawer.contact")}</div>
       {!hasAny && (
-        <div className="text-[14px] text-ink3 italic">
+        <div className="text-[14px] text-muted-foreground italic">
           {t("debt.no_contact_info")}
         </div>
       )}
@@ -372,16 +372,16 @@ function ContactCard({ contact }: { contact: Record<string, any> }) {
           </CopyableAction>
         )}
         {contact.address && (
-          <div className="text-sm text-ink2">
-            <span className="text-xs text-ink3 mr-2">
+          <div className="text-sm text-foreground/80">
+            <span className="caption text-muted-foreground mr-2">
               {t("debt.contact.address")}
             </span>
             {contact.address}
           </div>
         )}
         {contact.owner_name && (
-          <div className="text-sm text-ink2">
-            <span className="text-xs text-ink3 mr-2">
+          <div className="text-sm text-foreground/80">
+            <span className="caption text-muted-foreground mr-2">
               {t("debt.contact.owner")}
             </span>
             {contact.owner_name}
@@ -406,10 +406,10 @@ function AgingCard({ aging }: { aging: ClientDetail["aging"] }) {
     v: number;
     bar: string;
   }> = [
-    { key: "0_30", v: aging.aging_0_30, bar: "bg-mint" },
-    { key: "30_60", v: aging.aging_30_60, bar: "bg-amber" },
-    { key: "60_90", v: aging.aging_60_90, bar: "bg-amber" },
-    { key: "90_plus", v: aging.aging_90_plus, bar: "bg-coraldk" },
+    { key: "0_30", v: aging.aging_0_30, bar: "bg-emerald-500/80" },
+    { key: "30_60", v: aging.aging_30_60, bar: "bg-amber-500/80" },
+    { key: "60_90", v: aging.aging_60_90, bar: "bg-primary/70" },
+    { key: "90_plus", v: aging.aging_90_plus, bar: "bg-red-500" },
   ];
   const dominant = [...rows].sort((a, b) => b.v - a.v)[0];
   const dominantPct =
@@ -418,9 +418,9 @@ function AgingCard({ aging }: { aging: ClientDetail["aging"] }) {
   return (
     <Card className="p-5 md:p-6">
       <div className="flex items-baseline justify-between">
-        <div className="eyebrow">{t("debt.aging_title")}</div>
+        <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium-font-mono">{t("debt.aging_title")}</div>
         {total > 0 && dominantPct >= 50 && (
-          <span className="text-xs text-ink3 italic">
+          <span className="caption text-muted-foreground italic">
             {t("debt.aging_dominance", {
               pct: dominantPct,
               bucket: t(`debt.aging.${dominant.key}`),
@@ -429,7 +429,7 @@ function AgingCard({ aging }: { aging: ClientDetail["aging"] }) {
         )}
       </div>
 
-      <div className="mt-4 flex h-[8px] rounded-full overflow-hidden bg-line">
+      <div className="mt-4 flex h-[8px] rounded-full overflow-hidden bg-muted">
         {rows.map((r) => {
           const pct = total > 0 ? r.v / total : 0;
           if (pct <= 0) return null;
@@ -449,13 +449,13 @@ function AgingCard({ aging }: { aging: ClientDetail["aging"] }) {
       <div className="mt-4 grid grid-cols-4 gap-3">
         {rows.map((r) => (
           <div key={r.key}>
-            <div className="eyebrow text-ink3">
+            <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium-font-mono text-muted-foreground">
               {t(`debt.aging.${r.key}`)}
             </div>
             <div
               className={[
                 "font- tabular-nums text-[16px] leading-tight mt-1 font-medium",
-                r.v > 0 ? "text-ink" : "text-ink3",
+                r.v > 0 ? "text-foreground" : "text-muted-foreground",
               ].join(" ")}
             >
               {r.v > 0 ? formatUsd(r.v) : "·"}
@@ -533,30 +533,32 @@ export default function DebtClient() {
   return (
     <div>
       {/* Breadcrumb */}
-      <div className="text-xs text-ink3 flex items-center gap-2 flex-wrap">
-        <button
-          onClick={() => navigate("/collection/worklist")}
-          className="text-ink3 hover:text-mintdk transition-colors inline-flex items-center gap-1"
-        >
-          <span aria-hidden>←</span>
-          <span>{t("debt.back_to_list")}</span>
-        </button>
-        <span className="text-ink4">·</span>
-        <span>{t("nav.collection")}</span>
-        <span className="text-ink4">·</span>
-        <span>{t("nav.debt")}</span>
-        {contact?.name && (
-          <>
-            <span className="text-ink4">·</span>
-            <span className="text-ink2 truncate max-w-[50ch]">
-              {contact.name}
-            </span>
-          </>
-        )}
+      <div className="">
+        <div className="caption text-muted-foreground flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => navigate("/collection/worklist")}
+            className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1"
+          >
+            <span aria-hidden>←</span>
+            <span>{t("debt.back_to_list")}</span>
+          </button>
+          <span className="text-muted-foreground/60">·</span>
+          <span>{t("nav.collection")}</span>
+          <span className="text-muted-foreground/60">·</span>
+          <span>{t("nav.debt")}</span>
+          {contact?.name && (
+            <>
+              <span className="text-muted-foreground/60">·</span>
+              <span className="text-foreground/80 truncate max-w-[50ch]">
+                {contact.name}
+              </span>
+            </>
+          )}
+        </div>
       </div>
 
       {detail.isLoading && (
-        <div className="mt-10 text-ink3 text-center">
+        <div className="mt-10 text-muted-foreground italic text-center">
           {t("common.loading")}
         </div>
       )}
@@ -564,10 +566,11 @@ export default function DebtClient() {
       {notFound && (
         <Card className="mt-8 py-16">
           <div className="text-center">
-            <div className="font-display text-2xl font-semibold tracking-[-0.02em] text-ink">
+            <div className="font-semibold italic text-2xl font-semibold tracking-tight text-foreground">
               {t("debt.not_found_title")}
+              <span className="">.</span>
             </div>
-            <div className="text-sm text-ink3 mt-3 max-w-[40ch] mx-auto">
+            <div className="text-sm text-foreground/80 mt-3 max-w-[40ch] mx-auto">
               {t("debt.not_found")}
             </div>
             <div className="mt-6">
@@ -581,35 +584,36 @@ export default function DebtClient() {
 
       {contact && aging && !notFound && (
         <>
-          {/* Masthead — full-width hero, no right rail */}
-          <div className="mt-4 flex items-end justify-between gap-6 flex-wrap pb-6 border-b border-line">
+          {/* Masthead */}
+          <div className="mt-3 grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
             <div>
-              <h1 className="font-display text-4xl md:text-[44px] font-semibold leading-[1.04] tracking-[-0.04em] text-ink break-words">
+              <h1 className="font-semibold italic text-4xl font-semibold tracking-tight text-foreground leading-[0.95] break-words">
                 {contact.name ?? "—"}
+                <span className="">.</span>
               </h1>
-              <div className="mt-3 text-xs text-ink3 flex flex-wrap items-center gap-x-3 gap-y-1">
+              <div className="mt-3 caption text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1">
                 {contact.category && (
                   <span>
-                    <span className="eyebrow mr-1.5">
+                    <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium-font-mono mr-1.5">
                       {t("debt.contact.category")}
                     </span>
-                    <span className="text-ink2">{contact.category}</span>
+                    <span className="text-foreground/80">{contact.category}</span>
                   </span>
                 )}
                 {contact.region_name && (
                   <>
-                    <span className="text-ink4">·</span>
+                    <span className="text-muted-foreground/60">·</span>
                     <span>
-                      <span className="eyebrow mr-1.5">
+                      <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium-font-mono mr-1.5">
                         {t("debt.contact.region")}
                       </span>
-                      <span className="text-ink2">{contact.region_name}</span>
+                      <span className="text-foreground/80">{contact.region_name}</span>
                     </span>
                   </>
                 )}
                 {contact.tin && (
                   <>
-                    <span className="text-ink4">·</span>
+                    <span className="text-muted-foreground/60">·</span>
                     <span className="font-mono text-xs">TIN {contact.tin}</span>
                   </>
                 )}
@@ -617,15 +621,17 @@ export default function DebtClient() {
             </div>
 
             <div className="md:text-right">
-              <div className="eyebrow">{t("debt.col.outstanding")}</div>
+              <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium-font-mono">{t("debt.col.outstanding")}</div>
               <div
-                className={`kpi-num text-[44px] md:text-[60px] mt-2 ${outstanding > 0 ? "text-coraldk" : "text-mintdk"}`}
+                className="text-[3rem] md:text-[3.6rem] leading-none tabular-nums mt-2 font-medium"
+                style={{
+                  color: outstanding > 0 ? "var(--mark)" : "var(--good)",
+                }}
               >
                 {formatUsd(outstanding)}
               </div>
               {aging.aging_90_plus > 0 && (
-                <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-coralbg text-coraldk eyebrow !text-[10px]">
-                  <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-coral animate-pulsemint" />
+                <div className="mt-2 caption text-red-700 dark:text-red-400 tabular-nums font-mono uppercase tracking-[0.05em]">
                   {t("debt.aging_90_badge", {
                     amount: formatUsd(aging.aging_90_plus),
                   })}
@@ -633,6 +639,8 @@ export default function DebtClient() {
               )}
             </div>
           </div>
+
+          <div className="border-t border-border my-3 mt-8" />
 
           {/* Ledger overview — surfaces opening balance. Uses REAL order +
               payment sums (from the meta queries) so the four stats add up
@@ -738,7 +746,7 @@ function TabsBar({
     { key: "payments", label: t("debt.drawer.payments"), n: counts.payments },
   ];
   return (
-    <div className="flex items-baseline gap-8 border-b border-line">
+    <div className="flex items-baseline gap-8 border-b border-border">
       {items.map((i) => {
         const active = i.key === tab;
         return (
@@ -747,16 +755,16 @@ function TabsBar({
             onClick={() => onTab(i.key)}
             className={[
               "relative pb-3 inline-flex items-baseline gap-2 transition-colors",
-              active ? "text-mintdk" : "text-ink3 hover:text-ink",
+              active ? "text-primary" : "text-foreground/80 hover:text-foreground",
             ].join(" ")}
           >
-            <span className="font-display text-lg md:text-xl font-semibold tracking-[-0.02em] leading-none">
+            <span className="font-semibold italic text-xl font-semibold leading-none">
               {i.label}
             </span>
             <span
               className={[
-                "font-mono text-[11px] tabular-nums px-2 py-0.5 rounded-full",
-                active ? "bg-mintbg text-mintdk" : "bg-line text-ink3",
+                "font-mono text-[11px] tabular-nums px-1.5 py-0.5 rounded-md",
+                active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
               ].join(" ")}
             >
               {i.n}
@@ -764,7 +772,7 @@ function TabsBar({
             {active && (
               <motion.span
                 layoutId="debt-client-tab"
-                className="absolute left-0 right-0 -bottom-px h-[2px] bg-mint rounded-t-full"
+                className="absolute left-0 right-0 -bottom-px h-[2px] bg-primary"
               />
             )}
           </button>
@@ -850,9 +858,9 @@ function CallComposer({
   return (
     <Card className="p-5 md:p-7">
       <form onSubmit={submit} className="flex flex-col gap-5">
-        {/* Single-line header — no doubled eyebrow + title. */}
+        {/* Single-line header — no doubled text-xs text-muted-foreground uppercase tracking-wider font-medium + title. */}
         <div className="flex items-baseline justify-between gap-4">
-          <h3 className="text-xl font-semibold text-ink font-medium">
+          <h3 className="text-xl font-semibold text-foreground font-medium">
             {t("debt.log_a_call_title")}
           </h3>
         </div>
@@ -863,12 +871,12 @@ function CallComposer({
           onChange={(e) => setNote(e.target.value)}
           rows={3}
           placeholder={t("debt.drawer.note_placeholder")}
-          className="bg-background px-4 py-3 rounded-xl border border-line text-sm text-ink outline-none focus:border-mint focus:ring-4 focus:ring-mint/15 resize-none placeholder:italic placeholder:text-ink3 transition-colors"
+          className="bg-background px-4 py-3 rounded-[10px] border border-border text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/$1 resize-none placeholder:italic placeholder:text-muted-foreground transition-colors"
         />
 
         {/* Outcome chips — compact row, sentence-case labels, kbd on right */}
         <div>
-          <div className="eyebrow mb-2">
+          <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium-font-mono mb-2">
             {t("debt.composer.outcome_label")}
           </div>
           <div className="flex flex-wrap gap-2">
@@ -882,15 +890,15 @@ function CallComposer({
                   className={[
                     "inline-flex items-center gap-2 h-9 px-3 rounded-[8px] border transition-colors text-[13px] whitespace-nowrap",
                     active
-                      ? "border-mint bg-mintbg text-mintdk font-medium"
-                      : "border-line bg-card text-ink2 hover:border-mint/40 hover:bg-mintbg/40 hover:text-ink",
+                      ? "border-primary bg-primary/10 text-primary font-medium"
+                      : "border-border bg-card text-foreground/80 hover:border-ink-3 hover:text-foreground",
                   ].join(" ")}
                 >
                   <span>{t(`debt.outcome.${o}`)}</span>
                   <kbd
                     className={[
                       "font-mono text-[10px] font-medium px-1 rounded-sm",
-                      active ? "text-mintdk" : "text-ink3",
+                      active ? "text-primary/70" : "text-muted-foreground",
                     ].join(" ")}
                   >
                     {OUTCOME_SHORTCUT[o]}
@@ -912,7 +920,7 @@ function CallComposer({
             >
               <div className="grid md:grid-cols-2 gap-4 pt-1">
                 <label className="flex flex-col gap-1.5">
-                  <span className="eyebrow">
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium-font-mono">
                     {t("debt.drawer.promised_amount")}
                   </span>
                   <input
@@ -922,7 +930,7 @@ function CallComposer({
                     value={promisedAmount}
                     onChange={(e) => setPromisedAmount(e.target.value)}
                     placeholder="0.00"
-                    className="h-10 bg-card px-3 rounded-xl border border-line text-sm text-ink outline-none focus:border-mint focus:ring-4 focus:ring-mint/15 tabular-nums transition-colors"
+                    className="h-10 bg-card px-3 rounded-[10px] border border-border text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/$1 tabular-nums transition-colors"
                   />
                 </label>
                 <DateField
@@ -937,17 +945,17 @@ function CallComposer({
 
         {/* Follow-up — compact inline row */}
         <div className="grid md:grid-cols-[180px_minmax(0,1fr)] items-center gap-3">
-          <span className="eyebrow">{t("debt.drawer.follow_up")}</span>
+          <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium-font-mono">{t("debt.drawer.follow_up")}</span>
           <DateField compact value={followUp} onChange={setFollowUp} />
         </div>
 
         {err && (
-          <div className="text-xs text-coraldk border-l-2 border-coral pl-3">
+          <div className="caption text-red-700 dark:text-red-400 border-l-2 border-red-500 pl-3 italic">
             {err}
           </div>
         )}
 
-        <div className="flex items-center justify-end gap-3 pt-3 border-t border-line">
+        <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
           <Button
             variant="ghost"
             type="button"
@@ -997,12 +1005,12 @@ function DateField({
         compact ? "max-w-[220px]" : "",
       ].join(" ")}
     >
-      {label && <span className="eyebrow">{label}</span>}
+      {label && <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium-font-mono">{label}</span>}
       <input
         type="date"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-10 bg-card px-3 rounded-xl border border-line text-sm text-ink outline-none focus:border-mint focus:ring-4 focus:ring-mint/15 tabular-nums transition-colors"
+        className="h-10 bg-card px-3 rounded-[10px] border border-border text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/$1 tabular-nums transition-colors"
       />
     </label>
   );
@@ -1029,7 +1037,7 @@ function CallsTimeline({
   if (entries.length === 0) {
     return (
       <Card className="py-12">
-        <div className="text-center text-[14px] text-ink3 italic">
+        <div className="text-center text-[14px] text-muted-foreground italic">
           {t("debt.empty_contact_log")}
         </div>
       </Card>
@@ -1042,15 +1050,15 @@ function CallsTimeline({
         {entries.map((e) => (
           <li
             key={e.id}
-            className="px-5 md:px-7 py-4 relative border-b border-line last:border-b-0"
+            className="px-5 md:px-7 py-4 relative border-b border-border last:border-b-0"
           >
             <div className="flex items-baseline gap-3 flex-wrap">
               <OutcomeKicker outcome={e.outcome} />
-              <span className="text-xs text-ink3 tabular-nums">
+              <span className="caption text-muted-foreground tabular-nums">
                 {renderDateTime(e.contacted_at)}
               </span>
               {e.contacted_by_name && (
-                <span className="text-xs text-ink3">
+                <span className="caption text-muted-foreground">
                   — {e.contacted_by_name}
                 </span>
               )}
@@ -1062,14 +1070,14 @@ function CallsTimeline({
                       del.mutate(e.id);
                     }
                   }}
-                  className="text-xs text-ink3 hover:text-coraldk hover:underline decoration-risk underline-offset-[3px]"
+                  className="caption text-muted-foreground hover:text-red-700 dark:text-red-400 hover:underline decoration-risk underline-offset-[3px]"
                 >
                   {t("common.delete")}
                 </button>
               )}
             </div>
             {e.promised_amount != null && (
-              <div className="text-xs text-mintdk mt-1 font-mono tabular-nums">
+              <div className="caption text-primary mt-1 font-semibold italic">
                 {t("debt.drawer.promised", {
                   amount: formatUsd(e.promised_amount),
                   date: renderDate(e.promised_by_date),
@@ -1077,15 +1085,15 @@ function CallsTimeline({
               </div>
             )}
             {e.follow_up_date && e.promised_amount == null && (
-              <div className="text-xs text-ink2 mt-1">
+              <div className="caption text-foreground/80 mt-1">
                 {t("debt.drawer.follow_up")}:{" "}
-                <span className="font-display font-semibold">
+                <span className="font-semibold italic">
                   {renderDate(e.follow_up_date)}
                 </span>
               </div>
             )}
             {e.note && (
-              <div className="text-sm text-ink2 mt-2 whitespace-pre-wrap">
+              <div className="text-sm text-foreground/80 mt-2 whitespace-pre-wrap">
                 {e.note}
               </div>
             )}
@@ -1115,7 +1123,7 @@ function OrdersTable({
   if (orders.length === 0 && offset === 0) {
     return (
       <Card className="py-12">
-        <div className="text-center text-[14px] text-ink3 italic">
+        <div className="text-center text-[14px] text-muted-foreground italic">
           {t("debt.empty_orders")}
         </div>
       </Card>
@@ -1150,17 +1158,17 @@ function OrdersTable({
           </thead>
           <tbody>
             {orders.map((o, i) => (
-              <tr key={i} className="hover:bg-mintbg/40 transition-colors">
+              <tr key={i} className="hover:bg-primary/10/40 transition-colors">
                 <Td className="tabular-nums w-[120px]">
-                  <span className="text-ink2">
+                  <span className="text-foreground/80">
                     {renderDate(o.delivery_date)}
                   </span>
                 </Td>
                 <Td>
-                  <span className="text-ink">{o.product_name ?? "—"}</span>
+                  <span className="text-foreground">{o.product_name ?? "—"}</span>
                 </Td>
                 <Td className="hidden md:table-cell">
-                  <span className="text-xs text-ink3 truncate">
+                  <span className="caption text-muted-foreground truncate">
                     {o.sales_manager ?? "—"}
                   </span>
                 </Td>
@@ -1169,7 +1177,7 @@ function OrdersTable({
                 </Td>
                 <Td
                   align="right"
-                  className="tabular-nums font-medium text-ink w-[140px]"
+                  className="tabular-nums font-medium text-foreground w-[140px]"
                 >
                   {formatUsd2(o.product_amount)}
                 </Td>
@@ -1209,7 +1217,7 @@ function PaymentsTable({
   if (payments.length === 0 && offset === 0) {
     return (
       <Card className="py-12">
-        <div className="text-center text-[14px] text-ink3 italic">
+        <div className="text-center text-[14px] text-muted-foreground italic">
           {t("debt.empty_payments")}
         </div>
       </Card>
@@ -1242,23 +1250,23 @@ function PaymentsTable({
           </thead>
           <tbody>
             {payments.map((p, i) => (
-              <tr key={i} className="hover:bg-mintbg/40 transition-colors">
+              <tr key={i} className="hover:bg-primary/10/40 transition-colors">
                 <Td className="tabular-nums w-[180px]">
-                  <span className="text-ink2">
+                  <span className="text-foreground/80">
                     {renderDateTime(p.payment_date)}
                   </span>
                 </Td>
                 <Td>
-                  <span className="text-ink">{p.payer ?? "—"}</span>
+                  <span className="text-foreground">{p.payer ?? "—"}</span>
                 </Td>
                 <Td className="hidden md:table-cell">
-                  <span className="text-xs text-ink3">
+                  <span className="caption text-muted-foreground">
                     {p.payment_method ?? "—"}
                   </span>
                 </Td>
                 <Td
                   align="right"
-                  className="tabular-nums font-medium text-mintdk w-[140px]"
+                  className="tabular-nums font-medium text-emerald-700 dark:text-emerald-400 w-[140px]"
                 >
                   + {formatUsd2(p.amount)}
                 </Td>
@@ -1293,7 +1301,7 @@ function Th({
   return (
     <th
       className={[
-        "px-5 md:px-7 py-3 border-b-[1.5px] border-ink eyebrow bg-card whitespace-nowrap",
+        "px-5 md:px-7 py-3 border-b-[1.5px] border-ink text-xs text-muted-foreground uppercase tracking-wider font-medium-font-mono bg-card whitespace-nowrap",
         align === "right" ? "text-right" : "text-left",
         className,
       ].join(" ")}
@@ -1315,7 +1323,7 @@ function Td({
   return (
     <td
       className={[
-        "px-5 md:px-7 py-3 border-b border-line last:border-b-0 text-[14px]",
+        "px-5 md:px-7 py-3 border-b border-border last:border-b-0 text-[14px]",
         align === "right" ? "text-right" : "text-left",
         className,
       ].join(" ")}
@@ -1334,20 +1342,20 @@ function TotalsStrip({
 }) {
   const toneClass =
     right.tone === "good"
-      ? "text-mintdk"
+      ? "text-emerald-700 dark:text-emerald-400"
       : right.tone === "mark"
-        ? "text-mintdk"
-        : "text-ink";
+        ? "text-primary"
+        : "text-foreground";
   return (
-    <div className="px-5 md:px-7 py-4 bg-muted/60 border-b border-line flex items-baseline justify-between gap-4">
+    <div className="px-5 md:px-7 py-4 bg-muted/60 border-b border-border flex items-baseline justify-between gap-4">
       <div className="flex items-baseline gap-3">
-        <span className="eyebrow">{left.label}</span>
-        <span className="tabular-nums text-[20px] font-medium text-ink">
+        <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium-font-mono">{left.label}</span>
+        <span className="tabular-nums text-[20px] font-medium text-foreground">
           {left.value}
         </span>
       </div>
       <div className="flex items-baseline gap-3">
-        <span className="eyebrow">{right.label}</span>
+        <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium-font-mono">{right.label}</span>
         <span
           className={` tabular-nums text-[22px] font-medium ${toneClass}`}
         >

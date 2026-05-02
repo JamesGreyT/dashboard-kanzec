@@ -29,7 +29,7 @@ export default function Histogram({
   return (
     <div className="min-w-0">
       {label && (
-        <div className="eyebrow mb-2 text-mintdk">
+        <div className="eyebrow !tracking-[0.18em] mb-2 text-primary">
           {label}
         </div>
       )}
@@ -52,10 +52,9 @@ export default function Histogram({
             contentStyle={{
               backgroundColor: "hsl(var(--card))",
               border: "1px solid hsl(var(--border))",
-              borderRadius: 12,
+              borderRadius: 6,
               fontSize: 12,
               fontFamily: "var(--font-mono)",
-              boxShadow: "0 2px 4px rgba(17,24,39,0.04), 0 24px 48px -16px rgba(17,24,39,0.12)",
             }}
           />
           <Bar dataKey={yKey} radius={[2, 2, 0, 0]}>

@@ -27,22 +27,15 @@ export default function Card({
   return (
     <ShadCard
       className={cn(
-        "bg-card rounded-2xl shadow-card border-line",
-        accent && "relative before:absolute before:left-0 before:top-3 before:bottom-3 before:w-[3px] before:rounded-r-full before:bg-mint",
-        interactive && "transition-shadow hover:shadow-cardlg cursor-pointer",
+        accent && "border-l-4 border-l-primary",
+        interactive && "transition-shadow hover:shadow-md cursor-pointer",
         className,
       )}
     >
       {hasHeader && (
         <CardHeader>
-          {eyebrow && (
-            <CardDescription className="eyebrow">{eyebrow}</CardDescription>
-          )}
-          {title && (
-            <CardTitle className="font-display text-xl font-semibold tracking-[-0.02em] text-ink">
-              {title}
-            </CardTitle>
-          )}
+          {eyebrow && <CardDescription className="uppercase tracking-wider text-xs">{eyebrow}</CardDescription>}
+          {title && <CardTitle>{title}</CardTitle>}
         </CardHeader>
       )}
       <CardContent className={cn(!hasHeader && "pt-6")}>{children}</CardContent>
