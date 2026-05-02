@@ -670,3 +670,588 @@ export function useLegalPersonsGroups() {
     staleTime: 60 * 60 * 1000,
   })
 }
+
+// ── Analytics: shared shapes ──────────────────────────────────────────────
+
+export type AnalyticsFilters = {
+  from?: string // ISO date
+  to?: string
+  direction?: string
+  region?: string
+  manager?: string
+}
+
+export type AnalyticsRankParams = AnalyticsFilters & {
+  page?: number
+  size?: number
+  search?: string
+  sort?: string
+  with_sparkline?: boolean
+}
+
+function aparams(p: AnalyticsFilters): Record<string, string | undefined> {
+  return {
+    from: p.from || undefined,
+    to: p.to || undefined,
+    direction: p.direction || undefined,
+    region: p.region || undefined,
+    manager: p.manager || undefined,
+  }
+}
+
+function rparams(p: AnalyticsRankParams): Record<string, string | number | boolean | undefined> {
+  return {
+    ...aparams(p),
+    page: p.page ?? 0,
+    size: p.size ?? 50,
+    search: p.search || undefined,
+    sort: p.sort || undefined,
+    with_sparkline: p.with_sparkline || undefined,
+  }
+}
+
+// Generic delta type (current / prior / yoy + pct)
+export type DeltaBlock = {
+  current: number
+  prior: number
+  yoy?: number
+  mom_pct: number
+  yoy_pct?: number
+}
+
+export type AnalyticsWindow = {
+  window: { from: string; to: string }
+  comparison?: { mom: { from: string; to: string }; yoy: { from: string; to: string } }
+}
+
+// ── Sales hooks ───────────────────────────────────────────────────────────
+
+export type SalesOverview = AnalyticsWindow & {
+  revenue: DeltaBlock
+  deals: DeltaBlock
+  unique_clients: DeltaBlock
+  avg_deal: DeltaBlock
+  returns_pct: { current: number }
+}
+
+export function useSalesOverview(p: AnalyticsFilters) {
+  return useQuery({
+    queryKey: ['sales', 'overview', p],
+    queryFn: async () => (await api.get<SalesOverview>('/sales/overview', { params: aparams(p) })).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export type TimeseriesPoint = { date: string; value: number; ma?: number; yoy?: number }
+export type TimeseriesResponse = { series: TimeseriesPoint[] }
+
+export function useSalesTimeseries(p: AnalyticsFilters & { granularity?: 'day' | 'week' | 'month' | 'quarter' }) {
+  return useQuery({
+    queryKey: ['sales', 'timeseries', p],
+    queryFn: async () =>
+      (
+        await api.get<TimeseriesResponse>('/sales/timeseries', {
+          params: { ...aparams(p), granularity: p.granularity ?? 'month' },
+        })
+      ).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export type SalesClientRow = {
+  person_id: number
+  name: string
+  direction: string | null
+  region: string | null
+  revenue: number
+  deals: number
+  qty: number
+  avg_deal: number
+  last_order: string | null
+  first_order: string | null
+  yoy_pct: number | null
+  sparkline: number[] | null
+}
+
+export type RankResponse<T> = {
+  rows: T[]
+  total: number
+  page: number
+  size: number
+  sort: string
+  totals?: Record<string, number>
+}
+
+export function useSalesClients(p: AnalyticsRankParams) {
+  return useQuery({
+    queryKey: ['sales', 'clients', p],
+    queryFn: async () =>
+      (await api.get<RankResponse<SalesClientRow>>('/sales/clients', { params: rparams(p) })).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export type SalesManagerRow = {
+  manager: string
+  direction?: string | null
+  region?: string | null
+  revenue: number
+  deals: number
+  unique_clients: number
+  avg_deal: number
+  yoy_pct: number | null
+}
+
+export function useSalesManagers(p: AnalyticsRankParams) {
+  return useQuery({
+    queryKey: ['sales', 'managers', p],
+    queryFn: async () =>
+      (await api.get<RankResponse<SalesManagerRow>>('/sales/managers', { params: rparams(p) })).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export type SalesBrandRow = {
+  brand: string
+  revenue: number
+  deals: number
+  qty: number
+  unique_clients: number
+}
+
+export function useSalesBrands(p: AnalyticsRankParams) {
+  return useQuery({
+    queryKey: ['sales', 'brands', p],
+    queryFn: async () =>
+      (await api.get<RankResponse<SalesBrandRow>>('/sales/brands', { params: rparams(p) })).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export type SalesRegionRow = {
+  region: string
+  revenue: number
+  deals: number
+  unique_clients: number
+}
+
+export function useSalesRegions(p: AnalyticsRankParams) {
+  return useQuery({
+    queryKey: ['sales', 'regions', p],
+    queryFn: async () =>
+      (await api.get<RankResponse<SalesRegionRow>>('/sales/regions', { params: rparams(p) })).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export type CrossSellRow = { left: string; right: string; pair_count: number; lift: number }
+
+export function useSalesCrossSell(p: AnalyticsFilters & { limit?: number }) {
+  return useQuery({
+    queryKey: ['sales', 'cross-sell', p],
+    queryFn: async () =>
+      (
+        await api.get<{ pairs?: CrossSellRow[]; rows?: CrossSellRow[] }>('/sales/cross-sell', {
+          params: { ...aparams(p), limit: Math.max(p.limit ?? 20, 5) },
+        })
+      ).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export function useSalesRfm(p: AnalyticsRankParams) {
+  return useQuery({
+    queryKey: ['sales', 'rfm', p],
+    queryFn: async () =>
+      (await api.get<RfmResponse>('/sales/rfm', { params: rparams(p) })).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export type HeatmapResponse = {
+  row_labels: string[]
+  col_labels: string[]
+  values: number[][]
+}
+
+export function useSalesSeasonality(p: AnalyticsFilters & { years?: number }) {
+  return useQuery({
+    queryKey: ['sales', 'seasonality', p],
+    queryFn: async () =>
+      (
+        await api.get<HeatmapResponse>('/sales/seasonality', {
+          params: { ...aparams(p), years: p.years ?? 4 },
+        })
+      ).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export function salesExportHref(
+  endpoint: 'clients' | 'managers' | 'brands' | 'regions',
+  p: AnalyticsRankParams,
+): string {
+  const qs = new URLSearchParams()
+  for (const [k, v] of Object.entries(rparams(p))) {
+    if (v !== undefined && v !== '') qs.set(k, String(v))
+  }
+  return `/api/sales/export/${endpoint}.xlsx?${qs.toString()}`
+}
+
+// ── Payments hooks ────────────────────────────────────────────────────────
+
+export type PaymentsOverview = AnalyticsWindow & {
+  receipts: DeltaBlock
+  payments: DeltaBlock
+  payers: DeltaBlock
+  avg_payment: { current: number }
+  dso: { current: number | null }
+  collection_ratio: { current: number | null }
+}
+
+export function usePaymentsOverview(p: AnalyticsFilters) {
+  return useQuery({
+    queryKey: ['payments', 'overview', p],
+    queryFn: async () =>
+      (await api.get<PaymentsOverview>('/payments/overview', { params: aparams(p) })).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export function usePaymentsTimeseries(p: AnalyticsFilters & { granularity?: 'day' | 'week' | 'month' | 'quarter' }) {
+  return useQuery({
+    queryKey: ['payments', 'timeseries', p],
+    queryFn: async () =>
+      (
+        await api.get<TimeseriesResponse>('/payments/timeseries', {
+          params: { ...aparams(p), granularity: p.granularity ?? 'month' },
+        })
+      ).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export type MethodSplit = { split: { method: string; count: number; amount: number }[] }
+
+export function usePaymentsMethodSplit(p: AnalyticsFilters) {
+  return useQuery({
+    queryKey: ['payments', 'method-split', p],
+    queryFn: async () =>
+      (await api.get<MethodSplit>('/payments/method-split', { params: aparams(p) })).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export type WeekdayPattern = { pattern: { dow: number; label: string; count: number; amount: number }[] }
+
+export function usePaymentsWeekday(p: AnalyticsFilters) {
+  return useQuery({
+    queryKey: ['payments', 'weekday', p],
+    queryFn: async () =>
+      (await api.get<WeekdayPattern>('/payments/weekday', { params: aparams(p) })).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export type Velocity = { histogram: { bucket: string; count: number; amount: number }[] }
+
+export function usePaymentsVelocity(p: AnalyticsFilters) {
+  return useQuery({
+    queryKey: ['payments', 'velocity', p],
+    queryFn: async () =>
+      (await api.get<Velocity>('/payments/velocity', { params: aparams(p) })).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export type CollectionRatio = {
+  series: { month: string; invoiced: number; paid: number; ratio: number | null }[]
+}
+
+export function usePaymentsCollectionRatio(p: AnalyticsFilters) {
+  return useQuery({
+    queryKey: ['payments', 'collection-ratio', p],
+    queryFn: async () =>
+      (await api.get<CollectionRatio>('/payments/collection-ratio', { params: aparams(p) })).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export type PaymentsRankRow = {
+  person_id: number
+  name: string
+  direction?: string | null
+  region?: string | null
+  receipts?: number
+  amount?: number
+  payments?: number
+  count?: number
+  last_payment?: string | null
+  avg_amount?: number
+  days_between?: number | null
+  yoy_pct?: number | null
+}
+
+export function usePaymentsPayers(p: AnalyticsRankParams) {
+  return useQuery({
+    queryKey: ['payments', 'payers', p],
+    queryFn: async () =>
+      (await api.get<RankResponse<PaymentsRankRow>>('/payments/payers', { params: rparams(p) })).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export function usePaymentsPrepayers(p: AnalyticsRankParams) {
+  return useQuery({
+    queryKey: ['payments', 'prepayers', p],
+    queryFn: async () =>
+      (await api.get<RankResponse<PaymentsRankRow>>('/payments/prepayers', { params: rparams(p) })).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export function usePaymentsRegularity(p: AnalyticsRankParams) {
+  return useQuery({
+    queryKey: ['payments', 'regularity', p],
+    queryFn: async () =>
+      (await api.get<RankResponse<PaymentsRankRow>>('/payments/regularity', { params: rparams(p) })).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export function usePaymentsChurned(p: AnalyticsRankParams) {
+  return useQuery({
+    queryKey: ['payments', 'churned', p],
+    queryFn: async () =>
+      (await api.get<RankResponse<PaymentsRankRow>>('/payments/churned', { params: rparams(p) })).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export function usePaymentsRfm(p: AnalyticsRankParams) {
+  return useQuery({
+    queryKey: ['payments', 'rfm', p],
+    queryFn: async () =>
+      (await api.get<RfmResponse>('/payments/rfm', { params: rparams(p) })).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export function paymentsExportHref(
+  endpoint: 'payers' | 'prepayers' | 'regularity' | 'churned',
+  p: AnalyticsRankParams,
+): string {
+  const qs = new URLSearchParams()
+  for (const [k, v] of Object.entries(rparams(p))) {
+    if (v !== undefined && v !== '') qs.set(k, String(v))
+  }
+  return `/api/payments/export/${endpoint}.xlsx?${qs.toString()}`
+}
+
+// ── Returns hooks ─────────────────────────────────────────────────────────
+
+export type ReturnsOverview = AnalyticsWindow & {
+  returns: DeltaBlock
+  rate: { current: number }
+  return_lines: DeltaBlock
+  avg_ticket: { current: number }
+}
+
+export function useReturnsOverview(p: AnalyticsFilters) {
+  return useQuery({
+    queryKey: ['returns', 'overview', p],
+    queryFn: async () =>
+      (await api.get<ReturnsOverview>('/returns/overview', { params: aparams(p) })).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export type ReturnsTimelinePoint = { date: string; forward: number; returns: number; rate: number | null }
+
+export function useReturnsTimeline(p: AnalyticsFilters & { granularity?: 'day' | 'week' | 'month' | 'quarter' }) {
+  return useQuery({
+    queryKey: ['returns', 'timeline', p],
+    queryFn: async () =>
+      (
+        await api.get<{ series: ReturnsTimelinePoint[] }>('/returns/timeline', {
+          params: { ...aparams(p), granularity: p.granularity ?? 'month' },
+        })
+      ).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export type BrandHeatmap = {
+  row_labels: string[]
+  col_labels: string[]
+  values_rate: number[][]
+  values_amount: number[][]
+  totals?: Record<string, number>
+}
+
+export function useReturnsBrandHeatmap(p: AnalyticsFilters & { months?: number }) {
+  return useQuery({
+    queryKey: ['returns', 'brand-heatmap', p],
+    queryFn: async () =>
+      (
+        await api.get<BrandHeatmap>('/returns/brand-heatmap', {
+          params: { ...aparams(p), months: p.months ?? 12 },
+        })
+      ).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export type ReturnsClientRow = {
+  person_id: number
+  name: string
+  region?: string | null
+  direction?: string | null
+  returns: number
+  return_lines: number
+  forward?: number
+  rate?: number
+}
+
+export function useReturnsClients(p: AnalyticsRankParams) {
+  return useQuery({
+    queryKey: ['returns', 'clients', p],
+    queryFn: async () =>
+      (await api.get<RankResponse<ReturnsClientRow>>('/returns/clients', { params: rparams(p) })).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export type ReturnsRegionRow = {
+  region: string
+  returns: number
+  return_lines: number
+  forward?: number
+  rate?: number
+}
+
+export function useReturnsRegions(p: AnalyticsRankParams) {
+  return useQuery({
+    queryKey: ['returns', 'regions', p],
+    queryFn: async () =>
+      (await api.get<RankResponse<ReturnsRegionRow>>('/returns/regions', { params: rparams(p) })).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export function returnsExportHref(
+  endpoint: 'clients' | 'regions',
+  p: AnalyticsRankParams,
+): string {
+  const qs = new URLSearchParams()
+  for (const [k, v] of Object.entries(rparams(p))) {
+    if (v !== undefined && v !== '') qs.set(k, String(v))
+  }
+  return `/api/returns/export/${endpoint}.xlsx?${qs.toString()}`
+}
+
+// ── Comparison hooks ──────────────────────────────────────────────────────
+
+export type ComparisonRow = {
+  label: string
+  values: number[]
+  share_pct: number[]
+  trend_delta_pct: number
+  rank_now: number
+  rank_prev: number | null
+  plan?: number[]
+  plan_index_pct?: number[]
+}
+
+export type ComparisonResponse = {
+  columns: string[]
+  rows: ComparisonRow[]
+  totals: number[]
+  mode: 'yearly' | 'monthly' | 'daily'
+  dimension: string
+  measure: 'sotuv' | 'kirim'
+}
+
+export type ComparisonParams = {
+  measure: 'sotuv' | 'kirim'
+  dimension?: 'manager' | 'direction' | 'brand' | 'model' | 'region'
+  mode?: 'yearly' | 'monthly' | 'daily'
+  year_end?: number
+  years?: number
+  year?: number
+  month?: number
+  direction?: string
+  region?: string
+  manager?: string
+  with_plan?: boolean
+}
+
+export function useComparisonMatrix(p: ComparisonParams) {
+  return useQuery({
+    queryKey: ['comparison', p.measure, p],
+    queryFn: async () =>
+      (
+        await api.get<ComparisonResponse>(`/comparison/${p.measure}`, {
+          params: {
+            dimension: p.dimension ?? 'manager',
+            mode: p.mode ?? 'yearly',
+            year_end: p.year_end,
+            years: p.years,
+            year: p.year,
+            month: p.month,
+            direction: p.direction || undefined,
+            region: p.region || undefined,
+            manager: p.manager || undefined,
+            with_plan: p.with_plan || undefined,
+          },
+        })
+      ).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export type ComparisonDrillRow = {
+  label: string
+  bucket: string
+  delivery_date?: string
+  payment_date?: string
+  amount: number
+  client?: string
+  manager?: string
+  direction?: string
+  brand?: string
+  region?: string
+}
+
+export type ComparisonDrillResponse = {
+  rows: ComparisonDrillRow[]
+  total: number
+}
+
+export function useComparisonDrill(
+  p: ComparisonParams & { dimension_value: string; bucket: string; limit?: number; enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: ['comparison', p.measure, 'drill', p],
+    queryFn: async () =>
+      (
+        await api.get<ComparisonDrillResponse>(`/comparison/${p.measure}/drill`, {
+          params: {
+            dimension: p.dimension ?? 'manager',
+            mode: p.mode ?? 'yearly',
+            dimension_value: p.dimension_value,
+            bucket: p.bucket,
+            year_end: p.year_end,
+            years: p.years,
+            year: p.year,
+            month: p.month,
+            direction: p.direction || undefined,
+            region: p.region || undefined,
+            manager: p.manager || undefined,
+            limit: p.limit ?? 500,
+          },
+        })
+      ).data,
+    enabled: p.enabled ?? !!(p.dimension_value && p.bucket),
+  })
+}

@@ -188,6 +188,101 @@
       "confirmDelete": "Delete this entry?"
     }
   },
+  "analytics": {
+    "section": "Analytics",
+    "filters": {
+      "label": "Filters",
+      "dateRange": "Date range",
+      "direction": "Direction",
+      "region": "Region",
+      "manager": "Manager",
+      "presets": { "last90": "90 days" }
+    },
+    "kpi": { "mom": "MoM", "yoy": "YoY" },
+    "granularity": { "day": "Day", "week": "Week", "month": "Month", "quarter": "Quarter" },
+    "cols": {
+      "client": "Client",
+      "manager": "Manager",
+      "region": "Region",
+      "brand": "Brand",
+      "qty": "Qty",
+      "yoy": "YoY",
+      "lastOrder": "Last order",
+      "lastPayment": "Last payment",
+      "count": "Count"
+    },
+    "sales": {
+      "title": "Sales",
+      "revenue": "Revenue",
+      "deals": "Deals",
+      "uniqueClients": "Unique clients",
+      "uniqueClientsShort": "Clients",
+      "avgDeal": "Avg deal",
+      "yoy": "YoY",
+      "timeseries": "Time series",
+      "topClients": "Top clients",
+      "topManagers": "Top managers",
+      "topBrands": "Top brands",
+      "topRegions": "Top regions",
+      "crossSell": "Cross-sell",
+      "noCrossSell": "No cross-sell data.",
+      "rfm": "RFM segmentation",
+      "noRfm": "No RFM data.",
+      "seasonality": "Seasonality"
+    },
+    "payments": {
+      "title": "Payments",
+      "receipts": "Receipts",
+      "payments": "Transactions",
+      "payers": "Payers",
+      "dso": "DSO",
+      "days": "days",
+      "collectionRatio": "Collection ratio",
+      "timeseries": "Time series",
+      "methodSplit": "Method split",
+      "weekday": "Weekday pattern",
+      "velocity": "Velocity (debt → pay)",
+      "collectionRatioTrend": "Collection ratio trend",
+      "topPayers": "Top payers",
+      "prepayers": "Prepayers",
+      "regularity": "Regularity",
+      "churned": "Churned"
+    },
+    "returns": {
+      "title": "Returns",
+      "amount": "Returns amount",
+      "rate": "Return rate",
+      "lines": "Lines",
+      "avgTicket": "Avg return",
+      "timeline": "Timeline",
+      "forward": "Forward",
+      "returns": "Returns",
+      "brandHeatmap": "Brand × month",
+      "amountByBrandMonth": "Amount by brand × month",
+      "noBrandData": "No brand data.",
+      "topClients": "Top returners",
+      "topRegions": "Top regions by returns"
+    },
+    "comparison": {
+      "title": "Comparison",
+      "sotuv": "Sales",
+      "kirim": "Receipts",
+      "dimension": "Dimension",
+      "withPlan": "With plan",
+      "modes": { "yearly": "Yearly", "monthly": "Monthly", "daily": "Daily" },
+      "dimensions": {
+        "manager": "Manager",
+        "direction": "Direction",
+        "brand": "Brand",
+        "model": "Model",
+        "region": "Region"
+      },
+      "drillTitle": "Drill",
+      "drillEmpty": "No entries in this cell.",
+      "lines": "lines",
+      "empty": "No data for the selected parameters."
+    }
+  },
   "data": {
     "meta": {
       "registryOf": "Registry of"

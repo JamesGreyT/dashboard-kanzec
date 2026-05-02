@@ -188,6 +188,101 @@
       "confirmDelete": "Удалить запись?"
     }
   },
+  "analytics": {
+    "section": "Аналитика",
+    "filters": {
+      "label": "Фильтры",
+      "dateRange": "Период",
+      "direction": "Направление",
+      "region": "Регион",
+      "manager": "Менеджер",
+      "presets": { "last90": "90 дней" }
+    },
+    "kpi": { "mom": "MoM", "yoy": "YoY" },
+    "granularity": { "day": "День", "week": "Неделя", "month": "Месяц", "quarter": "Квартал" },
+    "cols": {
+      "client": "Клиент",
+      "manager": "Менеджер",
+      "region": "Регион",
+      "brand": "Бренд",
+      "qty": "Кол-во",
+      "yoy": "YoY",
+      "lastOrder": "Посл. заказ",
+      "lastPayment": "Посл. оплата",
+      "count": "Кол-во"
+    },
+    "sales": {
+      "title": "Продажи",
+      "revenue": "Выручка",
+      "deals": "Сделки",
+      "uniqueClients": "Уник. клиенты",
+      "uniqueClientsShort": "Клиенты",
+      "avgDeal": "Ср. чек",
+      "yoy": "Год назад",
+      "timeseries": "Динамика",
+      "topClients": "Топ клиенты",
+      "topManagers": "Топ менеджеры",
+      "topBrands": "Топ бренды",
+      "topRegions": "Топ регионы",
+      "crossSell": "Сопутствующие товары",
+      "noCrossSell": "Нет данных по cross-sell.",
+      "rfm": "RFM сегментация",
+      "noRfm": "Нет данных RFM.",
+      "seasonality": "Сезонность"
+    },
+    "payments": {
+      "title": "Платежи",
+      "receipts": "Поступления",
+      "payments": "Транзакции",
+      "payers": "Плательщики",
+      "dso": "DSO",
+      "days": "дн.",
+      "collectionRatio": "Коэф. сбора",
+      "timeseries": "Динамика",
+      "methodSplit": "Способ платежа",
+      "weekday": "Дни недели",
+      "velocity": "Скорость (долг → оплата)",
+      "collectionRatioTrend": "История коэф. сбора",
+      "topPayers": "Топ плательщики",
+      "prepayers": "Предоплатчики",
+      "regularity": "Регулярность",
+      "churned": "Ушедшие клиенты"
+    },
+    "returns": {
+      "title": "Возвраты",
+      "amount": "Сумма возвратов",
+      "rate": "Доля возвратов",
+      "lines": "Позиции",
+      "avgTicket": "Средний возврат",
+      "timeline": "Динамика",
+      "forward": "Продажа",
+      "returns": "Возврат",
+      "brandHeatmap": "Бренды × месяц",
+      "amountByBrandMonth": "Сумма: бренд × месяц",
+      "noBrandData": "Нет данных по брендам.",
+      "topClients": "Клиенты с наибольшими возвратами",
+      "topRegions": "Регионы с наибольшими возвратами"
+    },
+    "comparison": {
+      "title": "Сравнение",
+      "sotuv": "Продажа",
+      "kirim": "Поступление",
+      "dimension": "Разрез",
+      "withPlan": "С планом",
+      "modes": { "yearly": "Год", "monthly": "Месяц", "daily": "День" },
+      "dimensions": {
+        "manager": "Менеджер",
+        "direction": "Направление",
+        "brand": "Бренд",
+        "model": "Модель",
+        "region": "Регион"
+      },
+      "drillTitle": "Детали",
+      "drillEmpty": "В этой ячейке нет записей.",
+      "lines": "записей",
+      "empty": "Нет данных для выбранных параметров."
+    }
+  },
   "data": {
     "meta": {
       "registryOf": "Реестр"

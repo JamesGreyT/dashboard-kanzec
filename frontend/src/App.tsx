@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -16,6 +17,22 @@ import PaymentsDataPage from '@/pages/data/Payments'
 import LegalPersonsPage from '@/pages/data/LegalPersons'
 import Worklist from '@/pages/collection/Worklist'
 import ClientDetail from '@/pages/collection/ClientDetail'
+
+// Analytics pages are heavy (~1.5 MB gzipped because Plotly). Lazy-load
+// them so the initial bundle stays small for the dashboard / data viewer
+// / collection workflows that don't need charts.
+const SalesAnalytics = lazy(() => import('@/pages/analytics/Sales'))
+const PaymentsAnalytics = lazy(() => import('@/pages/analytics/Payments'))
+const ReturnsAnalytics = lazy(() => import('@/pages/analytics/Returns'))
+const ComparisonAnalytics = lazy(() => import('@/pages/analytics/Comparison'))
+
+function ChartFallback() {
+  return (
+    <div className="h-screen w-full flex items-center justify-center text-muted-foreground">
+      <div className="animate-spin w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full" />
+    </div>
+  )
+}
 
 /**
  * Renders a full-screen spinner while the AuthContext bootstrap is in flight.
@@ -95,10 +112,10 @@ export default function App() {
                     <Route path="/collection/worklist" element={<Worklist />} />
                     <Route path="/collection/debt/client/:personId" element={<ClientDetail />} />
 
-                    <Route path="/analytics/sales" element={<PlaceholderPage titleKey="nav.items.sales" />} />
-                    <Route path="/analytics/payments" element={<PlaceholderPage titleKey="nav.items.payments" />} />
-                    <Route path="/analytics/returns" element={<PlaceholderPage titleKey="nav.items.returns" />} />
-                    <Route path="/analytics/comparison" element={<PlaceholderPage titleKey="nav.items.comparison" />} />
+                    <Route path="/analytics/sales" element={<Suspense fallback={<ChartFallback />}><SalesAnalytics /></Suspense>} />
+                    <Route path="/analytics/payments" element={<Suspense fallback={<ChartFallback />}><PaymentsAnalytics /></Suspense>} />
+                    <Route path="/analytics/returns" element={<Suspense fallback={<ChartFallback />}><ReturnsAnalytics /></Suspense>} />
+                    <Route path="/analytics/comparison" element={<Suspense fallback={<ChartFallback />}><ComparisonAnalytics /></Suspense>} />
 
                     <Route path="/admin/alerts" element={<PlaceholderPage titleKey="nav.items.alerts" />} />
 

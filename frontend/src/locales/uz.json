@@ -188,6 +188,103 @@
       "confirmDelete": "Yozuvni o'chirilsinmi?"
     }
   },
+  "analytics": {
+    "section": "Analitika",
+    "filters": {
+      "label": "Filtrlar",
+      "dateRange": "Sana oralig'i",
+      "direction": "Yo'nalish",
+      "region": "Hudud",
+      "manager": "Manager",
+      "presets": {
+        "last90": "90 kun"
+      }
+    },
+    "kpi": { "mom": "MoM", "yoy": "YoY" },
+    "granularity": { "day": "Kun", "week": "Hafta", "month": "Oy", "quarter": "Chorak" },
+    "cols": {
+      "client": "Mijoz",
+      "manager": "Manager",
+      "region": "Hudud",
+      "brand": "Brend",
+      "qty": "Miqdor",
+      "yoy": "YoY",
+      "lastOrder": "Oxirgi buyurtma",
+      "lastPayment": "Oxirgi to'lov",
+      "count": "Soni"
+    },
+    "sales": {
+      "title": "Sotuv",
+      "revenue": "Tushum",
+      "deals": "Buyurtmalar",
+      "uniqueClients": "Mijozlar soni",
+      "uniqueClientsShort": "Mijoz",
+      "avgDeal": "O'rtacha buyurtma",
+      "yoy": "Yil avval",
+      "timeseries": "Davriy o'sish",
+      "topClients": "Eng yirik mijozlar",
+      "topManagers": "Eng yirik managerlar",
+      "topBrands": "Eng yirik brendlar",
+      "topRegions": "Eng yirik hududlar",
+      "crossSell": "Birgalikda sotiladi",
+      "noCrossSell": "Cross-sell ma'lumotlari yo'q.",
+      "rfm": "RFM segmentatsiyasi",
+      "noRfm": "RFM ma'lumotlari yo'q.",
+      "seasonality": "Mavsumiylik"
+    },
+    "payments": {
+      "title": "To'lovlar",
+      "receipts": "Tushum",
+      "payments": "Tranzaksiyalar",
+      "payers": "To'lovchilar",
+      "dso": "DSO",
+      "days": "kun",
+      "collectionRatio": "Yig'im nisbati",
+      "timeseries": "Davriy o'sish",
+      "methodSplit": "To'lov usuli",
+      "weekday": "Hafta kunlari",
+      "velocity": "Tezlik (qarzdan to'lovgacha)",
+      "collectionRatioTrend": "Yig'im nisbati tarixi",
+      "topPayers": "Eng yirik to'lovchilar",
+      "prepayers": "Oldindan to'lovchilar",
+      "regularity": "Muntazamlik",
+      "churned": "Ketgan mijozlar"
+    },
+    "returns": {
+      "title": "Qaytarishlar",
+      "amount": "Qaytarish summasi",
+      "rate": "Qaytarish foizi",
+      "lines": "Qatorlar",
+      "avgTicket": "O'rtacha qaytarish",
+      "timeline": "Davriy o'sish",
+      "forward": "Sotuv",
+      "returns": "Qaytarish",
+      "brandHeatmap": "Brendlar bo'yicha xarita",
+      "amountByBrandMonth": "Summa: brend × oy",
+      "noBrandData": "Brend ma'lumotlari yo'q.",
+      "topClients": "Eng ko'p qaytaruvchi mijozlar",
+      "topRegions": "Eng ko'p qaytaruvchi hududlar"
+    },
+    "comparison": {
+      "title": "Taqqoslash",
+      "sotuv": "Sotuv",
+      "kirim": "Kirim",
+      "dimension": "O'lchov",
+      "withPlan": "Reja bilan",
+      "modes": { "yearly": "Yillik", "monthly": "Oylik", "daily": "Kunlik" },
+      "dimensions": {
+        "manager": "Manager",
+        "direction": "Yo'nalish",
+        "brand": "Brend",
+        "model": "Model",
+        "region": "Hudud"
+      },
+      "drillTitle": "Tafsilotlar",
+      "drillEmpty": "Bu katakda yozuvlar yo'q.",
+      "lines": "yozuv",
+      "empty": "Tanlangan o'lchovlar bo'yicha ma'lumot yo'q."
+    }
+  },
   "data": {
     "meta": {
       "registryOf": "Registr"
