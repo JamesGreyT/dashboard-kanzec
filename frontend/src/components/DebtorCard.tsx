@@ -270,29 +270,32 @@ export default function DebtorCard({
           )}
         </div>
 
-        <div className="flex gap-1.5 shrink-0">
+        {/* Mobile actions — both icon-only ghost buttons. The green pill
+            repeating 25× becomes visual fatigue; tap-to-call is a primary
+            *intent* but not a dominant *visual*. Mint accent restored only
+            on the call button border to retain affordance hierarchy. */}
+        <div className="flex gap-2 shrink-0">
           <a
             href={
               row.main_phone ? `tel:${row.main_phone.replace(/[^+\d]/g, "")}` : "#"
             }
             onClick={(e) => e.stopPropagation()}
-            className="pill-call-sm"
             aria-label="Qo'ng'iroq"
+            className="w-9 h-9 rounded-full inline-flex items-center justify-center text-mintdk transition-colors hover:bg-mintbg active:bg-mintbg/70"
+            style={{ boxShadow: "inset 0 0 0 1px rgba(16,185,129,0.32)" }}
           >
-            <Phone className="w-3 h-3" />
-            <span className="hidden xs:inline">Qo'ng'iroq</span>
-            <span className="xs:hidden">Tel</span>
+            <Phone className="w-[14px] h-[14px]" strokeWidth={2} />
           </a>
           <a
             href={
               row.main_phone ? `sms:${row.main_phone.replace(/[^+\d]/g, "")}` : "#"
             }
             onClick={(e) => e.stopPropagation()}
-            className="pill-sms-sm"
             aria-label="SMS"
+            className="w-9 h-9 rounded-full inline-flex items-center justify-center text-ink2 transition-colors hover:bg-ink/[0.04] active:bg-ink/[0.06]"
+            style={{ boxShadow: "inset 0 0 0 1px rgba(17,24,39,0.14)" }}
           >
-            <MessageSquare className="w-3 h-3" />
-            SMS
+            <MessageSquare className="w-[14px] h-[14px]" strokeWidth={2} />
           </a>
         </div>
       </div>

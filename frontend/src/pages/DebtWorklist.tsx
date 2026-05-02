@@ -295,31 +295,35 @@ export default function Debt() {
             </nav>
           </div>
 
-          {/* HERO ROW — title left, anchored numbers right */}
-          <div className="grid grid-cols-12 gap-8 items-end">
+          {/* HERO ROW — title + standfirst left, big anchor number right (md+).
+              On mobile: title → standfirst → hairline gap → anchor block, generous breathing. */}
+          <div className="grid grid-cols-12 gap-y-10 md:gap-y-0 gap-x-8 md:items-end">
             {/* Title + standfirst */}
             <div className="col-span-12 md:col-span-7">
-              <h1 className="hero-title text-[64px] md:text-[96px] text-ink count-up">
+              <h1 className="hero-title text-[56px] md:text-[96px] text-ink count-up">
                 Qarzlar
               </h1>
-              <p className="standfirst mt-4 md:mt-5">
+              <p className="standfirst mt-4 md:mt-5 max-w-[42ch] md:max-w-[52ch]">
                 Barcha qarzdorlar bir ro'yxatda — ustuvorligi, yoshi, oxirgi
                 aloqasi va to'lov tarixi bilan.
               </p>
             </div>
 
-            {/* Right anchor — total + over-90 numbers */}
+            {/* Right anchor — total + over-90 numbers
+                Mobile: left-aligned, hairline rule above for editorial spacing.
+                Desktop: right-aligned, anchored to bottom of grid. */}
             <div className="col-span-12 md:col-span-5">
+              <hr className="hairline mb-6 md:hidden" aria-hidden />
               <div className="md:text-right md:pl-4">
                 <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-ink3 mb-3">
                   Bugungi holat
                 </div>
-                <div className="hero-num text-[48px] md:text-[68px] text-ink count-up leading-none">
+                <div className="hero-num text-[56px] md:text-[68px] text-ink count-up leading-[0.95]">
                   {summary
                     ? formatUsdCompact(summary.total_outstanding)
                     : "—"}
                 </div>
-                <div className="mt-3 flex md:justify-end items-center gap-2.5 text-[12px] font-mono tracking-[0.02em] text-ink3">
+                <div className="mt-4 flex md:justify-end items-center gap-2.5 text-[12px] font-mono tracking-[0.02em] text-ink3">
                   <span className="dot-live" />
                   <span>jami qarz</span>
                   {summary && summary.debtor_over_90_count > 0 && (
@@ -942,10 +946,10 @@ function AgingBucketsSection({
       <div className="flex items-end justify-between mb-7 gap-4">
         <div>
           <div className="text-[9px] font-mono uppercase tracking-[0.22em] text-ink3 mb-2">
-            Yosh taqsimoti
+            Tahlil
           </div>
           <h2 className="hero-title text-[28px] md:text-[34px] text-ink">
-            Aging buckets
+            Yosh taqsimoti
           </h2>
           <p className="standfirst mt-2 text-[14px]">
             Joriy ko'rish bo'yicha — ekrandagi mijozlar.
