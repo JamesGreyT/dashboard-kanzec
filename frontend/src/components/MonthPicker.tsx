@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { CalendarDays } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -50,30 +51,53 @@ export default function MonthPicker({ value, onChange, label, presets: customPre
   const [open, setOpen] = useState(false)
   const [showCustom, setShowCustom] = useState(value.kind === 'range')
   const [error, setError] = useState<string | null>(null)
-  // Measured at open-time: which edge of the trigger should the panel anchor
-  // to so it doesn't overflow the viewport. Picker can sit in the page-level
-  // filter strip (left half of viewport → anchor left, panel opens rightward)
-  // or in a section header (often right side → anchor right, panel opens
-  // leftward). We don't try to be smart about vertical placement; the panel
-  // always opens below the trigger, and that's been fine.
-  const [anchor, setAnchor] = useState<'left' | 'right'>('left')
+  // Panel position is computed at open-time from the trigger's bounding
+  // rect and reapplied on resize / scroll while open. We render the panel
+  // via createPortal(document.body) so it escapes any parent
+  // overflow:hidden / overflow:auto context (e.g. the data-viewer's
+  // `overflow-x-auto` table wrapper, which used to clip half the dropdown).
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const months = monthLabels(i18n.language)
 
   const close = useCallback(() => setOpen(false), [])
 
-  function toggle() {
-    if (!open && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect()
-      const PANEL_W = 288 // matches sm:w-72
-      const wouldOverflowRight = rect.left + PANEL_W > window.innerWidth - 8
-      const fitsLeftAligned = rect.right - PANEL_W >= 8
-      // Prefer left-anchoring (panel right of trigger). Switch to right-
-      // anchoring only when left would overflow AND right fits.
-      setAnchor(wouldOverflowRight && fitsLeftAligned ? 'right' : 'left')
+  const reposition = useCallback(() => {
+    if (!triggerRef.current) return
+    const rect = triggerRef.current.getBoundingClientRect()
+    const PANEL_W = 288
+    const MARGIN = 8
+    // Default to anchoring the panel's left edge under the trigger's left.
+    let left = rect.left
+    // If that would overflow the right edge of the viewport, anchor the
+    // panel's right edge under the trigger's right edge instead.
+    if (left + PANEL_W > window.innerWidth - MARGIN) {
+      left = rect.right - PANEL_W
     }
+    // Guard against trigger being off the left edge entirely.
+    if (left < MARGIN) left = MARGIN
+    const top = rect.bottom + 8
+    setPos({ top, left })
+  }, [])
+
+  function toggle() {
+    if (!open) reposition()
     setOpen((v) => !v)
   }
+
+  // Re-measure on scroll / resize while open so the panel tracks the
+  // trigger when the user scrolls the page.
+  useEffect(() => {
+    if (!open) return
+    const onScroll = () => reposition()
+    const onResize = () => reposition()
+    window.addEventListener('scroll', onScroll, true)
+    window.addEventListener('resize', onResize)
+    return () => {
+      window.removeEventListener('scroll', onScroll, true)
+      window.removeEventListener('resize', onResize)
+    }
+  }, [open, reposition])
 
   // Escape closes the dropdown.
   useEffect(() => {
@@ -165,22 +189,37 @@ export default function MonthPicker({ value, onChange, label, presets: customPre
         <span className="text-muted-foreground whitespace-nowrap">{triggerLabel}</span>
       </button>
 
-      {open && (
+      {open && createPortal(
         <>
           <div className="fixed inset-0 z-40 bg-black/30 sm:bg-transparent" onClick={close} role="presentation" />
 
-          {/* Anchor side is measured at open-time from the trigger's
-              position — `left` (panel opens rightward) when there's room,
-              `right` (panel opens leftward) when the trigger sits near the
-              right edge of the viewport. On <sm we still pin to viewport
-              edges so it doesn't fly off the screen. */}
+          {/* Portaled to <body> + absolutely positioned at fixed pixel
+              coordinates measured from the trigger. This is the only way
+              to reliably escape parent overflow:auto / overflow:hidden
+              contexts — e.g. the data-viewer table's scroll wrapper, which
+              previously clipped half of the dropdown. */}
           <div
             role="dialog"
             aria-label={t('dateRange.pickMonth')}
             className={cn(
-              'fixed left-4 right-4 bottom-4 sm:absolute sm:bottom-auto sm:top-full sm:mt-2 sm:w-72 z-50 glass-card rounded-xl p-4 shadow-2xl border border-border animate-fade-up space-y-3',
-              anchor === 'left' ? 'sm:left-0 sm:right-auto' : 'sm:right-0 sm:left-auto',
+              'fixed left-4 right-4 bottom-4 sm:bottom-auto sm:w-72 z-50 glass-card rounded-xl p-4 shadow-2xl border border-border animate-fade-up space-y-3',
             )}
+            style={
+              pos
+                ? {
+                    // sm+ layout uses the measured pixel position. <sm uses
+                    // the Tailwind classes above for viewport-edge pinning.
+                    // We can't conditionally drop sm:left/sm:top via class —
+                    // applying inline `left`/`top` only at sm+ would need
+                    // a media query inside the style attr which CSS doesn't
+                    // allow. Instead, override at all widths above sm via
+                    // CSS specificity: inline styles win.
+                    left: window.innerWidth >= 640 ? `${pos.left}px` : undefined,
+                    top: window.innerWidth >= 640 ? `${pos.top}px` : undefined,
+                    right: window.innerWidth >= 640 ? 'auto' : undefined,
+                  }
+                : undefined
+            }
           >
             {/* Presets */}
             <div>
@@ -320,7 +359,8 @@ export default function MonthPicker({ value, onChange, label, presets: customPre
               )}
             </div>
           </div>
-        </>
+        </>,
+        document.body,
       )}
     </div>
   )
