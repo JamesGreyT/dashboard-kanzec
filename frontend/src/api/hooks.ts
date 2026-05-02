@@ -1228,6 +1228,476 @@ export type ComparisonDrillResponse = {
   total: number
 }
 
+// ── Dayslice (admin) ──────────────────────────────────────────────────────
+
+export type DaysliceSlice = {
+  month_start: string
+  as_of: string
+  day_n: number
+  month_days: number
+  start_month?: number
+  start_day?: number
+  end_month?: number
+  end_day?: number
+  is_custom?: boolean
+}
+
+export type DaysliceScoreboardSection = {
+  rows: { manager: string; by_year: number[]; yoy_pct: number | null }[]
+}
+
+export type DaysliceScoreboard = {
+  slice: DaysliceSlice
+  year_columns: number[]
+  sotuv: DaysliceScoreboardSection
+  kirim: DaysliceScoreboardSection
+}
+
+export type DaysliceFilters = {
+  as_of?: string
+  years?: number
+  direction?: string
+  slice_start?: string
+  slice_end?: string
+}
+
+function dsParams(p: DaysliceFilters) {
+  return {
+    as_of: p.as_of || undefined,
+    years: p.years ?? undefined,
+    direction: p.direction || undefined,
+    slice_start: p.slice_start || undefined,
+    slice_end: p.slice_end || undefined,
+  }
+}
+
+export function useDaysliceScoreboard(p: DaysliceFilters) {
+  return useQuery({
+    queryKey: ['dayslice', 'scoreboard', p],
+    queryFn: async () =>
+      (await api.get<DaysliceScoreboard>('/dayslice/scoreboard', { params: dsParams(p) })).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export type DaysliceRegionPivot = {
+  slice: { month_start: string; as_of: string }
+  row_labels: string[]
+  col_labels: string[]
+  values: number[][]
+  manager_totals: number[]
+  manager_share: number[]
+  grand_total: number
+}
+
+export function useDaysliceRegionPivot(p: DaysliceFilters) {
+  return useQuery({
+    queryKey: ['dayslice', 'region-pivot', p],
+    queryFn: async () =>
+      (await api.get<DaysliceRegionPivot>('/dayslice/region-pivot', { params: dsParams(p) })).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export type DaysliceDrillRow = {
+  delivery_date?: string
+  payment_date?: string
+  client_name?: string
+  product_name?: string
+  amount: number
+  region?: string
+  brand?: string
+}
+
+export function useDaysliceDrill(
+  p: DaysliceFilters & { measure: 'sotuv' | 'kirim'; manager: string; year: number; enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: ['dayslice', 'drill', p],
+    queryFn: async () =>
+      (
+        await api.get<{ rows: DaysliceDrillRow[]; total: number }>('/dayslice/drill', {
+          params: { ...dsParams(p), measure: p.measure, manager: p.manager, year: p.year, limit: 500 },
+        })
+      ).data,
+    enabled: p.enabled ?? true,
+  })
+}
+
+export type DaysliceePlanRow = { manager: string; plan_sotuv: number | null; plan_kirim: number | null }
+
+export function useDayslicePlan(year: number | null, month: number | null) {
+  return useQuery({
+    queryKey: ['dayslice', 'plan', year, month],
+    queryFn: async () =>
+      (
+        await api.get<{ year: number; month: number; rows: DaysliceePlanRow[] }>('/dayslice/plan', {
+          params: { year, month },
+        })
+      ).data,
+    enabled: !!year && !!month,
+  })
+}
+
+export function useUpdateDayslicePlan() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ year, month, rows }: { year: number; month: number; rows: DaysliceePlanRow[] }) => {
+      await api.put(`/dayslice/plan`, { rows }, { params: { year, month } })
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['dayslice'] })
+    },
+  })
+}
+
+// ── Ops (admin/operator) ──────────────────────────────────────────────────
+
+export type OpsReport = {
+  key: string
+  is_reference: boolean
+  systemd_active: 'active' | 'inactive' | 'failed' | string
+  last_recent_at: string | null
+  last_recent_label: string | null
+  last_recent_rows: number | null
+  last_recent_ms: number | null
+  last_deep_at: string | null
+  last_deep_label: string | null
+  last_deep_rows: number | null
+  last_all_at: string | null
+  last_all_rows: number | null
+  last_error: string | null
+  last_error_at: string | null
+  backfill_queue_len: number
+}
+
+export function useOpsReports() {
+  return useQuery({
+    queryKey: ['ops', 'reports'],
+    queryFn: async () => (await api.get<{ reports: OpsReport[] }>('/ops/reports')).data.reports,
+    refetchInterval: 30_000, // refresh every 30s — operations data is live
+  })
+}
+
+export type OpsProgressRow = {
+  range_label: string
+  status: 'complete' | 'partial' | 'empty' | 'error' | string
+  rows: number
+  bytes: number
+  duration_ms: number
+  started_at: string
+  finished_at: string | null
+  last_error: string | null
+}
+
+export function useOpsProgress(key: string | null, limit = 50) {
+  return useQuery({
+    queryKey: ['ops', 'progress', key, limit],
+    queryFn: async () =>
+      (await api.get<{ rows: OpsProgressRow[] }>(`/ops/reports/${key}/progress`, { params: { limit } })).data.rows,
+    enabled: !!key,
+    refetchInterval: 15_000,
+  })
+}
+
+export type OpsQueueRow = {
+  enqueued_at: string
+  range_from: string
+  range_to: string
+  chunk: 'year' | 'month' | 'week' | string
+  status?: string
+}
+
+export function useOpsQueue(key: string | null) {
+  return useQuery({
+    queryKey: ['ops', 'queue', key],
+    queryFn: async () =>
+      (await api.get<{ queue: OpsQueueRow[] }>(`/ops/reports/${key}/queue`)).data.queue,
+    enabled: !!key,
+    refetchInterval: 10_000,
+  })
+}
+
+export function useEnqueueBackfill() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ key, from, to, chunk }: { key: string; from: string; to: string; chunk: 'year' | 'month' | 'week' }) => {
+      const res = await api.post(`/ops/reports/${key}/backfill`, { from, to, chunk })
+      return res.data
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['ops', 'queue', vars.key] })
+      qc.invalidateQueries({ queryKey: ['ops', 'reports'] })
+    },
+  })
+}
+
+// ── Alerts (admin + viewer for read; admin for shared rules) ─────────────
+
+export type AlertRule = {
+  id: number
+  user_id: number
+  username?: string | null
+  kind:
+    | 'dso_gt'
+    | 'debt_total_gt'
+    | 'single_debtor_gt'
+    | 'over_90_count_gt'
+    | 'revenue_drop_pct'
+    | 'deal_count_drop_pct'
+    | string
+  threshold: number
+  label: string | null
+  enabled: boolean
+  shared: boolean
+  created_at: string
+}
+
+export function useAlertRules() {
+  return useQuery({
+    queryKey: ['alerts', 'rules'],
+    queryFn: async () => (await api.get<{ rows: AlertRule[] }>('/alerts/rules')).data.rows,
+  })
+}
+
+export type AlertRulePayload = {
+  kind: AlertRule['kind']
+  threshold: number
+  label?: string | null
+  enabled?: boolean
+  shared?: boolean
+}
+
+export function useCreateAlertRule() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (payload: AlertRulePayload) => (await api.post<AlertRule>('/alerts/rules', payload)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['alerts'] }),
+  })
+}
+
+export function useUpdateAlertRule() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, payload }: { id: number; payload: Partial<AlertRulePayload> }) =>
+      (await api.patch<AlertRule>(`/alerts/rules/${id}`, payload)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['alerts'] }),
+  })
+}
+
+export function useDeleteAlertRule() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/alerts/rules/${id}`)
+      return id
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['alerts'] }),
+  })
+}
+
+export type AlertEvent = {
+  id: number
+  rule_id: number
+  rule_label: string | null
+  rule_kind: string
+  value: number
+  threshold: number
+  fired_at: string
+  read_at: string | null
+}
+
+export function useAlertEvents(unreadOnly = false, limit = 50) {
+  return useQuery({
+    queryKey: ['alerts', 'events', { unreadOnly, limit }],
+    queryFn: async () =>
+      (
+        await api.get<{ rows: AlertEvent[]; unread: number }>('/alerts/events', {
+          params: { unread_only: unreadOnly || undefined, limit },
+        })
+      ).data,
+    refetchInterval: 60_000,
+  })
+}
+
+export function useMarkAlertRead() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await api.post(`/alerts/events/${id}/read`)
+      return id
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['alerts', 'events'] }),
+  })
+}
+
+export function useMarkAllAlertsRead() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async () => {
+      await api.post(`/alerts/events/read-all`)
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['alerts', 'events'] }),
+  })
+}
+
+export function useEvaluateAlerts() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async () => (await api.post<{ events_created: number }>('/alerts/evaluate')).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['alerts', 'events'] }),
+  })
+}
+
+// ── Admin: users & rooms ──────────────────────────────────────────────────
+
+export type AdminUser = {
+  id: number
+  username: string
+  role: 'admin' | 'operator' | 'viewer'
+  is_active: boolean
+  created_at: string
+  last_login_at: string | null
+  scope_room_ids: string[]
+}
+
+export function useAdminUsers() {
+  return useQuery({
+    queryKey: ['admin', 'users'],
+    queryFn: async () => (await api.get<{ users: AdminUser[] }>('/admin/users')).data.users,
+  })
+}
+
+export type AdminRoom = {
+  room_id: string
+  room_code: string
+  room_name: string
+  active: boolean
+  seen_at: string
+  clients_count: number
+  orders_count_30d: number
+}
+
+export function useAdminRooms() {
+  return useQuery({
+    queryKey: ['admin', 'rooms'],
+    queryFn: async () => (await api.get<{ rooms: AdminRoom[] }>('/admin/rooms')).data.rooms,
+  })
+}
+
+export type CreateUserPayload = {
+  username: string
+  password: string
+  role: 'admin' | 'operator' | 'viewer'
+  scope_room_ids: string[]
+}
+
+export function useCreateUser() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (payload: CreateUserPayload) =>
+      (await api.post<AdminUser>('/admin/users', payload)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'users'] }),
+  })
+}
+
+export type UpdateUserPayload = Partial<{
+  password: string
+  role: 'admin' | 'operator' | 'viewer'
+  is_active: boolean
+  scope_room_ids: string[]
+}>
+
+export function useUpdateUser() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, payload }: { id: number; payload: UpdateUserPayload }) =>
+      (await api.patch<AdminUser>(`/admin/users/${id}`, payload)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'users'] }),
+  })
+}
+
+export function useDeleteUser() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/admin/users/${id}`)
+      return id
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'users'] }),
+  })
+}
+
+export function useRevokeUserSessions() {
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await api.post(`/admin/users/${id}/revoke-sessions`)
+    },
+  })
+}
+
+export type BulkFromRoomsResult = {
+  username: string
+  temp_password: string
+  room_id: string
+  room_name: string
+}
+
+export function useBulkUsersFromRooms() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      role,
+      skip_existing_usernames,
+      reset_existing,
+    }: {
+      role: 'operator' | 'viewer'
+      skip_existing_usernames?: boolean
+      reset_existing?: boolean
+    }) => {
+      const res = await api.post<BulkFromRoomsResult[]>('/admin/users/bulk-from-rooms', {
+        role,
+        skip_existing_usernames,
+        reset_existing,
+      })
+      return res.data
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'users'] }),
+  })
+}
+
+// ── Admin: audit log ──────────────────────────────────────────────────────
+
+export type AuditRow = {
+  id: number
+  user_id: number | null
+  username: string | null
+  action: string
+  target: string | null
+  details: Record<string, unknown>
+  ip_address: string | null
+  created_at: string
+}
+
+export function useAdminAudit(p: { limit?: number; offset?: number; action?: string; user_id?: number; since?: string }) {
+  return useQuery({
+    queryKey: ['admin', 'audit', p],
+    queryFn: async () =>
+      (
+        await api.get<{ rows: AuditRow[]; total: number; limit: number; offset: number }>('/admin/audit', {
+          params: {
+            limit: p.limit ?? 100,
+            offset: p.offset ?? 0,
+            action: p.action || undefined,
+            user_id: p.user_id || undefined,
+            since: p.since || undefined,
+          },
+        })
+      ).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
 export function useComparisonDrill(
   p: ComparisonParams & { dimension_value: string; bucket: string; limit?: number; enabled?: boolean },
 ) {

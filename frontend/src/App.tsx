@@ -10,7 +10,6 @@ import { LanguageProvider } from '@/context/LanguageContext'
 import { AuthProvider, useAuth } from '@/context/AuthContext'
 import Layout from '@/components/layout/Layout'
 import Login from '@/pages/Login'
-import PlaceholderPage from '@/pages/PlaceholderPage'
 import Dashboard from '@/pages/Dashboard'
 import OrdersPage from '@/pages/data/Orders'
 import PaymentsDataPage from '@/pages/data/Payments'
@@ -25,6 +24,13 @@ const SalesAnalytics = lazy(() => import('@/pages/analytics/Sales'))
 const PaymentsAnalytics = lazy(() => import('@/pages/analytics/Payments'))
 const ReturnsAnalytics = lazy(() => import('@/pages/analytics/Returns'))
 const ComparisonAnalytics = lazy(() => import('@/pages/analytics/Comparison'))
+
+// Dayslice also uses Plotly. Ops, Alerts, Users, Audit don't.
+const Dayslice = lazy(() => import('@/pages/Dayslice'))
+import Ops from '@/pages/Ops'
+import Alerts from '@/pages/admin/Alerts'
+import Users from '@/pages/admin/Users'
+import Audit from '@/pages/admin/Audit'
 
 function ChartFallback() {
   return (
@@ -117,14 +123,14 @@ export default function App() {
                     <Route path="/analytics/returns" element={<Suspense fallback={<ChartFallback />}><ReturnsAnalytics /></Suspense>} />
                     <Route path="/analytics/comparison" element={<Suspense fallback={<ChartFallback />}><ComparisonAnalytics /></Suspense>} />
 
-                    <Route path="/admin/alerts" element={<PlaceholderPage titleKey="nav.items.alerts" />} />
+                    <Route path="/admin/alerts" element={<Alerts />} />
 
                     {/* Admin-only */}
                     <Route element={<AdminRoute />}>
-                      <Route path="/dayslice" element={<PlaceholderPage titleKey="nav.items.dayslice" />} />
-                      <Route path="/ops" element={<PlaceholderPage titleKey="nav.items.reports" />} />
-                      <Route path="/admin/users" element={<PlaceholderPage titleKey="nav.items.users" />} />
-                      <Route path="/admin/audit" element={<PlaceholderPage titleKey="nav.items.audit" />} />
+                      <Route path="/dayslice" element={<Suspense fallback={<ChartFallback />}><Dayslice /></Suspense>} />
+                      <Route path="/ops" element={<Ops />} />
+                      <Route path="/admin/users" element={<Users />} />
+                      <Route path="/admin/audit" element={<Audit />} />
                     </Route>
 
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />
