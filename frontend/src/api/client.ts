@@ -1,6 +1,10 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { clearAllCaches } from '@/api/queryClient'
-import { getAccessToken, setAccessToken, clearAccessToken } from '@/api/tokenStore'
+import {
+  getAccessToken,
+  clearAccessToken,
+  refreshAccessToken,
+} from '@/api/tokenStore'
 
 const baseURL = import.meta.env.VITE_API_URL || '/api'
 
@@ -18,25 +22,6 @@ api.interceptors.request.use((config) => {
 })
 
 type RetriableConfig = InternalAxiosRequestConfig & { _retry?: boolean }
-
-let refreshPromise: Promise<string> | null = null
-
-async function refreshAccessToken(): Promise<string> {
-  if (!refreshPromise) {
-    refreshPromise = axios
-      .post<{ access_token: string }>(`${baseURL}/auth/refresh`, null, {
-        withCredentials: true,
-      })
-      .then((r) => {
-        setAccessToken(r.data.access_token)
-        return r.data.access_token
-      })
-      .finally(() => {
-        refreshPromise = null
-      })
-  }
-  return refreshPromise
-}
 
 api.interceptors.response.use(
   (r) => r,

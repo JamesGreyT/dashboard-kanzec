@@ -15,17 +15,28 @@ import OrdersPage from '@/pages/data/Orders'
 import PaymentsDataPage from '@/pages/data/Payments'
 import LegalPersonsPage from '@/pages/data/LegalPersons'
 
-function ProtectedRoute() {
-  const { isAuthenticated, isLoading } = useAuth()
-  const location = useLocation()
-
+/**
+ * Renders a full-screen spinner while the AuthContext bootstrap is in flight.
+ * Wraps the entire route tree so that no useQuery call fires until we know
+ * whether the user is authenticated — this prevents N concurrent 401s from
+ * the dashboard's hooks triggering N concurrent /auth/refresh attempts that
+ * race the cookie out from under each other.
+ */
+function BootstrapGate({ children }: { children: React.ReactNode }) {
+  const { isLoading } = useAuth()
   if (isLoading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center text-muted-foreground">
+      <div className="h-screen w-full flex items-center justify-center bg-background text-muted-foreground">
         <div className="animate-spin w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full" />
       </div>
     )
   }
+  return <>{children}</>
+}
+
+function ProtectedRoute() {
+  const { isAuthenticated } = useAuth()
+  const location = useLocation()
   if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />
   }
@@ -66,6 +77,7 @@ export default function App() {
       <ThemeProvider>
         <LanguageProvider>
           <AuthProvider>
+            <BootstrapGate>
             <BrowserRouter>
               <Routes>
                 <Route path="/login" element={<Login />} />
@@ -101,6 +113,7 @@ export default function App() {
                 </Route>
               </Routes>
             </BrowserRouter>
+            </BootstrapGate>
           </AuthProvider>
         </LanguageProvider>
       </ThemeProvider>

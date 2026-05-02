@@ -39,6 +39,8 @@ export default function Login() {
       } else {
         setError(t('auth.loginFailed'))
       }
+      // Don't leave a stale "•••••••" suggesting credentials are still entered.
+      setPassword('')
     } finally {
       setSubmitting(false)
     }

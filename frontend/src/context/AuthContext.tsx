@@ -1,7 +1,13 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
-import axios from 'axios'
 import api from '@/api/client'
-import { setAccessToken, clearAccessToken } from '@/api/tokenStore'
+import {
+  setAccessToken,
+  clearAccessToken,
+  refreshAccessToken,
+  hasSessionSeen,
+  markSessionSeen,
+  clearSessionSeen,
+} from '@/api/tokenStore'
 import { clearAllCaches } from '@/api/queryClient'
 
 export type Role = 'admin' | 'operator' | 'viewer'
@@ -24,40 +30,49 @@ type AuthContextType = {
   user: UserInfo | null
   isAuthenticated: boolean
   isLoading: boolean
+  /**
+   * True when the user is an admin — admins always have empty `scope_rooms`
+   * server-side, but that means "all rooms", not "no rooms". Pages that need
+   * to render scope filters should treat unscoped admins as "see everything".
+   */
+  isUnscopedAdmin: boolean
   login: (username: string, password: string) => Promise<void>
   logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const baseURL = import.meta.env.VITE_API_URL || '/api'
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   // On mount: try to recover the session via the refresh cookie.
+  // Skip the probe entirely on first-ever visit (no session_seen flag) so we
+  // don't generate a noisy 401 in DevTools for every cold-load login flow.
   useEffect(() => {
     let cancelled = false
 
     async function recover() {
+      if (!hasSessionSeen()) {
+        // No session has ever been established on this device — skip the
+        // probe; the user must log in.
+        if (!cancelled) setIsLoading(false)
+        return
+      }
+
       try {
-        // Use raw axios (not our `api` client) to avoid the 401 → refresh interceptor loop
-        // before we even have a token.
-        const refreshRes = await axios.post<{ access_token: string }>(
-          `${baseURL}/auth/refresh`,
-          null,
-          { withCredentials: true },
-        )
+        const token = await refreshAccessToken()
         if (cancelled) return
-        setAccessToken(refreshRes.data.access_token)
+        // refreshAccessToken already setAccessToken'd; double-check defensively
+        setAccessToken(token)
 
         const meRes = await api.get<UserInfo>('/auth/me')
         if (cancelled) return
         setUser(meRes.data)
       } catch {
-        // No valid refresh cookie — user must log in.
+        // Refresh cookie expired or revoked — user must log in.
         clearAccessToken()
+        clearSessionSeen()
         if (!cancelled) setUser(null)
       } finally {
         if (!cancelled) setIsLoading(false)
@@ -68,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const onUnauth = () => {
       clearAccessToken()
+      clearSessionSeen()
       setUser(null)
     }
     window.addEventListener('auth-unauthorized', onUnauth)
@@ -81,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (username: string, password: string) => {
     const res = await api.post<LoginResponse>('/auth/login', { username, password })
     setAccessToken(res.data.access_token)
+    markSessionSeen()
     setUser(res.data.user)
   }
 
@@ -91,12 +108,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // proceed with local cleanup even if logout call fails
     }
     clearAccessToken()
+    clearSessionSeen()
     clearAllCaches()
     setUser(null)
   }
 
+  const isUnscopedAdmin = user?.role === 'admin'
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated: !!user,
+        isLoading,
+        isUnscopedAdmin,
+        login,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )
