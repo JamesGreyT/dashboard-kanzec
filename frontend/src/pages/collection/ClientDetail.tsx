@@ -58,7 +58,7 @@ export default function ClientDetail() {
       return next
     })
 
-  if (!valid) return <Navigate to="/collection/worklist" replace />
+  if (!valid) return <Navigate to="/collection/clients-debts" replace />
 
   // 403 — operator opened a client outside their scope_rooms
   const status = (clientQ.error as { response?: { status?: number } } | undefined)?.response?.status
@@ -77,7 +77,7 @@ export default function ClientDetail() {
             {t('debt.client.outOfScope')}
           </p>
           <Link
-            to="/collection/worklist"
+            to="/collection/clients-debts"
             className="text-xs text-[#9E7B2F] hover:text-[#7A5E20] transition-colors inline-flex items-center gap-1.5"
             style={{ fontFamily: DM_SANS }}
           >
@@ -115,7 +115,7 @@ export default function ClientDetail() {
         <Breadcrumb
           items={[
             { label: t('nav.groups.collection'), to: '/collection/worklist' },
-            { label: t('nav.items.worklist'), to: '/collection/worklist' },
+            { label: t('nav.items.clientsDebts'), to: '/collection/clients-debts' },
             { label: contact?.name ?? '…' },
           ]}
         />

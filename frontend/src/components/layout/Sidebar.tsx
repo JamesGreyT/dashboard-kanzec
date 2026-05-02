@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   Moon, Sun, LogOut, Plus, Minus, ChevronsLeft, ChevronsRight,
   LayoutDashboard, Target, ShoppingBag, Coins, Building2, ClipboardList,
-  BarChart2, Wallet, Undo2, GitCompare, Activity, Bell, Users, Shield, Layers,
+  BarChart2, Wallet, Undo2, GitCompare, Activity, Bell, Users, Shield,
 } from 'lucide-react'
 import { useTheme } from '@/context/ThemeContext'
 import { useAuth, type Role } from '@/context/AuthContext'
@@ -55,8 +55,7 @@ const NAV_GROUPS: NavGroup[] = [
     labelKey: 'collection',
     defaultOpen: true,
     items: [
-      { to: '/collection/worklist', labelKey: 'worklist', icon: ClipboardList },
-      { to: '/collection/clients-debts', labelKey: 'clientsDebts', icon: Layers },
+      { to: '/collection/clients-debts', labelKey: 'clientsDebts', icon: ClipboardList },
     ],
   },
   {
