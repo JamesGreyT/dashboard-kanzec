@@ -129,6 +129,23 @@
     "worklist": {
       "title": "Debt worklist"
     },
+    "clientsDebts": {
+      "title": "Client debts",
+      "subtitle": "Per-client outstanding, term days, and aging breakdown.",
+      "overdueOnly": "Overdue only",
+      "overdueTotal": "Overdue total",
+      "cols": {
+        "termDays": "Term (days)",
+        "qarz": "Debt",
+        "notDue": "Not due",
+        "overdue": "Overdue",
+        "region": "Region",
+        "direction": "Direction",
+        "group": "Group",
+        "category": "Note"
+      }
+    },
+    "searchPlaceholder": "Search by client name…",
     "stats": {
       "totalDebt": "Total outstanding",
       "over90": "Over 90 days",
@@ -138,7 +155,9 @@
     },
     "filters": {
       "room": "Manager",
+      "manager": "Manager",
       "direction": "Direction",
+      "group": "Group",
       "aging": "Aging bucket",
       "outcome": "Outcome",
       "overduePromisesOnly": "Overdue promises only"
@@ -536,6 +555,7 @@
       "dataPayments": "Payments",
       "legalPersons": "Legal persons",
       "worklist": "Worklist",
+      "clientsDebts": "Client debts",
       "sales": "Sales",
       "payments": "Payments",
       "returns": "Returns",

@@ -129,6 +129,23 @@
     "worklist": {
       "title": "Должники"
     },
+    "clientsDebts": {
+      "title": "Долги клиентов",
+      "subtitle": "По каждому клиенту: долг, срок и распределение по возрасту.",
+      "overdueOnly": "Только просроченные",
+      "overdueTotal": "Всего просрочено",
+      "cols": {
+        "termDays": "Срок (дн.)",
+        "qarz": "Долг",
+        "notDue": "Не просрочено",
+        "overdue": "Просрочено",
+        "region": "Регион",
+        "direction": "Направление",
+        "group": "Группа",
+        "category": "Заметка"
+      }
+    },
+    "searchPlaceholder": "Поиск по имени клиента…",
     "stats": {
       "totalDebt": "Общий долг",
       "over90": "90+ дней просрочки",
@@ -138,7 +155,9 @@
     },
     "filters": {
       "room": "Менеджер",
+      "manager": "Менеджер",
       "direction": "Направление",
+      "group": "Группа",
       "aging": "Группа долга",
       "outcome": "Исход",
       "overduePromisesOnly": "Только просроченные обещания"
@@ -536,6 +555,7 @@
       "dataPayments": "Платежи",
       "legalPersons": "Юр. лица",
       "worklist": "Должники",
+      "clientsDebts": "Долги клиентов",
       "sales": "Продажи",
       "payments": "Платежи",
       "returns": "Возвраты",

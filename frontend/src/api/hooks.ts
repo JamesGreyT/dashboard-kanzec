@@ -214,9 +214,11 @@ export type WorklistFilters = {
   region?: string
   category?: string
   direction?: string
+  client_group?: string
   aging_bucket?: string
   outcome?: string
   overdue_promises_only?: boolean
+  overdue_only?: boolean
 }
 
 function paramsFor(p: WorklistFilters): Record<string, string | number | boolean | undefined> {
@@ -228,9 +230,11 @@ function paramsFor(p: WorklistFilters): Record<string, string | number | boolean
     region: p.region || undefined,
     category: p.category || undefined,
     direction: p.direction || undefined,
+    client_group: p.client_group || undefined,
     aging_bucket: p.aging_bucket || undefined,
     outcome: p.outcome || undefined,
     overdue_promises_only: p.overdue_promises_only ? true : undefined,
+    overdue_only: p.overdue_only ? true : undefined,
   }
 }
 
