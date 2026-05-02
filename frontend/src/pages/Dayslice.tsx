@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Save, X, AlertTriangle, Edit3 } from 'lucide-react'
 
@@ -427,9 +427,12 @@ function PlanEditorModal({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
-  // Initialise editable rows once data lands
-  useMemo(() => {
+  // Initialise editable rows once data lands. setRows runs once per dataset
+  // change, not per render — guarded by length checks to avoid clobbering
+  // the user's in-progress edits.
+  useEffect(() => {
     if (planQ.data?.rows && planQ.data.rows.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRows(planQ.data.rows)
     } else if (scoreboardQ.data?.sotuv?.rows && rows.length === 0) {
       setRows(

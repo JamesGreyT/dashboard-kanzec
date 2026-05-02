@@ -33,6 +33,8 @@ export default function PageHeader() {
   const [stamp, setStamp] = useState(() => nowLabel(i18n.language))
 
   useEffect(() => {
+    // Subscribe to a 1-minute clock tick + reflect locale changes immediately.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStamp(nowLabel(i18n.language))
     const id = setInterval(() => setStamp(nowLabel(i18n.language)), 60_000)
     return () => clearInterval(id)

@@ -31,12 +31,10 @@ export default function Ops() {
   const [tab, setTab] = useState<Tab>('progress')
   const [backfillOpen, setBackfillOpen] = useState(false)
 
-  // Auto-select first report
-  useEffect(() => {
-    if (!selectedKey && reports.length > 0) setSelectedKey(reports[0].key)
-  }, [selectedKey, reports])
-
-  const selected = reports.find((r) => r.key === selectedKey)
+  // Derive the effective selection: user choice if any, else first report.
+  // Avoids the setState-in-effect "auto-select" anti-pattern.
+  const effectiveKey = selectedKey ?? (reports.length > 0 ? reports[0].key : null)
+  const selected = reports.find((r) => r.key === effectiveKey)
 
   return (
     <div>
@@ -72,7 +70,7 @@ export default function Ops() {
                     onClick={() => setSelectedKey(r.key)}
                     className={cn(
                       'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-200',
-                      selectedKey === r.key ? 'nav-active' : 'text-muted-foreground hover:text-foreground hover:bg-accent/60',
+                      effectiveKey === r.key ? 'nav-active' : 'text-muted-foreground hover:text-foreground hover:bg-accent/60',
                     )}
                     style={{ fontFamily: DM_SANS }}
                   >
@@ -315,6 +313,9 @@ function LogsTab({ reportKey }: { reportKey: string }) {
 
   useEffect(() => {
     let cancelled = false
+    // Reset stream state when the key changes — these setStates happen once
+    // per `reportKey`, not per render, so they don't cascade.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     setLines([])
     setErr(null)

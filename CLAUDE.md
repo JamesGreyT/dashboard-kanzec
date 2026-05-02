@@ -6,17 +6,16 @@ Kanzec Operations Dashboard backend at `kanzec.ilhom.work`. Internal ops console
 that reads from the ETL's `smartup_rep.*` schema (shared Postgres on the same
 VPS as `smartup-kanzec-etl`).
 
-## Backend-only project
+## Stack
 
-This repo is a **FastAPI backend**. There is no frontend in this project.
-`frontend/` on disk holds only `preview/` HTML mockups, a stale
-`tsconfig.tsbuildinfo`, and `README.md` — no `package.json`, no `src/`, no
-chosen stack.
-
-Don't run `npm`/`vite`/`tsc`, don't suggest frontend edits, and don't carry
-forward references to the old React/Vite/Tailwind setup. `deploy/deploy.sh`
-already skips the frontend build when `frontend/package.json` is missing, so
-backend changes ship freely.
+- **Backend** — FastAPI on `127.0.0.1:8081`, ~17 routers, ~80 endpoints.
+  See `backend/app/main.py`.
+- **Frontend** — React 19 + Vite 7 + TypeScript + Tailwind v4 + shadcn/ui
+  SPA in `frontend/`. See [`frontend/README.md`](frontend/README.md) for
+  dev setup, the Bearer-JWT-plus-refresh-cookie auth flow, and the locked
+  Almanac design system. The dev server proxies `/api` to the prod backend
+  at `https://kanzec.ilhom.work`; the deployed `dist/` is served by nginx
+  from the same domain.
 
 ## Golden rules
 
@@ -52,9 +51,11 @@ backend changes ship freely.
   nginx configs.
 - `.github/workflows/deploy.yml` — ssh-deploys on push to `main`.
 
-Auth is session-cookie based (cookie set by `/api/auth/login`).
-`/api/auth/me` returns the current user `{ role, scope_rooms }`. Excel
-exports are served as `*.xlsx` GET endpoints. Healthcheck: `/api/healthz`.
+Auth is **Bearer JWT** (`Authorization: Bearer <token>` from
+`/api/auth/login`'s `access_token`) with an httpOnly `kanzec_refresh`
+cookie used only by `/api/auth/refresh` for token rotation. `/api/auth/me`
+returns the current user `{ role, scope_rooms }`. Excel exports are served
+as `*.xlsx` GET endpoints. Healthcheck: `/api/healthz`.
 
 ## Local dev
 
@@ -90,7 +91,8 @@ Push to `main` → GitHub Actions SSHes to the VPS (`51.195.110.155`, user
 1. `flock` on `/tmp/dashboard-kanzec-deploy.lock` to serialize concurrent runs
 2. `git reset --hard origin/main`
 3. `pip install` against `backend/.venv`
-4. Frontend build is skipped (no `frontend/package.json`)
+4. `cd frontend && rm -rf node_modules && npm ci && npm run build` →
+   nginx serves `frontend/dist/`
 5. `psql ... -f backend/schema_sql/app.sql` (idempotent)
 6. `python -m app.auth.bootstrap` (creates admin only on first run)
 7. Workflow restarts `smartup-dashboard-api.service`

@@ -61,7 +61,7 @@ export default function Audit() {
   const usersQ = useAdminUsers()
 
   const total = auditQ.data?.total ?? 0
-  const rows = auditQ.data?.rows ?? []
+  const rows = useMemo(() => auditQ.data?.rows ?? [], [auditQ.data])
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const currentPage = Math.floor(offset / PAGE_SIZE) + 1
 

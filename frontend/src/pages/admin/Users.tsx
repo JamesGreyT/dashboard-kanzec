@@ -77,24 +77,27 @@ export default function Users() {
             <tr>
               <Th label={t('admin.users.cols.username')} />
               <Th label={t('admin.users.cols.role')} />
-              <Th label={t('admin.users.cols.scope')} />
+              <Th label={t('admin.users.cols.scope')} className="hidden sm:table-cell" />
               <Th label={t('admin.users.cols.active')} />
-              <Th label={t('admin.users.cols.lastLogin')} />
-              <Th label={t('admin.users.cols.created')} />
+              <Th label={t('admin.users.cols.lastLogin')} className="hidden md:table-cell" />
+              <Th label={t('admin.users.cols.created')} className="hidden lg:table-cell" />
               <Th label="" align="right" />
             </tr>
           </thead>
           <tbody>
             {usersQ.isLoading && !usersQ.data
-              ? Array.from({ length: 8 }).map((_, i) => (
-                  <tr key={i}>
-                    {Array.from({ length: 7 }).map((__, j) => (
-                      <td key={j} className="px-3 py-2.5 border-b border-border/40">
-                        <div className="shimmer-skeleton h-3 w-full" />
-                      </td>
-                    ))}
-                  </tr>
-                ))
+              ? Array.from({ length: 8 }).map((_, i) => {
+                  const colHide = ['', '', 'hidden sm:table-cell', '', 'hidden md:table-cell', 'hidden lg:table-cell', '']
+                  return (
+                    <tr key={i}>
+                      {colHide.map((cls, j) => (
+                        <td key={j} className={cn('px-3 py-2.5 border-b border-border/40', cls)}>
+                          <div className="shimmer-skeleton h-3 w-full" />
+                        </td>
+                      ))}
+                    </tr>
+                  )
+                })
               : (usersQ.data ?? []).map((u) => (
                   <tr key={u.id}>
                     <td className="px-3 py-2.5 border-b border-border/40">
@@ -106,7 +109,7 @@ export default function Users() {
                     <td className="px-3 py-2.5 border-b border-border/40">
                       <span className={`action-badge ${ROLE_BADGE[u.role] ?? 'plan'}`}>{t(`roles.${u.role}`)}</span>
                     </td>
-                    <td className="px-3 py-2.5 border-b border-border/40 text-muted-foreground text-xs">
+                    <td className="hidden sm:table-cell px-3 py-2.5 border-b border-border/40 text-muted-foreground text-xs">
                       {u.role === 'admin' ? t('admin.users.allRooms') : `${u.scope_room_ids.length} ${t('admin.users.rooms')}`}
                     </td>
                     <td className="px-3 py-2.5 border-b border-border/40">
@@ -116,10 +119,10 @@ export default function Users() {
                         <span className="action-badge critical">{t('admin.users.inactive')}</span>
                       )}
                     </td>
-                    <td className="px-3 py-2.5 border-b border-border/40 text-xs text-muted-foreground" style={{ fontFamily: PLEX_MONO }}>
+                    <td className="hidden md:table-cell px-3 py-2.5 border-b border-border/40 text-xs text-muted-foreground" style={{ fontFamily: PLEX_MONO }}>
                       {u.last_login_at ? formatShortDate(u.last_login_at, i18n.language) : <span className="cell-empty">—</span>}
                     </td>
-                    <td className="px-3 py-2.5 border-b border-border/40 text-xs text-muted-foreground" style={{ fontFamily: PLEX_MONO }}>
+                    <td className="hidden lg:table-cell px-3 py-2.5 border-b border-border/40 text-xs text-muted-foreground" style={{ fontFamily: PLEX_MONO }}>
                       {formatShortDate(u.created_at, i18n.language)}
                     </td>
                     <td className="px-3 py-2.5 border-b border-border/40 text-right">
@@ -162,9 +165,13 @@ export default function Users() {
   )
 }
 
-function Th({ label, align = 'left' }: { label: string; align?: 'left' | 'right' }) {
+function Th({ label, align = 'left', className }: { label: string; align?: 'left' | 'right'; className?: string }) {
   return (
-    <th className={cn('px-3 py-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground border-b border-border', align === 'right' ? 'text-right' : 'text-left')}>
+    <th className={cn(
+      'px-3 py-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground border-b border-border',
+      align === 'right' ? 'text-right' : 'text-left',
+      className,
+    )}>
       {label}
     </th>
   )
