@@ -1,6 +1,13 @@
 /**
- * DebtorCard — phone-view card per debtor.
- * Rendered in a vertical stack on mobile (< md). Hidden at md+.
+ * DebtorCard — phone-view editorial card per debtor.
+ *
+ * Design:
+ *   The list reads like a magazine column — each card is a single
+ *   "paragraph" with a hairline rule beneath rather than a boxed
+ *   container. The amount anchors the right edge in Fraunces serif;
+ *   the name anchors the left edge in DM Sans. The aging bar is a
+ *   single thin line that draws in. Action pills sit on a second
+ *   row, right-aligned, smaller than before.
  *
  * Props:
  *   row     — WorklistRow data
@@ -59,14 +66,19 @@ export interface WorklistRow {
 
 // ---- Helpers ----------------------------------------------------------------
 
-/** Deterministic gradient from name — picks from 6 palettes by char sum. */
+/**
+ * Deterministic gradient from name — picks from a refined editorial palette.
+ * Tones are muted, ink-leaning. No saturated rainbow avatars.
+ */
 const GRADIENTS = [
-  "linear-gradient(135deg,#7C3AED,#4C1D95)",
-  "linear-gradient(135deg,#0EA5E9,#0369A1)",
-  "linear-gradient(135deg,#10B981,#047857)",
-  "linear-gradient(135deg,#F59E0B,#B45309)",
-  "linear-gradient(135deg,#F472B6,#9D174D)",
-  "linear-gradient(135deg,#EF4444,#7F1D1D)",
+  "linear-gradient(135deg,#1F2937,#374151)",   // ink
+  "linear-gradient(135deg,#0E7490,#155E75)",   // teal-ink
+  "linear-gradient(135deg,#7E22CE,#581C87)",   // muted plum
+  "linear-gradient(135deg,#0F766E,#115E59)",   // pine
+  "linear-gradient(135deg,#9F1239,#881337)",   // burgundy
+  "linear-gradient(135deg,#92400E,#78350F)",   // umber
+  "linear-gradient(135deg,#1E3A8A,#1E40AF)",   // ink-blue
+  "linear-gradient(135deg,#365314,#3F6212)",   // moss
 ];
 
 export function gradientForName(name: string | null): string {
@@ -117,7 +129,6 @@ export default function DebtorCard({
   onClick: () => void;
   index: number;
 }) {
-  // Urgent stripe only for P1/P2 — P3 debtors are low-priority by definition
   const isUrgent =
     row.priority <= 2 &&
     row.aging_90_plus > 0 &&
@@ -125,16 +136,16 @@ export default function DebtorCard({
   const agingTotal =
     row.aging_0_30 + row.aging_30_60 + row.aging_60_90 + row.aging_90_plus;
 
-  // Priority chip label
   const prioLabel = row.priority === 1 ? "P1" : row.priority === 2 ? "P2" : "P3";
-  const prioClass = row.priority === 1 ? "prio prio-1" : row.priority === 2 ? "prio prio-2" : "prio prio-3";
+  const prioClass =
+    row.priority === 1 ? "prio prio-1" : row.priority === 2 ? "prio prio-2" : "prio prio-3";
 
-  // Days since payment used as "qarz yoshi"
   const daysSince = row.days_since_payment;
   const isOver90 = (daysSince ?? 0) >= 90;
 
-  // Outer is a div with role=button (not <button>) so the inner <a tel:>/<a sms:>
-  // anchors remain valid HTML — buttons can't legally contain anchors.
+  // Animation delay caps at 600ms so a long list doesn't feel sluggish.
+  const animDelay = Math.min(index * 24, 600);
+
   return (
     <div
       role="button"
@@ -147,136 +158,143 @@ export default function DebtorCard({
         }
       }}
       className={[
-        "w-full text-left bg-white rounded-2xl shadow-card p-[14px] relative cursor-pointer",
-        "animate-rise focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint",
-        "transition-shadow hover:shadow-cardlg",
-      ].join(" ")}
-      style={{ animationDelay: `${index * 20}ms` }}
+        "card-editorial reveal-up",
+        isUrgent ? "is-urgent" : "",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint focus-visible:ring-offset-2 focus-visible:ring-offset-paper",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      style={{ animationDelay: `${animDelay}ms` }}
     >
-      {/* Urgent left edge stripe */}
-      {isUrgent && (
-        <span
-          aria-hidden
-          className="absolute left-0 top-[14px] bottom-[14px] w-[3px] rounded-r-[3px]"
-          style={{ background: "linear-gradient(180deg,#F87171,#DC2626)" }}
-        />
-      )}
-
-      {/* TOP ROW: avatar + name/meta + amount */}
+      {/* TOP ROW — name + meta on left, amount anchored right. */}
       <div className="flex items-start gap-3">
-        {/* Avatar */}
+        {/* Avatar — refined ink palette, smaller, more typographic. */}
         <div
-          className="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
+          className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 mt-0.5"
           style={{ background: gradientForName(row.name) }}
         >
-          <span className="text-white font-bold text-[14px] tracking-tight">
+          <span className="text-white font-semibold text-[12px] tracking-[0.02em]">
             {initials(row.name)}
           </span>
         </div>
 
         {/* Name + meta */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className={prioClass}>{prioLabel}</span>
-            <span className="font-semibold text-ink text-[14px] truncate leading-tight">
-              {row.name ?? "—"}
+          <div className="flex items-center gap-2">
+            <span className={prioClass} style={{ width: 22, height: 22, fontSize: 9 }}>
+              {prioLabel}
             </span>
+            <h3 className="font-sans font-semibold text-ink text-[15px] truncate leading-[1.2] tracking-[-0.005em]">
+              {row.name ?? "—"}
+            </h3>
           </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-ink3 mt-0.5 font-mono">
-            {daysSince != null && (
+          <div className="flex items-center gap-2 text-[11px] text-ink3 mt-1.5 font-mono tracking-[0.02em]">
+            {daysSince != null ? (
               <>
-                <span className={isOver90 ? "text-coral" : ""}>{daysSince} kun</span>
-                <span className="w-[3px] h-[3px] rounded-full bg-ink4 inline-block" />
+                <span className={isOver90 ? "text-coral font-semibold" : "text-ink3"}>
+                  {daysSince} kun
+                </span>
+                {row.main_phone && (
+                  <>
+                    <span className="w-[3px] h-[3px] rounded-full bg-ink4 inline-block" />
+                    <span className="truncate">{row.main_phone}</span>
+                  </>
+                )}
               </>
-            )}
-            {isOver90 ? (
-              <span className="text-coral font-semibold">muddati o'tgan</span>
             ) : row.main_phone ? (
               <span className="truncate">{row.main_phone}</span>
             ) : (
-              <span>{row.region_name ?? ""}</span>
+              <span>{row.region_name ?? "—"}</span>
             )}
           </div>
         </div>
 
-        {/* Outstanding amount */}
+        {/* Outstanding — Fraunces serif, anchored right. */}
         <div className="text-right shrink-0">
-          <div className="kpi-num text-[22px] text-ink leading-none">
+          <div className="hero-num text-[24px] text-ink leading-none">
             {formatUsd(row.outstanding)}
           </div>
-          <div className="text-[10px] text-ink3 uppercase font-mono mt-0.5">USD</div>
+          <div className="text-[9px] text-ink4 uppercase font-mono mt-1 tracking-[0.16em]">
+            USD
+          </div>
         </div>
       </div>
 
-      {/* AGING BAR */}
-      {agingTotal > 0 ? (
-        <div className="age-bar mt-3">
-          {row.aging_0_30 > 0 && (
-            <span className="age-0" style={{ flex: row.aging_0_30 }} />
-          )}
-          {row.aging_30_60 > 0 && (
-            <span className="age-30" style={{ flex: row.aging_30_60 }} />
-          )}
-          {row.aging_60_90 > 0 && (
-            <span className="age-60" style={{ flex: row.aging_60_90 }} />
-          )}
-          {row.aging_90_plus > 0 && (
-            <span className="age-90" style={{ flex: row.aging_90_plus }} />
-          )}
-        </div>
-      ) : (
-        <div className="age-bar mt-3" />
-      )}
-
-      {/* LAST CONTACT ROW */}
-      <div className="mt-2.5 flex items-center gap-1.5 text-[11px] text-ink3">
-        <Phone className="w-3 h-3 shrink-0" />
-        {row.last_contact_at ? (
+      {/* AGING BAR — single hairline-thin line, full bleed. */}
+      <div className="age-bar mt-3.5" style={{ height: 3 }}>
+        {agingTotal > 0 ? (
           <>
-            <span>{relativeTimeUz(row.last_contact_at)}</span>
-            {row.last_contact_by && (
-              <>
-                <span className="w-[3px] h-[3px] rounded-full bg-ink4 inline-block" />
-                <span className="font-semibold text-ink2">{row.last_contact_by}</span>
-                <span>
-                  {row.last_contact_outcome === "called"
-                    ? "qo'ng'iroq qildi"
-                    : row.last_contact_outcome === "promised"
-                    ? "va'da berdi"
-                    : row.last_contact_outcome === "no_answer"
-                    ? "javob bermadi"
-                    : "aloqa qildi"}
-                </span>
-              </>
+            {row.aging_0_30 > 0 && (
+              <span className="age-0 draw-in-w" style={{ flex: row.aging_0_30 }} />
+            )}
+            {row.aging_30_60 > 0 && (
+              <span
+                className="age-30 draw-in-w"
+                style={{ flex: row.aging_30_60, animationDelay: "60ms" }}
+              />
+            )}
+            {row.aging_60_90 > 0 && (
+              <span
+                className="age-60 draw-in-w"
+                style={{ flex: row.aging_60_90, animationDelay: "120ms" }}
+              />
+            )}
+            {row.aging_90_plus > 0 && (
+              <span
+                className="age-90 draw-in-w"
+                style={{ flex: row.aging_90_plus, animationDelay: "180ms" }}
+              />
             )}
           </>
-        ) : (
-          <span className="text-coral font-semibold">Hech qachon aloqa qilingan</span>
-        )}
+        ) : null}
       </div>
 
-      {/* ACTION PILLS ROW — compact right-aligned so the green bar doesn't dominate mobile */}
-      <div className="flex justify-end gap-2 mt-3">
-        <a
-          href={row.main_phone ? `tel:${row.main_phone.replace(/[^+\d]/g, "")}` : "#"}
-          onClick={(e) => e.stopPropagation()}
-          className="pill-call"
-          style={{ padding: "6px 12px", fontSize: 12 }}
-          aria-label="Qo'ng'iroq"
-        >
-          <Phone className="w-3.5 h-3.5" />
-          Qo'ng'iroq
-        </a>
-        <a
-          href={row.main_phone ? `sms:${row.main_phone.replace(/[^+\d]/g, "")}` : "#"}
-          onClick={(e) => e.stopPropagation()}
-          className="pill-sms"
-          style={{ padding: "6px 12px", fontSize: 12 }}
-          aria-label="SMS"
-        >
-          <MessageSquare className="w-3.5 h-3.5" />
-          SMS
-        </a>
+      {/* META + ACTIONS — single row. Last contact on left in italic Fraunces,
+          pills anchored right. */}
+      <div className="flex items-center justify-between mt-3 gap-3">
+        <div className="text-[12px] text-ink3 min-w-0 truncate">
+          {row.last_contact_at ? (
+            <span className="font-display italic">
+              {relativeTimeUz(row.last_contact_at)}
+              {row.last_contact_by && (
+                <>
+                  {" — "}
+                  <span className="not-italic font-sans font-semibold text-ink2">
+                    {row.last_contact_by}
+                  </span>
+                </>
+              )}
+            </span>
+          ) : (
+            <span className="font-display italic text-ink3">aloqa qilinmagan</span>
+          )}
+        </div>
+
+        <div className="flex gap-1.5 shrink-0">
+          <a
+            href={
+              row.main_phone ? `tel:${row.main_phone.replace(/[^+\d]/g, "")}` : "#"
+            }
+            onClick={(e) => e.stopPropagation()}
+            className="pill-call-sm"
+            aria-label="Qo'ng'iroq"
+          >
+            <Phone className="w-3 h-3" />
+            <span className="hidden xs:inline">Qo'ng'iroq</span>
+            <span className="xs:hidden">Tel</span>
+          </a>
+          <a
+            href={
+              row.main_phone ? `sms:${row.main_phone.replace(/[^+\d]/g, "")}` : "#"
+            }
+            onClick={(e) => e.stopPropagation()}
+            className="pill-sms-sm"
+            aria-label="SMS"
+          >
+            <MessageSquare className="w-3 h-3" />
+            SMS
+          </a>
+        </div>
       </div>
     </div>
   );

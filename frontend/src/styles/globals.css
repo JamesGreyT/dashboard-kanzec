@@ -434,6 +434,338 @@
 }
 
 /* ============================================================
+   EDITORIAL — hairline composition, masthead atmosphere, motion.
+   The vibe: New York Times opinion section.
+   ============================================================ */
+@layer components {
+  /* Hairline horizontal rule — replaces card chrome between sections.
+     Uses a soft fade at edges so it doesn't feel like a cut. */
+  .hairline {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(17, 24, 39, 0.08) 12%,
+      rgba(17, 24, 39, 0.08) 88%,
+      transparent
+    );
+    border: 0;
+  }
+  .hairline-mint {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(16, 185, 129, 0.45) 8%,
+      rgba(16, 185, 129, 0.18) 60%,
+      transparent
+    );
+    border: 0;
+  }
+
+  /* Vertical hairline divider — for inline column splits. */
+  .hairline-v {
+    width: 1px;
+    background: linear-gradient(
+      180deg,
+      transparent,
+      rgba(17, 24, 39, 0.08) 20%,
+      rgba(17, 24, 39, 0.08) 80%,
+      transparent
+    );
+  }
+
+  /* Masthead bloom — soft mint radial that anchors the hero area.
+     Positioned absolute inside a relative wrapper. */
+  .masthead-bloom {
+    position: absolute;
+    inset: -10% -5% auto auto;
+    width: 600px;
+    height: 380px;
+    pointer-events: none;
+    background:
+      radial-gradient(closest-side at 70% 30%, rgba(16, 185, 129, 0.14), transparent 70%),
+      radial-gradient(closest-side at 30% 70%, rgba(248, 113, 113, 0.06), transparent 75%);
+    filter: blur(2px);
+    z-index: 0;
+  }
+
+  /* Editorial hero number — bigger than .kpi-num, optical-size kicks in
+     via Fraunces' opsz axis. */
+  .hero-num {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-variation-settings: "opsz" 144;
+    letter-spacing: -0.045em;
+    font-feature-settings: "ss01", "ss02", "tnum", "lnum";
+    line-height: 0.92;
+  }
+
+  /* Display Fraunces title (masthead "Qarzlar"). */
+  .hero-title {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-variation-settings: "opsz" 144;
+    letter-spacing: -0.04em;
+    line-height: 0.92;
+  }
+
+  /* Editorial body text — DM Sans, refined leading, ink2.  */
+  .editorial-body {
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    color: hsl(220 9% 28%);
+    max-width: 60ch;
+  }
+
+  /* Standfirst — italic Fraunces, used for short subhead under the title. */
+  .standfirst {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 500;
+    font-size: 1.0625rem;
+    line-height: 1.4;
+    letter-spacing: -0.015em;
+    color: hsl(220 9% 28%);
+  }
+
+  /* Drop-cap-style figure — for the trailing pull-quote number. */
+  .drop-figure {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-variation-settings: "opsz" 144;
+    letter-spacing: -0.04em;
+    line-height: 0.95;
+  }
+
+  /* Search field — typographic, no boxy chrome. Just a thin underline.
+     The input itself is mostly invisible; the underline is the affordance. */
+  .editorial-search {
+    border: 0;
+    border-bottom: 1px solid rgba(17, 24, 39, 0.14);
+    background: transparent;
+    padding: 8px 0 8px 28px;
+    font-family: var(--font-sans);
+    font-size: 1.0625rem;
+    color: hsl(220 39% 11%);
+    width: 100%;
+    transition: border-color 220ms;
+  }
+  .editorial-search:focus {
+    outline: none;
+    border-bottom-color: #10b981;
+  }
+  .editorial-search::placeholder {
+    color: hsl(220 9% 56%);
+    font-style: italic;
+  }
+
+  /* Tab-style aging segmented control — bottom border underline marker. */
+  .seg-tab {
+    position: relative;
+    padding: 8px 12px;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 13px;
+    color: hsl(220 9% 46%);
+    background: transparent;
+    transition: color 180ms;
+    cursor: pointer;
+  }
+  .seg-tab:hover {
+    color: hsl(220 39% 11%);
+  }
+  .seg-tab.active {
+    color: hsl(220 39% 11%);
+    font-weight: 600;
+  }
+  .seg-tab.active::after {
+    content: "";
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: -1px;
+    height: 2px;
+    background: #10b981;
+    border-radius: 2px 2px 0 0;
+    animation: seg-mark 280ms ease-out forwards;
+  }
+  .seg-tab.coral.active::after {
+    background: #f87171;
+  }
+  @keyframes seg-mark {
+    0% { transform: scaleX(0); opacity: 0; }
+    100% { transform: scaleX(1); opacity: 1; }
+  }
+
+  /* Magazine row hover — pulls slightly right with a thin mint accent
+     that draws in under the name. Replaces .hover:bg-paper. */
+  .row-editorial {
+    position: relative;
+    transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .row-editorial::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 12px;
+    bottom: 12px;
+    width: 0;
+    background: linear-gradient(180deg, transparent, #10b981 35%, #10b981 65%, transparent);
+    transition: width 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    pointer-events: none;
+  }
+  .row-editorial:hover {
+    transform: translateX(2px);
+  }
+  .row-editorial:hover::before {
+    width: 2px;
+  }
+  .row-editorial.is-urgent::before {
+    width: 2px;
+    background: linear-gradient(180deg, #f87171, #dc2626);
+  }
+  .row-editorial.is-urgent:hover::before {
+    width: 3px;
+  }
+
+  /* Mobile editorial card — same row but adapted to vertical layout.
+     Hairline divider beneath each. */
+  .card-editorial {
+    position: relative;
+    padding: 16px 14px;
+    transition: background 200ms;
+    cursor: pointer;
+  }
+  .card-editorial:active {
+    background: rgba(16, 185, 129, 0.04);
+  }
+  .card-editorial::after {
+    content: "";
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(17, 24, 39, 0.08) 8%,
+      rgba(17, 24, 39, 0.08) 92%,
+      transparent
+    );
+  }
+  .card-editorial:last-of-type::after {
+    display: none;
+  }
+  .card-editorial.is-urgent {
+    box-shadow: inset 3px 0 0 0 #f87171;
+  }
+
+  /* Action pills — slightly smaller, less shouty. */
+  .pill-call-sm {
+    background: #10b981;
+    color: white;
+    border-radius: 999px;
+    padding: 7px 13px;
+    font-weight: 600;
+    font-size: 12px;
+    box-shadow: 0 4px 10px -4px rgba(16, 185, 129, 0.5);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: transform 120ms;
+  }
+  .pill-call-sm:active {
+    transform: translateY(1px);
+  }
+  .pill-sms-sm {
+    background: transparent;
+    color: hsl(220 39% 11%);
+    border-radius: 999px;
+    padding: 7px 13px;
+    font-weight: 600;
+    font-size: 12px;
+    box-shadow: inset 0 0 0 1px rgba(17, 24, 39, 0.16);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 120ms;
+  }
+  .pill-sms-sm:hover {
+    background: rgba(17, 24, 39, 0.04);
+  }
+
+  /* Standalone hairline-bordered band — used for the secondary KPI band
+     in the masthead and the page sections that aren't card-wrapped. */
+  .editorial-band {
+    border-top: 1px solid rgba(17, 24, 39, 0.08);
+    border-bottom: 1px solid rgba(17, 24, 39, 0.08);
+  }
+
+  /* Live updated-ago line — small, italic. */
+  .live-line {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: hsl(220 9% 46%);
+    letter-spacing: 0.04em;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+/* Count-up + fade-in for hero numbers on first paint. */
+@layer utilities {
+  .count-up {
+    animation: count-up 700ms cubic-bezier(0.2, 0.85, 0.25, 1) both;
+  }
+  @keyframes count-up {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+      letter-spacing: -0.06em;
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+      letter-spacing: -0.045em;
+    }
+  }
+
+  /* Staggered fade-up for section reveals. */
+  .reveal-up {
+    animation: reveal-up 480ms cubic-bezier(0.2, 0.85, 0.25, 1) both;
+  }
+  @keyframes reveal-up {
+    0% { opacity: 0; transform: translateY(8px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  /* For the aging-bar segments that draw in. */
+  .draw-in-w {
+    animation: draw-in-w 720ms cubic-bezier(0.2, 0.85, 0.25, 1) both;
+    transform-origin: left;
+  }
+  @keyframes draw-in-w {
+    0% { transform: scaleX(0); }
+    100% { transform: scaleX(1); }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .count-up,
+  .reveal-up,
+  .draw-in-w,
+  .row-editorial,
+  .seg-tab.active::after {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* ============================================================
    Sidebar — white card with hairline + soft right-edge shadow.
    ============================================================ */
 @layer components {
