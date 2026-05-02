@@ -220,26 +220,32 @@ export default function Dashboard() {
               </p>
             </div>
 
-            {/* Right — today's payment pulse */}
+            {/* Right — today's payment pulse.
+                Mobile: hairline rule above, left-aligned, generous breathing.
+                Desktop: right-aligned, anchored to bottom of grid via items-end. */}
             <div className="col-span-12 md:col-span-5">
-              <hr className="hairline mb-6 md:hidden" aria-hidden />
+              <hr className="hairline mb-7 md:hidden" aria-hidden />
               <div className="md:text-right md:pl-4">
                 <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-ink3 mb-3">
                   {t("dashboard.pulse_label", { defaultValue: "Bugungi puls" })}
                 </div>
-                <div className="hero-num text-[56px] md:text-[68px] text-ink count-up leading-[0.95]">
+                <div className="hero-num text-[64px] md:text-[68px] text-ink count-up leading-[0.92]">
                   {heroPayAmt != null ? fmtUsdCompact(heroPayAmt) : "—"}
                 </div>
-                <div className="mt-4 flex md:justify-end items-center gap-2.5 text-[12px] font-mono tracking-[0.02em] text-ink3">
-                  <span className="dot-live" />
-                  <span>{t("dashboard.today_payments")}</span>
+                {/* Meta line — wraps cleanly on mobile, single-line on desktop.
+                    Live dot + label are inseparable; count separator hides on mobile if cramped. */}
+                <div className="mt-4 flex md:justify-end items-center gap-x-2.5 gap-y-1 text-[12px] font-mono tracking-[0.02em] text-ink3 flex-wrap">
+                  <span className="inline-flex items-center gap-2">
+                    <span className="dot-live" />
+                    <span>{t("dashboard.today_payments")}</span>
+                  </span>
                   {heroPayCnt != null && (
-                    <>
-                      <span className="text-ink4">·</span>
+                    <span className="inline-flex items-center gap-2">
+                      <span className="text-ink4 hidden md:inline">·</span>
                       <span className="text-ink2 font-semibold">
                         {fmtCount(heroPayCnt)} ta
                       </span>
-                    </>
+                    </span>
                   )}
                 </div>
               </div>
@@ -249,13 +255,17 @@ export default function Dashboard() {
       </header>
 
       {/* ============================================================
-          2. PULSE STRIP — editorial-band, 4 cells with vertical hairlines
+          2. PULSE STRIP — editorial-band, 4 cells with hairline dividers
+          that work at BOTH viewports (cells own their borders).
+          Mobile: 2×2 grid with horizontal hairline mid-row, vertical hairline
+                  mid-column. Cells: index 0 right+bottom, 1 bottom, 2 right, 3 plain.
+          Desktop: 1×4 row with vertical hairline between cells (cells 0,1,2 right).
           ============================================================ */}
       <section
         className="editorial-band relative reveal-up"
         style={{ animationDelay: "160ms" }}
       >
-        <div className="grid grid-cols-2 md:grid-cols-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 px-4 md:px-0">
           <PulseStat
             label={t("dashboard.today_orders")}
             value={overviewQ.data ? fmtUsdCompact(overviewQ.data.today.orders.amount) : "—"}
@@ -265,9 +275,8 @@ export default function Dashboard() {
               overviewQ.data?.yesterday.orders.amount,
             )}
             deltaLabel={t("dashboard.vs_yesterday") as string}
-            position="first"
+            cellIdx={0}
           />
-          <div className="hairline-v hidden md:block" aria-hidden />
           <PulseStat
             label={t("dashboard.today_payments")}
             value={overviewQ.data ? fmtUsdCompact(overviewQ.data.today.payments.amount) : "—"}
@@ -277,21 +286,19 @@ export default function Dashboard() {
               overviewQ.data?.yesterday.payments.amount,
             )}
             deltaLabel={t("dashboard.vs_yesterday") as string}
-            position="mid"
+            cellIdx={1}
           />
-          <div className="hairline-v hidden md:block" aria-hidden />
           <PulseStat
             label={t("dashboard.week_orders")}
             value={overviewQ.data ? fmtUsdCompact(overviewQ.data.week.orders_amount) : "—"}
             sub={t("dashboard.week_hint") as string}
-            position="mid"
+            cellIdx={2}
           />
-          <div className="hairline-v hidden md:block" aria-hidden />
           <PulseStat
             label={t("dashboard.active_30d")}
             value={overviewQ.data ? fmtCount(overviewQ.data.active_clients_30d) : "—"}
             sub={t("dashboard.active_30d_hint") as string}
-            position="last"
+            cellIdx={3}
           />
         </div>
       </section>
@@ -418,42 +425,45 @@ export default function Dashboard() {
           className="mt-16 md:mt-24 reveal-up"
           style={{ animationDelay: "340ms" }}
         >
-          {/* Header */}
-          <div className="flex items-end justify-between mb-4 flex-wrap gap-3">
-            <div>
-              <div className="text-[9px] font-mono uppercase tracking-[0.22em] text-ink3 mb-2">
-                {t("dashboard.trend_eyebrow", { defaultValue: "Oxirgi 30 kun" })}
-              </div>
-              <h2 className="hero-title text-[26px] md:text-[34px] text-ink">
-                30 kunlik trend
-              </h2>
-              <p className="standfirst mt-2 text-[14px]">
-                Sotuv va to'lov yo'naltirilgan dinamikasi.
-              </p>
+          {/* Header — title block left, legend below on mobile / right on desktop */}
+          <div>
+            <div className="text-[9px] font-mono uppercase tracking-[0.22em] text-ink3 mb-2">
+              {t("dashboard.trend_eyebrow", { defaultValue: "Oxirgi 30 kun" })}
             </div>
-            {/* Legend — right-aligned, inline */}
-            <div className="flex items-center gap-5 text-[10px] font-mono uppercase tracking-[0.16em] text-ink3 pb-1">
-              <LegendDot
-                color="#111827"
-                label={t("dashboard.orders_label") as string}
-              />
-              <LegendDot
-                color="#10B981"
-                label={t("dashboard.payments_label") as string}
-              />
+            <div className="flex items-end justify-between flex-wrap gap-x-6 gap-y-3">
+              <div>
+                <h2 className="hero-title text-[26px] md:text-[34px] text-ink">
+                  30 kunlik trend
+                </h2>
+                <p className="standfirst mt-2 text-[14px]">
+                  Sotuv va to'lov yo'naltirilgan dinamikasi.
+                </p>
+              </div>
+              {/* Legend — bottom-anchored on desktop, sits below subtitle on mobile */}
+              <div className="flex items-center gap-5 text-[10px] font-mono uppercase tracking-[0.16em] text-ink3 pb-1">
+                <LegendDot
+                  color="#111827"
+                  label={t("dashboard.orders_label") as string}
+                />
+                <LegendDot
+                  color="#10B981"
+                  label={t("dashboard.payments_label") as string}
+                />
+              </div>
             </div>
           </div>
 
-          <hr className="hairline mb-5" aria-hidden />
+          <hr className="hairline mt-5 mb-6" aria-hidden />
 
-          {/* Chart — no card wrapper, pure editorial canvas */}
+          {/* Chart — no card wrapper, pure editorial canvas. Mobile gets a
+              taller chart so the trend reads at small widths. */}
           <TimeSeriesChart
             data={trendSeries}
             showYoY
             primaryLabel={t("dashboard.orders_label") as string}
             yoyLabel={t("dashboard.payments_label") as string}
             showArea
-            height={200}
+            height={220}
           />
         </section>
       )}
@@ -466,7 +476,16 @@ export default function Dashboard() {
 // ============================================================================
 
 // ---------------------------------------------------------------------------
-// PulseStat — editorial cell inside the band
+// PulseStat — editorial cell inside the band.
+//
+// Border logic via cellIdx (0..3):
+//   Mobile  2×2:  0 → right+bottom hairline
+//                 1 → bottom hairline only (right edge of grid)
+//                 2 → right hairline only (last row, no bottom)
+//                 3 → no borders
+//   Desktop 1×4:  0,1,2 → right hairline (md:border-r)
+//                 3 → no right (rightmost cell)
+//                 ALL: no bottom (md:border-b-0)
 // ---------------------------------------------------------------------------
 
 function PulseStat({
@@ -475,14 +494,14 @@ function PulseStat({
   sub,
   delta,
   deltaLabel,
-  position = "mid",
+  cellIdx,
 }: {
   label: string;
   value: string;
   sub?: string;
   delta?: number | null;
   deltaLabel?: string;
-  position?: "first" | "mid" | "last";
+  cellIdx: 0 | 1 | 2 | 3;
 }) {
   const deltaCls =
     delta == null || !Number.isFinite(delta)
@@ -493,24 +512,47 @@ function PulseStat({
       ? "text-coraldk"
       : "text-ink3";
 
-  const paddingCls =
-    position === "first"
-      ? "px-0 py-6 md:pr-7 md:pl-0"
-      : position === "last"
-      ? "px-0 py-6 md:px-7 md:pr-0"
-      : "px-0 py-6 md:px-7";
+  // Hairline color used for both directions. Pulled from globals' .hairline rgba.
+  const hairColor = "rgba(17, 24, 39, 0.08)";
+
+  // Mobile borders (hidden at md+) — render bottom for top-row cells, right for left-column cells.
+  const mobileBorder: React.CSSProperties = {
+    borderBottom: cellIdx < 2 ? `1px solid ${hairColor}` : "none",
+    borderRight: cellIdx % 2 === 0 ? `1px solid ${hairColor}` : "none",
+  };
+
+  // Desktop overrides — kill mobile bottom, set right except on last cell.
+  const desktopBorderClass =
+    cellIdx === 3
+      ? "md:!border-r-0 md:!border-b-0"
+      : "md:!border-r md:!border-r-[rgba(17,24,39,0.08)] md:!border-b-0";
 
   return (
-    <div className={`flex flex-col min-w-0 ${paddingCls}`}>
+    <div
+      style={mobileBorder}
+      className={[
+        "flex flex-col min-w-0",
+        // Padding: tighter top/bottom on mobile so 2×2 doesn't feel sparse,
+        // generous left/right gutter so cells breathe from the page edge.
+        "px-5 py-6 md:px-7 md:py-7",
+        // First cell zeroes its left padding; last cell zeroes its right.
+        cellIdx === 0 ? "md:pl-0" : "",
+        cellIdx === 3 ? "md:pr-0" : "",
+        // 2-col mobile: every even-index cell is left column; reset its left padding to 0.
+        cellIdx % 2 === 0 ? "pl-0" : "",
+        cellIdx % 2 === 1 ? "pr-0" : "",
+        desktopBorderClass,
+      ].join(" ")}
+    >
       <div className="text-[9px] font-mono uppercase tracking-[0.22em] text-ink3 mb-3">
         {label}
       </div>
-      <div className="hero-num text-[28px] md:text-[36px] text-ink count-up">
+      <div className="hero-num text-[26px] md:text-[36px] text-ink count-up leading-none">
         {value}
       </div>
-      <div className="flex items-baseline gap-2 mt-3 text-[11px] font-mono min-h-[14px] flex-wrap">
+      <div className="mt-3 flex items-baseline gap-2 text-[11px] font-mono min-h-[14px] flex-wrap">
         {delta != null && Number.isFinite(delta) && (
-          <span className={`${deltaCls} font-semibold`}>
+          <span className={`${deltaCls} font-semibold tracking-[0.02em]`}>
             {fmtPct(delta)}
           </span>
         )}
@@ -518,7 +560,7 @@ function PulseStat({
           <span className="text-ink3 italic tracking-[0.02em] truncate">{sub}</span>
         )}
         {delta != null && Number.isFinite(delta) && deltaLabel && (
-          <span className="text-ink4 italic ml-auto md:ml-0">{deltaLabel}</span>
+          <span className="text-ink4 italic hidden md:inline">{deltaLabel}</span>
         )}
       </div>
     </div>
@@ -617,7 +659,7 @@ function TileShell({
     <Link
       to={to}
       aria-label={`${eyebrow} — ochish`}
-      className="group row-editorial block py-8 px-0 md:px-8 first:md:pl-0 last:md:pr-0 outline-none focus-visible:ring-2 focus-visible:ring-mint rounded-sm border-b md:border-b-0 border-ink/[0.06] last:border-b-0"
+      className="group row-editorial block py-7 md:py-8 px-0 md:px-8 first:md:pl-0 last:md:pr-0 outline-none focus-visible:ring-2 focus-visible:ring-mint rounded-sm border-b md:border-b-0 border-ink/[0.06] last:border-b-0"
     >
       {/* Tile eyebrow */}
       <div className="flex items-center justify-between mb-4">
