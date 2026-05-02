@@ -129,12 +129,21 @@ export default function DebtorCard({
   const daysSince = row.days_since_payment;
   const isOver90 = (daysSince ?? 0) >= 90;
 
+  // Outer is a div with role=button (not <button>) so the inner <a tel:>/<a sms:>
+  // anchors remain valid HTML — buttons can't legally contain anchors.
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
       className={[
-        "w-full text-left bg-white rounded-2xl shadow-card p-[14px] relative",
+        "w-full text-left bg-white rounded-2xl shadow-card p-[14px] relative cursor-pointer",
         "animate-rise focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint",
         "transition-shadow hover:shadow-cardlg",
       ].join(" ")}
@@ -272,6 +281,6 @@ export default function DebtorCard({
           <MapPin className="w-[18px] h-[18px] text-ink" />
         </button>
       </div>
-    </button>
+    </div>
   );
 }
