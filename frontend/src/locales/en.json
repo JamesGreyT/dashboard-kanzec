@@ -1,4 +1,12 @@
 {
+  "dateRange": {
+    "presets": "Presets",
+    "thisMonth": "This month",
+    "lastMonth": "Last month",
+    "pickMonth": "Pick a month",
+    "prevYear": "Previous year",
+    "nextYear": "Next year"
+  },
   "auth": {
     "tagline": "Operations console",
     "username": "Username",

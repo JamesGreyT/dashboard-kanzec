@@ -188,3 +188,9 @@ export function agingBadgeVariant(daysOverdue: number | null | undefined, bucket
   if (bucket === 'current' || (typeof daysOverdue === 'number' && daysOverdue >= 0)) return 'monitor'
   return 'plan'
 }
+
+/** Month picker value for "this month", in "YYYY-MM" form. */
+export function currentMonthValue(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
