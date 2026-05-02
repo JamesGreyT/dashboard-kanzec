@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Calendar, ChevronDown, X } from 'lucide-react'
+import { ChevronDown, X } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
+import MonthPicker from '@/components/MonthPicker'
+import { defaultDayPresets } from '@/components/datePresets'
 import { useSnapshotsDirections, type AnalyticsFilters } from '@/api/hooks'
 import { cn } from '@/lib/utils'
 
@@ -104,7 +106,34 @@ export default function AnalyticsShell({ sectionLabel, title, children }: Props)
             {t('analytics.filters.label')}
           </span>
 
-          <DateRangePill from={from} to={to} onChange={setRange} />
+          {/* Date picker — same MonthPicker used everywhere on the SPA, so
+              the analytics filter strip behaves like the Dayslice region
+              picker (calendar trigger + presets + custom range). When `from`
+              or `to` is empty we fall back to a no-op "month" value so the
+              picker has something to render; the filter object treats both
+              as undefined upstream. */}
+          <MonthPicker
+            value={
+              from || to
+                ? { kind: 'range', from: from || to, to: to || from }
+                : { kind: 'month', month: '' }
+            }
+            onChange={(v) => {
+              if (v.kind === 'range') setRange(v.from || null, v.to || null)
+              else if (v.month) {
+                // Month selection → first/last day of that month.
+                const [y, m] = v.month.split('-').map(Number)
+                const f = `${y}-${String(m).padStart(2, '0')}-01`
+                const last = new Date(y, m, 0)
+                const tt = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}-${String(last.getDate()).padStart(2, '0')}`
+                setRange(f, tt)
+              } else {
+                setRange(null, null)
+              }
+            }}
+            label={t('analytics.filters.dateRange')}
+            presets={defaultDayPresets()}
+          />
 
           <SelectPill
             label={t('analytics.filters.direction')}
@@ -142,151 +171,6 @@ export default function AnalyticsShell({ sectionLabel, title, children }: Props)
   )
 }
 
-// ── Date-range pill (lifted from FilterBar; kept local because the
-// analytics filter strip uses single from/to params, not f= triples) ──
-
-function DateRangePill({
-  from,
-  to,
-  onChange,
-}: {
-  from: string
-  to: string
-  onChange: (f: string | null, t: string | null) => void
-}) {
-  const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  const isActive = !!(from || to)
-
-  useEffect(() => {
-    if (!open) return
-    function onClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('mousedown', onClick)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onClick)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open])
-
-  const todayIso = useMemo(() => {
-    const d = new Date()
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  }, [])
-
-  const presets = useMemo(() => {
-    function iso(d: Date) {
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-    }
-    return [
-      { labelKey: 'data.filters.presets.last7', range: () => {
-        const f = new Date(); f.setDate(f.getDate() - 6); return [iso(f), todayIso] as const
-      }},
-      { labelKey: 'data.filters.presets.thisMonth', range: () => {
-        const n = new Date(); return [iso(new Date(n.getFullYear(), n.getMonth(), 1)), todayIso] as const
-      }},
-      { labelKey: 'data.filters.presets.lastMonth', range: () => {
-        const n = new Date()
-        const f = new Date(n.getFullYear(), n.getMonth() - 1, 1)
-        const tt = new Date(n.getFullYear(), n.getMonth(), 0)
-        return [iso(f), iso(tt)] as const
-      }},
-      { labelKey: 'data.filters.presets.ytd', range: () => {
-        const n = new Date(); return [iso(new Date(n.getFullYear(), 0, 1)), todayIso] as const
-      }},
-      { labelKey: 'analytics.filters.presets.last90', range: () => {
-        const f = new Date(); f.setDate(f.getDate() - 89); return [iso(f), todayIso] as const
-      }},
-    ]
-  }, [todayIso])
-
-  function shortLabel() {
-    if (!from && !to) return t('analytics.filters.dateRange')
-    if (from && to) return `${from} → ${to}`
-    if (from) return `≥ ${from}`
-    return `≤ ${to}`
-  }
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className={cn('month-btn inline-flex items-center gap-1.5', isActive && 'active')}
-      >
-        <Calendar size={11} aria-hidden />
-        <span>{shortLabel()}</span>
-        <ChevronDown
-          size={10}
-          className={cn('transition-transform', open && 'rotate-180', isActive ? 'opacity-100' : 'opacity-40')}
-        />
-      </button>
-      {open && (
-        <div
-          className="absolute left-0 z-30 mt-2 bg-card border border-border rounded-lg p-3 w-72"
-          style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}
-        >
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-2">
-            {t('data.filters.dateRange')}
-          </p>
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            <input
-              type="date"
-              value={from}
-              onChange={(e) => onChange(e.target.value || null, to || null)}
-              className="text-xs bg-input border border-border rounded-md px-2 py-1.5 focus:outline-none focus:border-[#9E7B2F]/40 focus:ring-2 focus:ring-[#9E7B2F]/10"
-            />
-            <input
-              type="date"
-              value={to}
-              onChange={(e) => onChange(from || null, e.target.value || null)}
-              className="text-xs bg-input border border-border rounded-md px-2 py-1.5 focus:outline-none focus:border-[#9E7B2F]/40 focus:ring-2 focus:ring-[#9E7B2F]/10"
-            />
-          </div>
-          <div className="flex flex-wrap gap-1.5 pt-2 border-t border-border/60">
-            {presets.map((p) => (
-              <button
-                key={p.labelKey}
-                type="button"
-                onClick={() => {
-                  const [f, tt] = p.range()
-                  onChange(f, tt)
-                }}
-                className="month-btn"
-              >
-                {t(p.labelKey)}
-              </button>
-            ))}
-          </div>
-          {isActive && (
-            <div className="flex items-center justify-end gap-2 pt-3 mt-3 border-t border-border/60 text-[10px] uppercase tracking-[0.14em]">
-              <button
-                type="button"
-                onClick={() => onChange(null, null)}
-                className="text-red-500/80 hover:text-red-500 transition-colors normal-case font-medium"
-              >
-                {t('data.clearFilter')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors normal-case font-medium"
-              >
-                {t('common.close')}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
 
 function SelectPill({
   label,
