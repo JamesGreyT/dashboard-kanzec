@@ -1,3 +1,14 @@
+/**
+ * Boshqaruv paneli — Editorial Restraint redesign (PR-B).
+ *
+ * Same direction as DebtWorklist: Fraunces serif moments, hairline
+ * rules between sections, no card chrome on spotlight or tile grid.
+ * Hero masthead with mint bloom + count-up. Pulse strip stays
+ * editorial-band style with vertical hairlines. Spotlight Taqqoslash
+ * dissolved into hairline composition. KunlikKesim / Collection / RFM
+ * become 3 typographic blocks separated by hairlines, not chunky cards.
+ * 30-day trend retuned with editorial header.
+ */
 import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
@@ -13,11 +24,11 @@ import {
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { last90Days } from "../lib/dashboardWindow";
-import { fmtNum, fmtCount, fmtPct } from "../components/MetricCard";
+import { fmtCount, fmtPct } from "../components/MetricCard";
 import TimeSeriesChart, { type SeriesPoint } from "../components/TimeSeriesChart";
 
 // ---------------------------------------------------------------------------
-// Response types
+// Response types (unchanged)
 // ---------------------------------------------------------------------------
 
 interface OverviewResp {
@@ -61,11 +72,33 @@ interface RfmResp {
 }
 
 // ---------------------------------------------------------------------------
+// Formatters
+// ---------------------------------------------------------------------------
+
+/** Compact USD: $1.2M, $580K, $22. No cents for hero displays. */
+function fmtUsdCompact(n: number | null | undefined): string {
+  if (n == null) return "—";
+  if (n === 0) return "$0";
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000) return `$${(n / 1_000_000).toFixed(2).replace(/\.?0+$/, "")}M`;
+  if (abs >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
+  return `$${n.toFixed(0)}`;
+}
+
+/** Uzbek weekday + date string. "DUSHANBA · 2 MAY 2026" */
+function formatDateEyebrow(): string {
+  const now = new Date();
+  const weekdays = ["YAKSHANBA", "DUSHANBA", "SESHANBA", "CHORSHANBA", "PAYSHANBA", "JUMA", "SHANBA"];
+  const months = ["YANVAR", "FEVRAL", "MART", "APREL", "MAY", "IYUN", "IYUL", "AVGUST", "SENTYABR", "OKTYABR", "NOYABR", "DEKABR"];
+  return `${weekdays[now.getDay()]} · ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+}
+
+// ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 
 export default function Dashboard() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
 
@@ -73,21 +106,8 @@ export default function Dashboard() {
     document.title = t("dashboard.title", { defaultValue: "Dashboard" }) + " · Kanzec";
   }, [t]);
 
-  // Localized "Monday, 28 April 2026" for the masthead eyebrow.
-  const lang = (i18n.language || "uz").split("-")[0];
-  const dateLabel = new Date().toLocaleDateString(
-    lang === "uz" ? "uz-UZ" : lang === "ru" ? "ru-RU" : "en-US",
-    { weekday: "long", day: "numeric", month: "long", year: "numeric" },
-  );
-
-  // Split the title across two lines with the italic accent dot trailing
-  // the last word — same trick PageHeading uses.
-  const titleWords = (t("dashboard.title", { defaultValue: "Dashboard" }) as string).trim().split(/\s+/);
-  const titleHead = titleWords.slice(0, -1).join(" ");
-  const titleTail = titleWords[titleWords.length - 1];
-
   // -------------------------------------------------------------------------
-  // Queries
+  // Queries (verbatim — same keys, same query strings, same staleTime)
   // -------------------------------------------------------------------------
   const overviewQ = useQuery({
     queryKey: ["dashboard.overview"],
@@ -162,164 +182,291 @@ export default function Dashboard() {
   const yearNow = yearLabels.at(-1) ?? "";
   const yearPrev = yearLabels.at(-2) ?? "";
 
+  // Hero number: today's payment amount (compact)
+  const heroPayAmt = overviewQ.data?.today.payments.amount;
+  const heroPayCnt = overviewQ.data?.today.payments.count;
+
   // -------------------------------------------------------------------------
   // Render
   // -------------------------------------------------------------------------
 
   return (
-    <div className="space-y-8 md:space-y-10 pb-10">
-      {/* MASTHEAD */}
-      <header className="stagger-0 relative pb-5">
-        <div className="grid grid-cols-12 gap-x-6 gap-y-3 items-end">
-          <div className="col-span-12 md:col-span-7">
-            <div className="eyebrow !tracking-[0.18em] mb-2">{dateLabel}</div>
-            <h1 className="font-display text-[28px] sm:text-[36px] md:text-[44px] font-medium leading-[1.05] tracking-[-0.015em] text-foreground">
-              {titleHead && <span>{titleHead} </span>}
-              <span>
-                {titleTail}
-                <span aria-hidden className="font-display-italic text-primary">.</span>
-              </span>
-            </h1>
+    <div className="relative pb-20">
+
+      {/* ============================================================
+          1. MASTHEAD — editorial hero with mint bloom
+          ============================================================ */}
+      <header className="relative pt-2 pb-12 md:pt-6 md:pb-16">
+        <span aria-hidden className="masthead-bloom" />
+
+        <div className="relative">
+          {/* Eyebrow — date + breadcrumb, DM Mono uppercase */}
+          <div className="text-[10px] md:text-[11px] font-mono uppercase tracking-[0.22em] text-ink3 mb-6 md:mb-8">
+            <span className="text-ink2">{formatDateEyebrow()}</span>
+            <span className="mx-3 text-ink4">/</span>
+            <span>{t("dashboard.crumb_dashboard", { defaultValue: "Boshqaruv paneli" })}</span>
           </div>
-          <div className="col-span-12 md:col-span-5 md:pl-6 md:border-l border-border/60 md:self-end pb-1">
-            <p className="text-[12px] md:text-[13px] text-muted-foreground italic leading-relaxed max-w-prose">
-              {t("dashboard.subtitle")}
-            </p>
+
+          {/* HERO ROW — title left (7 cols), today's pulse right (5 cols) */}
+          <div className="grid grid-cols-12 gap-y-10 md:gap-y-0 gap-x-8 md:items-end">
+
+            {/* Left — Fraunces title + standfirst */}
+            <div className="col-span-12 md:col-span-7">
+              <h1 className="hero-title text-[56px] md:text-[96px] text-ink count-up">
+                Boshqaruv paneli
+              </h1>
+              <p className="standfirst mt-4 md:mt-5 max-w-[42ch] md:max-w-[52ch]">
+                {t("dashboard.subtitle")}
+              </p>
+            </div>
+
+            {/* Right — today's payment pulse */}
+            <div className="col-span-12 md:col-span-5">
+              <hr className="hairline mb-6 md:hidden" aria-hidden />
+              <div className="md:text-right md:pl-4">
+                <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-ink3 mb-3">
+                  {t("dashboard.pulse_label", { defaultValue: "Bugungi puls" })}
+                </div>
+                <div className="hero-num text-[56px] md:text-[68px] text-ink count-up leading-[0.95]">
+                  {heroPayAmt != null ? fmtUsdCompact(heroPayAmt) : "—"}
+                </div>
+                <div className="mt-4 flex md:justify-end items-center gap-2.5 text-[12px] font-mono tracking-[0.02em] text-ink3">
+                  <span className="dot-live" />
+                  <span>{t("dashboard.today_payments")}</span>
+                  {heroPayCnt != null && (
+                    <>
+                      <span className="text-ink4">·</span>
+                      <span className="text-ink2 font-semibold">
+                        {fmtCount(heroPayCnt)} ta
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        <div className="mark-rule absolute bottom-0 left-0 right-0" aria-hidden />
       </header>
 
-      {/* PULSE STRIP — editorial stat list, hairline dividers between cells */}
-      <section className="stagger-1">
-        <div className="eyebrow !tracking-[0.18em] mb-3 flex items-baseline gap-2">
-          <span>{t("dashboard.pulse_label", { defaultValue: "Bugungi puls" })}</span>
-          <span aria-hidden className="font-display-italic text-primary text-[14px] -ml-0.5">.</span>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-0 gap-y-5 md:divide-x divide-border/50">
+      {/* ============================================================
+          2. PULSE STRIP — editorial-band, 4 cells with vertical hairlines
+          ============================================================ */}
+      <section
+        className="editorial-band relative reveal-up"
+        style={{ animationDelay: "160ms" }}
+      >
+        <div className="grid grid-cols-2 md:grid-cols-4">
           <PulseStat
             label={t("dashboard.today_orders")}
-            value={overviewQ.data ? "$" + fmtNum(overviewQ.data.today.orders.amount, true) : "—"}
+            value={overviewQ.data ? fmtUsdCompact(overviewQ.data.today.orders.amount) : "—"}
             sub={overviewQ.data ? fmtCount(overviewQ.data.today.orders.count) + " " + t("dashboard.orders_unit") : ""}
             delta={todayDelta(
               overviewQ.data?.today.orders.amount,
               overviewQ.data?.yesterday.orders.amount,
             )}
             deltaLabel={t("dashboard.vs_yesterday") as string}
-            isFirst
+            position="first"
           />
+          <div className="hairline-v hidden md:block" aria-hidden />
           <PulseStat
             label={t("dashboard.today_payments")}
-            value={overviewQ.data ? "$" + fmtNum(overviewQ.data.today.payments.amount, true) : "—"}
+            value={overviewQ.data ? fmtUsdCompact(overviewQ.data.today.payments.amount) : "—"}
             sub={overviewQ.data ? fmtCount(overviewQ.data.today.payments.count) + " " + t("dashboard.payments_unit") : ""}
             delta={todayDelta(
               overviewQ.data?.today.payments.amount,
               overviewQ.data?.yesterday.payments.amount,
             )}
             deltaLabel={t("dashboard.vs_yesterday") as string}
+            position="mid"
           />
+          <div className="hairline-v hidden md:block" aria-hidden />
           <PulseStat
             label={t("dashboard.week_orders")}
-            value={overviewQ.data ? "$" + fmtNum(overviewQ.data.week.orders_amount, true) : "—"}
+            value={overviewQ.data ? fmtUsdCompact(overviewQ.data.week.orders_amount) : "—"}
             sub={t("dashboard.week_hint") as string}
+            position="mid"
           />
+          <div className="hairline-v hidden md:block" aria-hidden />
           <PulseStat
             label={t("dashboard.active_30d")}
             value={overviewQ.data ? fmtCount(overviewQ.data.active_clients_30d) : "—"}
             sub={t("dashboard.active_30d_hint") as string}
+            position="last"
           />
         </div>
       </section>
 
-      {/* SPOTLIGHT — Taqqoslash, the lead headline of the page */}
-      <SpotlightCard
-        to="/analytics/comparison"
-        eyebrow={t("nav.comparison") as string}
-        kicker={yearPrev && yearNow ? `${yearPrev} → ${yearNow}` : ""}
-        loading={sotuvCmpQ.isLoading || kirimCmpQ.isLoading}
-        error={!!sotuvCmpQ.error || !!kirimCmpQ.error}
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 md:gap-y-0 md:gap-x-10 md:divide-x divide-border/40">
-          <SpotlightHalf
-            label={t("comparison.tab_sotuv") as string}
-            current={sotuvCmpQ.data?.totals.values.at(-1) ?? null}
-            prior={sotuvCmpQ.data?.totals.values.at(-2) ?? null}
-            yoy={sotuvCmpQ.data?.totals.trend_delta_pct ?? null}
-            yearPrev={yearPrev}
-          />
-          <SpotlightHalf
-            label={t("comparison.tab_kirim") as string}
-            current={kirimCmpQ.data?.totals.values.at(-1) ?? null}
-            prior={kirimCmpQ.data?.totals.values.at(-2) ?? null}
-            yoy={kirimCmpQ.data?.totals.trend_delta_pct ?? null}
-            yearPrev={yearPrev}
-            offset
-          />
-        </div>
-      </SpotlightCard>
-
-      {/* SECONDARY GRID — three tiles, asymmetric layouts inside */}
+      {/* ============================================================
+          3. SPOTLIGHT — Taqqoslash, dissolved hairline composition
+          ============================================================ */}
       <section
-        className={
-          "stagger-3 grid gap-4 md:gap-4 grid-cols-1 " +
-          (isAdmin ? "md:grid-cols-3" : "md:grid-cols-2")
-        }
+        className="mt-16 md:mt-24 reveal-up"
+        style={{ animationDelay: "220ms" }}
       >
-        {isAdmin && (
-          <KunlikKesimTile data={projectionQ.data} loading={projectionQ.isLoading} error={!!projectionQ.error} t={t} />
+        {/* Section eyebrow row with inline link */}
+        <div className="flex items-end justify-between gap-4 mb-4">
+          <div>
+            <div className="text-[9px] font-mono uppercase tracking-[0.22em] text-ink3 mb-2">
+              Taqqoslash
+            </div>
+            <h2 className="hero-title text-[24px] md:text-[28px] text-ink">
+              {yearPrev && yearNow ? `${yearPrev} → ${yearNow}` : "Taqqoslash"}
+            </h2>
+          </div>
+          <Link
+            to="/analytics/comparison"
+            aria-label="Taqqoslash sahifasini ochish"
+            className="group flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.18em] text-ink3 hover:text-ink transition-colors pb-1"
+          >
+            <span>Ochish</span>
+            <ArrowUpRight
+              className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"
+              aria-hidden
+            />
+          </Link>
+        </div>
+
+        <hr className="hairline-mint mb-8" aria-hidden />
+
+        {sotuvCmpQ.isLoading || kirimCmpQ.isLoading ? (
+          <SpotlightSkeleton />
+        ) : sotuvCmpQ.error || kirimCmpQ.error ? (
+          <p className="text-[12px] italic text-coraldk">Yuklab bo'lmadi.</p>
+        ) : (
+          /* Two halves — vertical hairline divider at md+ */
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_1px_1fr] gap-y-10 md:gap-y-0">
+            <SpotlightHalf
+              label={t("comparison.tab_sotuv") as string}
+              current={sotuvCmpQ.data?.totals.values.at(-1) ?? null}
+              prior={sotuvCmpQ.data?.totals.values.at(-2) ?? null}
+              yoy={sotuvCmpQ.data?.totals.trend_delta_pct ?? null}
+              yearPrev={yearPrev}
+            />
+            <div className="hairline-v hidden md:block" aria-hidden />
+            <SpotlightHalf
+              label={t("comparison.tab_kirim") as string}
+              current={kirimCmpQ.data?.totals.values.at(-1) ?? null}
+              prior={kirimCmpQ.data?.totals.values.at(-2) ?? null}
+              yoy={kirimCmpQ.data?.totals.trend_delta_pct ?? null}
+              yearPrev={yearPrev}
+              indent
+            />
+          </div>
         )}
-        <CollectionTile
-          worklist={worklistQ.data}
-          prepayments={prepaymentsQ.data}
-          loading={worklistQ.isLoading || prepaymentsQ.isLoading}
-          error={!!worklistQ.error || !!prepaymentsQ.error}
-          t={t}
-        />
-        <RfmTile data={rfmQ.data} loading={rfmQ.isLoading} error={!!rfmQ.error} t={t} />
       </section>
 
-      {/* TREND — minimal chrome, sits in the page like an inline figure */}
+      {/* ============================================================
+          4. TILE ROW — KunlikKesim / Collection / RFM
+          Dissolved sections side-by-side (md+), stacked mobile.
+          Hairline rules separate tiles vertically (md) / horizontally (mobile).
+          ============================================================ */}
+      <section
+        className="mt-16 md:mt-24 reveal-up"
+        style={{ animationDelay: "280ms" }}
+      >
+        {/* Section header */}
+        <div className="text-[9px] font-mono uppercase tracking-[0.22em] text-ink3 mb-4">
+          Ko'rsatkichlar
+        </div>
+        <hr className="hairline mb-0" aria-hidden />
+
+        {/* Tiles */}
+        <div
+          className={[
+            "grid",
+            isAdmin
+              ? "grid-cols-1 md:grid-cols-[1fr_1px_1fr_1px_1fr]"
+              : "grid-cols-1 md:grid-cols-[1fr_1px_1fr]",
+          ].join(" ")}
+        >
+          {isAdmin && (
+            <>
+              <KunlikKesimTile
+                data={projectionQ.data}
+                loading={projectionQ.isLoading}
+                error={!!projectionQ.error}
+                t={t}
+              />
+              <div className="hairline-v hidden md:block" aria-hidden />
+            </>
+          )}
+
+          <CollectionTile
+            worklist={worklistQ.data}
+            prepayments={prepaymentsQ.data}
+            loading={worklistQ.isLoading || prepaymentsQ.isLoading}
+            error={!!worklistQ.error || !!prepaymentsQ.error}
+            t={t}
+          />
+
+          <div className="hairline-v hidden md:block" aria-hidden />
+
+          <RfmTile
+            data={rfmQ.data}
+            loading={rfmQ.isLoading}
+            error={!!rfmQ.error}
+            t={t}
+          />
+        </div>
+      </section>
+
+      {/* ============================================================
+          5. TREND — editorial header + borderless chart wrapper
+          ============================================================ */}
       {trendSeries.length > 0 && (
-        <section className="stagger-4">
-          <div className="flex items-end justify-between mb-3 flex-wrap gap-2">
+        <section
+          className="mt-16 md:mt-24 reveal-up"
+          style={{ animationDelay: "340ms" }}
+        >
+          {/* Header */}
+          <div className="flex items-end justify-between mb-4 flex-wrap gap-3">
             <div>
-              <div className="eyebrow !tracking-[0.16em] mb-1">
+              <div className="text-[9px] font-mono uppercase tracking-[0.22em] text-ink3 mb-2">
                 {t("dashboard.trend_eyebrow", { defaultValue: "Oxirgi 30 kun" })}
               </div>
-              <h2 className="font-display text-[20px] md:text-[24px] font-medium tracking-[-0.01em] leading-[1] text-foreground">
-                {t("dashboard.trend_30d")}
-                <span aria-hidden className="font-display-italic text-primary">.</span>
+              <h2 className="hero-title text-[26px] md:text-[34px] text-ink">
+                30 kunlik trend
               </h2>
+              <p className="standfirst mt-2 text-[14px]">
+                Sotuv va to'lov yo'naltirilgan dinamikasi.
+              </p>
             </div>
-            <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            {/* Legend — right-aligned, inline */}
+            <div className="flex items-center gap-5 text-[10px] font-mono uppercase tracking-[0.16em] text-ink3 pb-1">
               <LegendDot
-                color="hsl(var(--foreground))"
+                color="#111827"
                 label={t("dashboard.orders_label") as string}
               />
               <LegendDot
-                color="hsl(var(--primary))"
+                color="#10B981"
                 label={t("dashboard.payments_label") as string}
               />
             </div>
           </div>
-          <div className="border-t border-border/50 pt-3">
-            <TimeSeriesChart
-              data={trendSeries}
-              showYoY
-              primaryLabel={t("dashboard.orders_label") as string}
-              yoyLabel={t("dashboard.payments_label") as string}
-              showArea
-              height={200}
-            />
-          </div>
+
+          <hr className="hairline mb-5" aria-hidden />
+
+          {/* Chart — no card wrapper, pure editorial canvas */}
+          <TimeSeriesChart
+            data={trendSeries}
+            showYoY
+            primaryLabel={t("dashboard.orders_label") as string}
+            yoyLabel={t("dashboard.payments_label") as string}
+            showArea
+            height={200}
+          />
         </section>
       )}
     </div>
   );
 }
 
+// ============================================================================
+// SUB-COMPONENTS
+// ============================================================================
+
 // ---------------------------------------------------------------------------
-// Pulse stat — vertical editorial cell. Hairline divider from sibling.
+// PulseStat — editorial cell inside the band
 // ---------------------------------------------------------------------------
 
 function PulseStat({
@@ -328,40 +475,50 @@ function PulseStat({
   sub,
   delta,
   deltaLabel,
-  isFirst,
+  position = "mid",
 }: {
   label: string;
   value: string;
   sub?: string;
   delta?: number | null;
   deltaLabel?: string;
-  isFirst?: boolean;
+  position?: "first" | "mid" | "last";
 }) {
-  const cls =
+  const deltaCls =
     delta == null || !Number.isFinite(delta)
-      ? "text-muted-foreground/60"
+      ? "text-ink4"
       : delta > 0
-      ? "text-emerald-700 dark:text-emerald-400"
+      ? "text-mintdk"
       : delta < 0
-      ? "text-red-700 dark:text-red-400"
-      : "text-muted-foreground";
+      ? "text-coraldk"
+      : "text-ink3";
+
+  const paddingCls =
+    position === "first"
+      ? "px-0 py-6 md:pr-7 md:pl-0"
+      : position === "last"
+      ? "px-0 py-6 md:px-7 md:pr-0"
+      : "px-0 py-6 md:px-7";
+
   return (
-    <div className={"flex flex-col gap-1.5 min-w-0 " + (isFirst ? "md:pr-5" : "md:px-5 last:md:pr-0")}>
-      <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground font-medium">
+    <div className={`flex flex-col min-w-0 ${paddingCls}`}>
+      <div className="text-[9px] font-mono uppercase tracking-[0.22em] text-ink3 mb-3">
         {label}
       </div>
-      <div className="font-display text-[24px] md:text-[28px] font-medium leading-[1] tabular-nums text-foreground">
+      <div className="hero-num text-[28px] md:text-[36px] text-ink count-up">
         {value}
       </div>
-      <div className="flex items-baseline gap-2 text-[10px] tabular-nums min-h-[12px]">
+      <div className="flex items-baseline gap-2 mt-3 text-[11px] font-mono min-h-[14px] flex-wrap">
         {delta != null && Number.isFinite(delta) && (
-          <span className={cls + " font-mono font-medium"}>{fmtPct(delta)}</span>
+          <span className={`${deltaCls} font-semibold`}>
+            {fmtPct(delta)}
+          </span>
         )}
         {sub && (
-          <span className="text-muted-foreground italic truncate">{sub}</span>
+          <span className="text-ink3 italic tracking-[0.02em] truncate">{sub}</span>
         )}
         {delta != null && Number.isFinite(delta) && deltaLabel && (
-          <span className="text-muted-foreground/60 italic ml-auto md:ml-0">{deltaLabel}</span>
+          <span className="text-ink4 italic ml-auto md:ml-0">{deltaLabel}</span>
         )}
       </div>
     </div>
@@ -369,67 +526,8 @@ function PulseStat({
 }
 
 // ---------------------------------------------------------------------------
-// Spotlight — the featured year-over-year comparison block
+// SpotlightHalf — one side of the Taqqoslash composition
 // ---------------------------------------------------------------------------
-
-function SpotlightCard({
-  to,
-  eyebrow,
-  kicker,
-  loading,
-  error,
-  children,
-}: {
-  to: string;
-  eyebrow: string;
-  kicker?: string;
-  loading?: boolean;
-  error?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link
-      to={to}
-      aria-label={`${eyebrow} — open`}
-      className={
-        "stagger-2 group relative block bg-card border rounded-2xl p-5 md:p-7 " +
-        "transition-shadow hover:shadow-lg outline-none focus-visible:ring-2 focus-visible:ring-ring " +
-        "overflow-hidden"
-      }
-    >
-      {/* Decorative radial wash in the top-right corner — primary-tinted,
-       *  very low opacity. Adds atmosphere without being a "blob". */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-10 -right-10 w-[180px] h-[180px] rounded-full opacity-[0.07]"
-        style={{
-          background:
-            "radial-gradient(circle at center, hsl(var(--primary)) 0%, transparent 65%)",
-        }}
-      />
-      <div className="relative flex items-baseline justify-between mb-6 flex-wrap gap-3">
-        <div className="eyebrow !tracking-[0.18em] flex items-baseline gap-2.5">
-          <span>{eyebrow}</span>
-          {kicker && (
-            <>
-              <span aria-hidden className="text-muted-foreground/40">·</span>
-              <span className="font-mono normal-case text-[10px] text-muted-foreground/80 tabular-nums">
-                {kicker}
-              </span>
-            </>
-          )}
-        </div>
-        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70 group-hover:text-foreground transition-colors">
-          <span>{loading ? "…" : "Ochish"}</span>
-          <ArrowUpRight className="h-3 w-3" aria-hidden />
-        </div>
-      </div>
-      <div className="relative">
-        {error ? <SpotlightError /> : loading ? <SpotlightSkeleton /> : children}
-      </div>
-    </Link>
-  );
-}
 
 function SpotlightHalf({
   label,
@@ -437,40 +535,44 @@ function SpotlightHalf({
   prior,
   yoy,
   yearPrev,
-  offset,
+  indent,
 }: {
   label: string;
   current: number | null;
   prior: number | null;
   yoy: number | null;
   yearPrev: string;
-  offset?: boolean;
+  indent?: boolean;
 }) {
   const yoyCls =
     yoy == null || !Number.isFinite(yoy)
-      ? "text-muted-foreground/60"
+      ? "text-ink4"
       : yoy > 0
-      ? "text-emerald-700 dark:text-emerald-400"
+      ? "text-mintdk"
       : yoy < 0
-      ? "text-red-700 dark:text-red-400"
-      : "text-muted-foreground";
+      ? "text-coraldk"
+      : "text-ink3";
+
   return (
-    <div className={"flex flex-col gap-2 " + (offset ? "md:pl-10" : "")}>
-      <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-medium">
+    <div className={`flex flex-col gap-3 ${indent ? "md:pl-10" : ""}`}>
+      <div className="text-[9px] font-mono uppercase tracking-[0.22em] text-ink3">
         {label}
       </div>
-      <div className="font-display text-[36px] md:text-[44px] font-medium leading-[1] tracking-[-0.015em] tabular-nums text-foreground">
-        {current != null ? "$" + fmtNum(current, true) : "—"}
+      <div className="hero-num text-[48px] md:text-[68px] text-ink count-up">
+        {current != null ? fmtUsdCompact(current) : "—"}
       </div>
-      <div className="flex items-baseline gap-2 mt-0.5 text-[11px] tabular-nums flex-wrap">
+      <div className="flex items-baseline gap-3 flex-wrap">
         {yoy != null && Number.isFinite(yoy) && (
-          <span className={yoyCls + " text-[13px] font-mono font-medium"}>
+          <span className={`${yoyCls} font-mono font-semibold text-[14px]`}>
             {fmtPct(yoy)}
           </span>
         )}
         {prior != null && yearPrev && (
-          <span className="text-muted-foreground italic">
-            ${fmtNum(prior, true)} <span className="text-muted-foreground/60 not-italic">({yearPrev})</span>
+          <span className="standfirst text-[14px] text-ink3">
+            {fmtUsdCompact(prior)}{" "}
+            <span className="not-italic font-mono text-ink4 text-[11px] tracking-[0.02em]">
+              ({yearPrev})
+            </span>
           </span>
         )}
       </div>
@@ -480,35 +582,26 @@ function SpotlightHalf({
 
 function SpotlightSkeleton() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 md:gap-y-0 md:gap-x-10">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-8 md:gap-y-0 gap-x-10">
       {[0, 1].map((i) => (
-        <div key={i} className="space-y-2 animate-pulse">
-          <div className="h-3 w-16 bg-muted/40 rounded" />
-          <div className="h-10 md:h-12 w-2/3 bg-muted/50 rounded" />
-          <div className="h-3 w-1/2 bg-muted/30 rounded" />
+        <div key={i} className="space-y-3 animate-pulse">
+          <div className="h-2.5 w-14 bg-ink/[0.07] rounded" />
+          <div className="h-14 md:h-16 w-2/3 bg-ink/[0.08] rounded" />
+          <div className="h-3 w-1/2 bg-ink/[0.05] rounded" />
         </div>
       ))}
     </div>
   );
 }
 
-function SpotlightError() {
-  return (
-    <div className="text-[12px] italic text-red-700 dark:text-red-400">
-      Failed to load.
-    </div>
-  );
-}
-
 // ---------------------------------------------------------------------------
-// Tile chrome — shared shell for the three secondary cards
+// Dissolved tile — shared editorial shell (no card chrome)
 // ---------------------------------------------------------------------------
 
-function TileFrame({
+function TileShell({
   to,
   icon: Icon,
   eyebrow,
-  kicker,
   loading,
   error,
   children,
@@ -516,7 +609,6 @@ function TileFrame({
   to: string;
   icon: LucideIcon;
   eyebrow: string;
-  kicker?: string;
   loading?: boolean;
   error?: boolean;
   children: React.ReactNode;
@@ -524,32 +616,29 @@ function TileFrame({
   return (
     <Link
       to={to}
-      aria-label={`${eyebrow} — open`}
-      className={
-        "group relative block bg-card border rounded-2xl p-5 min-h-[160px] " +
-        "transition-shadow hover:shadow-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      }
+      aria-label={`${eyebrow} — ochish`}
+      className="group row-editorial block py-8 px-0 md:px-8 first:md:pl-0 last:md:pr-0 outline-none focus-visible:ring-2 focus-visible:ring-mint rounded-sm border-b md:border-b-0 border-ink/[0.06] last:border-b-0"
     >
-      <div className="flex items-baseline justify-between gap-3 mb-4">
-        <div className="flex items-center gap-2 min-w-0">
-          <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" aria-hidden />
-          <div className="eyebrow !tracking-[0.16em] truncate">{eyebrow}</div>
-          {kicker && (
-            <>
-              <span aria-hidden className="text-muted-foreground/40 px-0.5">·</span>
-              <div className="font-mono normal-case text-[10px] text-muted-foreground/70 truncate">
-                {kicker}
-              </div>
-            </>
-          )}
+      {/* Tile eyebrow */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Icon
+            className="w-3.5 h-3.5 text-ink3 shrink-0"
+            strokeWidth={1.8}
+            aria-hidden
+          />
+          <span className="text-[9px] font-mono uppercase tracking-[0.22em] text-ink3">
+            {eyebrow}
+          </span>
         </div>
         <ArrowUpRight
-          className="h-3.5 w-3.5 text-muted-foreground/50 group-hover:text-foreground transition-colors shrink-0"
+          className="w-3.5 h-3.5 text-ink4 group-hover:text-ink transition-colors shrink-0"
           aria-hidden
         />
       </div>
+
       {error ? (
-        <div className="text-[12px] italic text-red-700 dark:text-red-400">Failed to load.</div>
+        <p className="text-[12px] italic text-coraldk">Yuklab bo'lmadi.</p>
       ) : loading ? (
         <TileSkeleton />
       ) : (
@@ -561,17 +650,17 @@ function TileFrame({
 
 function TileSkeleton() {
   return (
-    <div className="space-y-2 animate-pulse">
-      <div className="h-2.5 w-20 bg-muted/40 rounded" />
-      <div className="h-7 w-2/3 bg-muted/50 rounded" />
-      <div className="h-2.5 w-1/2 bg-muted/30 rounded" />
-      <div className="h-2.5 w-3/5 bg-muted/30 rounded mt-4" />
+    <div className="space-y-3 animate-pulse">
+      <div className="h-2.5 w-20 bg-ink/[0.07] rounded" />
+      <div className="h-8 w-2/3 bg-ink/[0.08] rounded" />
+      <div className="h-2.5 w-1/2 bg-ink/[0.05] rounded" />
+      <div className="h-[3px] w-full bg-ink/[0.05] rounded-full mt-3" />
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// KunlikKesim tile — MTD over forecast, two stacked stats
+// KunlikKesim tile — MTD over forecast, two stacked typographic stats
 // ---------------------------------------------------------------------------
 
 function KunlikKesimTile({
@@ -586,28 +675,31 @@ function KunlikKesimTile({
   t: ReturnType<typeof useTranslation>["t"];
 }) {
   return (
-    <TileFrame
+    <TileShell
       to="/dayslice"
       icon={CalendarRange}
       eyebrow={t("nav.dayslice") as string}
-      kicker={t("dashboard.metric_mtd") as string}
       loading={loading}
       error={error}
     >
-      <div className="space-y-3">
+      <h3 className="hero-title text-[22px] md:text-[26px] text-ink mb-5">
+        {t("dashboard.metric_mtd")}
+      </h3>
+
+      <div className="space-y-5">
         <ForecastRow
           label={t("comparison.tab_sotuv") as string}
           mtd={data?.current_mtd.sotuv}
           forecast={data?.projection.sotuv.mean}
         />
-        <div className="border-t border-border/40" />
+        <hr className="hairline" aria-hidden />
         <ForecastRow
           label={t("comparison.tab_kirim") as string}
           mtd={data?.current_mtd.kirim}
           forecast={data?.projection.kirim.mean}
         />
       </div>
-    </TileFrame>
+    </TileShell>
   );
 }
 
@@ -620,29 +712,31 @@ function ForecastRow({
   mtd: number | undefined;
   forecast: number | undefined;
 }) {
-  // Visual progress: how much of the projected month-end is the MTD
-  // already? Capped at 100% so a high actual doesn't run off the bar.
   const pct =
     mtd != null && forecast != null && forecast > 0
       ? Math.min(1, mtd / forecast)
       : 0;
+
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground mb-1">
+      <div className="text-[9px] font-mono uppercase tracking-[0.22em] text-ink3 mb-2">
         {label}
       </div>
-      <div className="flex items-baseline gap-2 mb-1.5">
-        <div className="font-display text-[24px] font-medium leading-[1] tabular-nums text-foreground">
-          {mtd != null ? "$" + fmtNum(mtd, true) : "—"}
-        </div>
-        <div className="text-[11px] text-muted-foreground italic font-mono">
-          → ${forecast != null ? fmtNum(forecast, true) : "—"}
-        </div>
+      <div className="flex items-baseline gap-2.5 mb-2.5">
+        <span className="hero-num text-[24px] md:text-[28px] text-ink">
+          {mtd != null ? fmtUsdCompact(mtd) : "—"}
+        </span>
+        <span className="standfirst text-[13px] text-ink3">
+          → {forecast != null ? fmtUsdCompact(forecast) : "—"}
+        </span>
       </div>
-      {/* Hairline progress — MTD as fraction of forecast */}
-      <div className="h-[2px] bg-muted/40 rounded-full overflow-hidden">
+      {/* Hairline progress bar */}
+      <div
+        className="rounded-full overflow-hidden"
+        style={{ background: "rgba(17,24,39,0.06)", height: 3 }}
+      >
         <div
-          className="h-full bg-primary/70 transition-all"
+          className="h-full rounded-full draw-in-w bg-mint"
           style={{ width: `${(pct * 100).toFixed(1)}%` }}
         />
       </div>
@@ -651,7 +745,7 @@ function ForecastRow({
 }
 
 // ---------------------------------------------------------------------------
-// Collection tile — total debt headline + 90+ days hairline bar
+// Collection tile — debt headline + 90+ hairline progress bar
 // ---------------------------------------------------------------------------
 
 function CollectionTile({
@@ -673,71 +767,72 @@ function CollectionTile({
   const over90Cnt = worklist?.summary.debtor_over_90_count;
   const prepay = prepayments?.rows.reduce((s, r) => s + (r.credit_balance ?? 0), 0);
   const over90Pct = total && over90 ? over90 / total : 0;
+
   return (
-    <TileFrame
+    <TileShell
       to="/collection/worklist"
       icon={HandCoins}
       eyebrow={t("nav.debt_clients") as string}
       loading={loading}
       error={error}
     >
-      <div className="space-y-3">
-        <div>
-          <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground mb-1">
-            {t("dashboard.metric_total_debt")}
-          </div>
-          <div className="font-display text-[28px] md:text-[32px] font-medium leading-[1] tabular-nums text-foreground">
-            {total != null ? "$" + fmtNum(total, true) : "—"}
-          </div>
-          <div className="text-[10px] text-muted-foreground italic mt-1">
-            {debtors != null
-              ? t("dashboard.metric_debtors_n", { n: fmtCount(debtors) })
-              : ""}
-          </div>
-        </div>
-
-        {/* 90+ days as portion of total — single hairline bar */}
-        <div>
-          <div className="flex items-baseline justify-between text-[10px] uppercase tracking-[0.16em] text-muted-foreground mb-1">
-            <span>{t("dashboard.metric_over_90")}</span>
-            <span className="font-mono tabular-nums normal-case text-muted-foreground/80">
-              {(over90Pct * 100).toFixed(0)}%
-            </span>
-          </div>
-          <div className="h-[2px] bg-muted/40 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-destructive/70 transition-all"
-              style={{ width: `${(over90Pct * 100).toFixed(1)}%` }}
-            />
-          </div>
-          <div className="flex items-baseline justify-between mt-1.5 text-[11px]">
-            <span className="font-mono tabular-nums text-foreground">
-              {over90 != null ? "$" + fmtNum(over90, true) : "—"}
-            </span>
-            <span className="text-muted-foreground italic">
-              {over90Cnt != null
-                ? t("dashboard.metric_debtors_n", { n: fmtCount(over90Cnt) })
-                : ""}
-            </span>
-          </div>
-        </div>
-
-        {/* Prepayments — single understated line */}
-        {prepay != null && prepay > 0 && (
-          <div className="text-[10px] text-muted-foreground border-t border-border/40 pt-2 flex items-baseline justify-between">
-            <span className="italic">{t("dashboard.metric_prepayments")}</span>
-            <span className="font-mono tabular-nums text-foreground">
-              ${fmtNum(prepay, true)}
-            </span>
-          </div>
-        )}
+      {/* Hero debt number */}
+      <h3 className="hero-num text-[36px] md:text-[44px] text-ink count-up mb-1">
+        {total != null ? fmtUsdCompact(total) : "—"}
+      </h3>
+      <div className="text-[11px] font-mono text-ink3 tracking-[0.04em] mb-5">
+        {debtors != null
+          ? t("dashboard.metric_debtors_n", { n: fmtCount(debtors) })
+          : ""}
       </div>
-    </TileFrame>
+
+      {/* 90+ as fraction of total — mint hairline progress bar */}
+      <div className="mb-1.5 flex items-center justify-between text-[9px] font-mono uppercase tracking-[0.18em] text-ink3">
+        <span>{t("dashboard.metric_over_90")}</span>
+        <span className="text-coraldk font-semibold">
+          {(over90Pct * 100).toFixed(0)}%
+        </span>
+      </div>
+      <div
+        className="rounded-full overflow-hidden mb-2"
+        style={{ background: "rgba(17,24,39,0.06)", height: 3 }}
+      >
+        <div
+          className="h-full rounded-full draw-in-w"
+          style={{
+            width: `${(over90Pct * 100).toFixed(1)}%`,
+            background: "#F87171",
+          }}
+        />
+      </div>
+      <div className="flex items-baseline justify-between text-[12px] font-mono">
+        <span className="text-coraldk font-semibold">
+          {over90 != null ? fmtUsdCompact(over90) : "—"}
+        </span>
+        <span className="text-ink3 tracking-[0.02em]">
+          {over90Cnt != null
+            ? t("dashboard.metric_debtors_n", { n: fmtCount(over90Cnt) })
+            : ""}
+        </span>
+      </div>
+
+      {/* Prepayments — understated italic line */}
+      {prepay != null && prepay > 0 && (
+        <div className="mt-4 pt-3 border-t border-ink/[0.06] flex items-baseline justify-between text-[11px]">
+          <span className="standfirst text-[12px] text-ink3">
+            {t("dashboard.metric_prepayments")}
+          </span>
+          <span className="font-mono text-mintdk font-semibold tracking-[0.02em]">
+            {fmtUsdCompact(prepay)}
+          </span>
+        </div>
+      )}
+    </TileShell>
   );
 }
 
 // ---------------------------------------------------------------------------
-// RFM tile — 4 segments as a 2x2 mini-grid, color-toned numbers
+// RFM tile — 4 segments as typographic list, color-toned Fraunces numbers
 // ---------------------------------------------------------------------------
 
 function RfmTile({
@@ -755,49 +850,54 @@ function RfmTile({
   const find = (name: string) =>
     seg.find((s) => s.segment.toLowerCase() === name.toLowerCase())?.clients ?? 0;
 
-  type Tone = "primary" | "fg" | "amber" | "destructive";
+  type Tone = "mint" | "ink" | "amber" | "coral";
   const cells: Array<{ key: string; label: string; n: number; tone: Tone }> = [
-    { key: "champ", label: t("dashboard.rfm_champions") as string, n: find("Champions"), tone: "primary" },
-    { key: "loyal", label: t("dashboard.rfm_loyal") as string, n: find("Loyal"), tone: "fg" },
-    { key: "risk",  label: t("dashboard.rfm_at_risk") as string, n: find("At-Risk"), tone: "amber" },
-    { key: "lost",  label: t("dashboard.rfm_lost") as string, n: find("Lost"), tone: "destructive" },
+    { key: "champ", label: t("dashboard.rfm_champions") as string, n: find("Champions"), tone: "mint" },
+    { key: "loyal", label: t("dashboard.rfm_loyal") as string,     n: find("Loyal"),      tone: "ink" },
+    { key: "risk",  label: t("dashboard.rfm_at_risk") as string,   n: find("At-Risk"),    tone: "amber" },
+    { key: "lost",  label: t("dashboard.rfm_lost") as string,      n: find("Lost"),       tone: "coral" },
   ];
-  const toneCls = (tone: Tone) =>
-    tone === "primary"
-      ? "text-primary"
+
+  const numCls = (tone: Tone) =>
+    tone === "mint"
+      ? "text-mintdk"
       : tone === "amber"
-      ? "text-amber-700 dark:text-amber-400"
-      : tone === "destructive"
-      ? "text-destructive"
-      : "text-foreground";
+      ? "text-[#B45309]"
+      : tone === "coral"
+      ? "text-coraldk"
+      : "text-ink";
 
   return (
-    <TileFrame
+    <TileShell
       to="/analytics/sales?tab=rfm"
       icon={Users}
       eyebrow={t("dashboard.section_rfm_title", { defaultValue: "RFM" }) as string}
-      kicker="90 kun"
       loading={loading}
       error={error}
     >
-      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-        {cells.map((c) => (
-          <div key={c.key} className="min-w-0">
-            <div
-              className={
-                "font-display text-[24px] md:text-[26px] font-medium leading-[1] tabular-nums " +
-                toneCls(c.tone)
-              }
-            >
-              {fmtCount(c.n)}
-            </div>
-            <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground mt-1 truncate">
+      <h3 className="hero-title text-[22px] md:text-[26px] text-ink mb-5">
+        90 kunlik RFM
+      </h3>
+
+      <div className="space-y-0">
+        {cells.map((c, i) => (
+          <div
+            key={c.key}
+            className={[
+              "flex items-baseline justify-between py-3",
+              i < cells.length - 1 ? "border-b border-ink/[0.05]" : "",
+            ].join(" ")}
+          >
+            <span className="text-[11px] font-mono uppercase tracking-[0.18em] text-ink3">
               {c.label}
-            </div>
+            </span>
+            <span className={`hero-num text-[22px] md:text-[26px] ${numCls(c.tone)}`}>
+              {fmtCount(c.n)}
+            </span>
           </div>
         ))}
       </div>
-    </TileFrame>
+    </TileShell>
   );
 }
 
@@ -807,10 +907,10 @@ function RfmTile({
 
 function LegendDot({ color, label }: { color: string; label: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <span className="inline-flex items-center gap-2">
       <span
         aria-hidden
-        className="inline-block w-2 h-2 rounded-full"
+        className="inline-block w-2 h-2 rounded-full shrink-0"
         style={{ backgroundColor: color }}
       />
       <span>{label}</span>
