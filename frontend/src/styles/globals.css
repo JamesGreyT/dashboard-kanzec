@@ -321,6 +321,91 @@
     background-size: 200% 100%;
     animation: shimmer 2.4s linear infinite;
   }
+
+  /* ---- Age bar — 4-band segmented, used on debtor cards, desktop rows,
+     and aging-buckets section. Each band is a flex child.
+     .age-bar > .age-0 / .age-30 / .age-60 / .age-90   ---- */
+  .age-bar {
+    display: flex;
+    height: 6px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: #f3f4f6;
+    box-shadow: inset 0 0 0 1px rgba(17, 24, 39, 0.04);
+  }
+  .age-bar > span {
+    display: block;
+    height: 100%;
+  }
+  .age-0  { background: #10b981; } /* 0-30 kun — mint  */
+  .age-30 { background: #34d399; } /* 31-60 kun — mint-light */
+  .age-60 { background: #f59e0b; } /* 61-90 kun — amber */
+  .age-90 { background: #f87171; } /* 90+ kun   — coral */
+
+  /* ---- Pulsing live status dot ---- */
+  .dot-live {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: #10b981;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+    animation: pulsemint 1.8s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+
+  /* ---- Priority chips — P1 coral, P2 amber, P3 slate ---- */
+  .prio {
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    font-family: var(--font-mono);
+    flex-shrink: 0;
+  }
+  .prio-1 {
+    background: #fef2f2;
+    color: #dc2626;
+    box-shadow: inset 0 0 0 1px #fecaca;
+  }
+  .prio-2 {
+    background: #fffbeb;
+    color: #b45309;
+    box-shadow: inset 0 0 0 1px #fde68a;
+  }
+  .prio-3 {
+    background: #f3f4f6;
+    color: #6b7280;
+    box-shadow: inset 0 0 0 1px #e5e7eb;
+  }
+
+  /* ---- Desktop inline action icon button ---- */
+  .btn-ic {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+    box-shadow: inset 0 0 0 1px #e5e7eb;
+    color: #374151;
+    flex-shrink: 0;
+    transition: background 0.1s;
+  }
+  .btn-ic:hover {
+    background: #f9fafb;
+  }
+  .btn-ic.mint {
+    background: #10b981;
+    color: #ffffff;
+    box-shadow: 0 6px 14px -6px rgba(16, 185, 129, 0.55);
+  }
 }
 
 /* ============================================================
