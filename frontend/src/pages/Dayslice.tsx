@@ -4,7 +4,7 @@ import { X } from 'lucide-react'
 
 import PageHeader from '@/components/PageHeader'
 import MatrixTable from '@/components/analytics/MatrixTable'
-import MonthPicker from '@/components/MonthPicker'
+import MonthPicker, { type DateRangeValue } from '@/components/MonthPicker'
 import {
   useDaysliceScoreboard,
   useDaysliceRegionPivot,
@@ -19,39 +19,54 @@ const PLAYFAIR = "'Playfair Display', Georgia, serif"
 const DM_SANS = "'DM Sans', system-ui"
 const PLEX_MONO = "'IBM Plex Mono', ui-monospace, monospace"
 
-// Translate a "YYYY-MM" picker value to a backend-friendly `as_of`
-// ISO date. Current month → today (so day_n / month_days reads as a
-// real MTD progression). Past month → last day of that month.
-function asOfFromMonth(monthValue: string): string | undefined {
-  // Empty month value → no filter, backend defaults to today.
-  if (!monthValue) return undefined
-  const [yStr, mStr] = monthValue.split('-')
+// Translate the picker value into the dayslice filter shape the backend
+// expects. Two modes:
+//
+//   month  → emit `as_of` only (backend builds a "1 → as_of.day" slice
+//            and replays it across every year). Current month anchors
+//            on today; past months anchor on the last day of that month.
+//   range  → emit `slice_start` + `slice_end`; backend takes their
+//            (month, day) tuple and replays the same window across every
+//            year. `as_of` becomes the range end (so day_n / month_days
+//            still reflects a "where in the slice are we" reading).
+function filtersFromPicker(v: DateRangeValue): {
+  as_of?: string
+  slice_start?: string
+  slice_end?: string
+} {
+  if (v.kind === 'range') {
+    return { as_of: v.to, slice_start: v.from, slice_end: v.to }
+  }
+  const [yStr, mStr] = v.month.split('-')
   const y = Number(yStr)
   const m = Number(mStr)
-  if (!Number.isFinite(y) || !Number.isFinite(m)) return undefined
+  if (!Number.isFinite(y) || !Number.isFinite(m)) return {}
 
   const now = new Date()
   const isCurrent = y === now.getFullYear() && m === now.getMonth() + 1
   if (isCurrent) {
-    // Mid-month: anchor on today so the slice reads month_start..today.
-    return now.toISOString().slice(0, 10)
+    return { as_of: now.toISOString().slice(0, 10) }
   }
-  // Past or future month: anchor on the last calendar day of that month.
-  // Day 0 of next month = last day of current month.
+  // Past month: anchor on the last calendar day of that month.
   const last = new Date(y, m, 0)
-  return `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}-${String(last.getDate()).padStart(2, '0')}`
+  return {
+    as_of: `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}-${String(last.getDate()).padStart(2, '0')}`,
+  }
 }
 
 export default function Dayslice() {
   const { t } = useTranslation()
   const [direction, setDirection] = useState('')
   const [years, setYears] = useState(4)
-  const [month, setMonth] = useState<string>(() => currentMonthValue())
+  const [pickerValue, setPickerValue] = useState<DateRangeValue>(() => ({
+    kind: 'month',
+    month: currentMonthValue(),
+  }))
   const [drill, setDrill] = useState<{ measure: 'sotuv' | 'kirim'; manager: string; year: number } | null>(null)
 
   const directionsQ = useSnapshotsDirections()
-  const as_of = asOfFromMonth(month)
-  const filters = { direction, years, as_of }
+  const dateFilters = filtersFromPicker(pickerValue)
+  const filters = { direction, years, ...dateFilters }
 
   const scoreboardQ = useDaysliceScoreboard(filters)
   const regionQ = useDaysliceRegionPivot(filters)
@@ -75,8 +90,18 @@ export default function Dayslice() {
             {t('admin.dayslice.title')}
           </h1>
           {slice && (
+            // The slice window (month_start → as_of) is replayed across every
+            // year on the page — so prefix with an "all years" hint that
+            // disambiguates from "this month, current year only". For custom
+            // ranges, drop the day_n / month_days caption (it doesn't carry
+            // the same MTD-progression meaning).
             <p className="text-xs text-muted-foreground" style={{ fontFamily: PLEX_MONO }}>
-              {slice.month_start} → {slice.as_of} · {t('admin.dayslice.day')} {slice.day_n}/{slice.month_days}
+              <span className="text-muted-foreground/60 mr-1.5">↻</span>
+              {slice.month_start} → {slice.as_of}
+              {pickerValue.kind === 'month' && (
+                <> · {t('admin.dayslice.day')} {slice.day_n}/{slice.month_days}</>
+              )}
+              <span className="text-muted-foreground/60 ml-1.5">· {t('admin.dayslice.acrossYears')}</span>
             </p>
           )}
         </div>
@@ -85,10 +110,9 @@ export default function Dayslice() {
           <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70 mr-1" style={{ fontFamily: PLEX_MONO }}>
             {t('data.filters.label')}
           </span>
-          {/* Month picker — calendar-icon trigger + dropdown with presets and
-              a 12-month grid. Defaults to current month so the page boots
-              with the live slice. */}
-          <MonthPicker value={month} onChange={setMonth} label={t('admin.dayslice.month')} />
+          {/* Month / range picker — calendar-icon trigger; dropdown surfaces
+              presets, a 12-month grid, and a custom from/to expander. */}
+          <MonthPicker value={pickerValue} onChange={setPickerValue} label={t('admin.dayslice.month')} />
           <select
             value={direction}
             onChange={(e) => setDirection(e.target.value)}
@@ -158,6 +182,7 @@ export default function Dayslice() {
           measure={drill.measure}
           manager={drill.manager}
           year={drill.year}
+          filters={filters}
           onClose={() => setDrill(null)}
         />
       )}
@@ -213,15 +238,17 @@ function DrillModal({
   measure,
   manager,
   year,
+  filters,
   onClose,
 }: {
   measure: 'sotuv' | 'kirim'
   manager: string
   year: number
+  filters: { direction?: string; as_of?: string; slice_start?: string; slice_end?: string }
   onClose: () => void
 }) {
   const { t, i18n } = useTranslation()
-  const q = useDaysliceDrill({ measure, manager, year, enabled: true })
+  const q = useDaysliceDrill({ measure, manager, year, ...filters, enabled: true })
   const rows = q.data?.rows ?? []
   return (
     <>

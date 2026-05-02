@@ -5,7 +5,12 @@
     "lastMonth": "O'tgan oy",
     "pickMonth": "Oy tanlash",
     "prevYear": "Oldingi yil",
-    "nextYear": "Keyingi yil"
+    "nextYear": "Keyingi yil",
+    "customRange": "Maxsus oraliq",
+    "from": "Boshi",
+    "to": "Oxiri",
+    "apply": "Qo'llash",
+    "invalidRange": "Sana oralig'i noto'g'ri."
   },
   "auth": {
     "tagline": "Operatsion boshqaruv",
@@ -330,6 +335,7 @@
       "title": "Kunlik kesim",
       "day": "Kun",
       "yearsShort": "y",
+      "acrossYears": "har bir yil uchun",
       "scoreboard": "Tablo",
       "regionPivot": "Hudud × manager",
       "regionByManager": "Hudud × manager xaritasi",

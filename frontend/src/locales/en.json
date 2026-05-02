@@ -5,7 +5,12 @@
     "lastMonth": "Last month",
     "pickMonth": "Pick a month",
     "prevYear": "Previous year",
-    "nextYear": "Next year"
+    "nextYear": "Next year",
+    "customRange": "Custom range",
+    "from": "From",
+    "to": "To",
+    "apply": "Apply",
+    "invalidRange": "Invalid date range."
   },
   "auth": {
     "tagline": "Operations console",
@@ -330,6 +335,7 @@
       "title": "Day slice",
       "day": "Day",
       "yearsShort": "y",
+      "acrossYears": "applied across each year",
       "scoreboard": "Scoreboard",
       "regionPivot": "Region × manager",
       "regionByManager": "Region × manager pivot",

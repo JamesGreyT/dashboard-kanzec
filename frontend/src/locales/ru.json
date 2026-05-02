@@ -5,7 +5,12 @@
     "lastMonth": "Прошлый месяц",
     "pickMonth": "Выбрать месяц",
     "prevYear": "Предыдущий год",
-    "nextYear": "Следующий год"
+    "nextYear": "Следующий год",
+    "customRange": "Свой диапазон",
+    "from": "Начало",
+    "to": "Конец",
+    "apply": "Применить",
+    "invalidRange": "Некорректный диапазон."
   },
   "auth": {
     "tagline": "Операционное управление",
@@ -330,6 +335,7 @@
       "title": "Срез дня",
       "day": "День",
       "yearsShort": "г",
+      "acrossYears": "по каждому году",
       "scoreboard": "Табло",
       "regionPivot": "Регион × менеджер",
       "regionByManager": "Карта регион × менеджер",
