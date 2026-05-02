@@ -207,7 +207,7 @@ export default function Payments() {
       {/* Primary timeseries */}
       <section className="mb-12 stagger-3">
         <div className="flex items-baseline justify-between mb-2">
-          <div className="eyebrow !tracking-[0.18em] text-mintdk">
+          <div className="eyebrow !tracking-[0.18em] text-primary">
             {t("payments_dash.chart_timeseries")}
           </div>
           <AddAnnotationButton
@@ -233,7 +233,7 @@ export default function Payments() {
       {/* Two-column: method donut + weekday pattern */}
       <section className="mb-12 stagger-4 grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div>
-          <div className="eyebrow !tracking-[0.18em] mb-2 text-mintdk">
+          <div className="eyebrow !tracking-[0.18em] mb-2 text-primary">
             {t("payments_dash.chart_method")}
           </div>
           {methodQ.data && (
@@ -272,9 +272,9 @@ export default function Payments() {
                   return (
                     <div key={r.method} className="flex items-center gap-2">
                       <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: METHOD_COLORS[i] }} />
-                      <span className="text-ink">{r.method}</span>
+                      <span className="text-foreground">{r.method}</span>
                       <span className="ml-auto font-mono tabular-nums">{(pct * 100).toFixed(1)}%</span>
-                      <span className="font-mono tabular-nums text-ink3">·  ${fmtNum(r.amount)}</span>
+                      <span className="font-mono tabular-nums text-muted-foreground">·  ${fmtNum(r.amount)}</span>
                     </div>
                   );
                 })}
@@ -283,7 +283,7 @@ export default function Payments() {
           )}
         </div>
         <div>
-          <div className="eyebrow !tracking-[0.18em] mb-2 text-mintdk">
+          <div className="eyebrow !tracking-[0.18em] mb-2 text-primary">
             {t("payments_dash.chart_weekday")}
           </div>
           {weekdayQ.data && (
@@ -320,7 +320,7 @@ export default function Payments() {
       {/* Velocity + collection ratio */}
       <section className="mb-12 stagger-5 grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div>
-          <div className="eyebrow !tracking-[0.18em] mb-2 text-mintdk">
+          <div className="eyebrow !tracking-[0.18em] mb-2 text-primary">
             {t("payments_dash.chart_velocity")}
           </div>
           <Histogram
@@ -332,7 +332,7 @@ export default function Payments() {
           />
         </div>
         <div>
-          <div className="eyebrow !tracking-[0.18em] mb-2 text-mintdk">
+          <div className="eyebrow !tracking-[0.18em] mb-2 text-primary">
             {t("payments_dash.chart_collection")}
           </div>
           {crQ.data && crQ.data.series.length > 0 && (
@@ -359,9 +359,9 @@ export default function Payments() {
       {/* Ranked tabs */}
       <section className="mb-12 stagger-5">
         <div className="flex items-baseline justify-between mb-4">
-          <h2 className="font-display text-[22px] md:text-[26px] font-medium tracking-[-0.01em] text-ink">
+          <h2 className="font-display text-[22px] md:text-[26px] font-medium tracking-[-0.01em] text-foreground">
             {t("payments_dash.section_ranked")}
-            <span aria-hidden className="font-display text-mintdk ml-[2px]">.</span>
+            <span aria-hidden className="font-display-italic text-primary ml-[2px]">.</span>
           </h2>
         </div>
         <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
@@ -442,15 +442,15 @@ export default function Payments() {
                         "inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background " +
                         (active
                           ? "border-foreground/70 bg-background ring-2 ring-foreground/30"
-                          : "border-line/60 bg-muted/40 hover:bg-muted/60")
+                          : "border-border/60 bg-muted/40 hover:bg-muted/60")
                       }
                       title={`${s.segment} — ${s.clients} clients, $${Math.round(s.receipts).toLocaleString("en-US")} receipts`}
                     >
                       <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: rfmPaySegColor(s.segment) }} aria-hidden />
-                      <span className={"text-[12px] " + (active ? "text-ink font-medium" : "text-ink")}>
+                      <span className={"text-[12px] " + (active ? "text-foreground font-medium" : "text-foreground")}>
                         {s.segment}
                       </span>
-                      <span className="font-mono tabular-nums text-[11px] text-ink3">{s.clients}</span>
+                      <span className="font-mono tabular-nums text-[11px] text-muted-foreground">{s.clients}</span>
                     </button>
                   );
                 })}
@@ -473,9 +473,9 @@ function classPill(c: string) {
     daily:    "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
     weekly:   "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400",
     monthly:  "bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-300",
-    sporadic: "bg-muted text-ink3",
+    sporadic: "bg-muted text-muted-foreground",
     churned:  "bg-red-100 text-red-800 dark:bg-red-950/30 dark:text-red-300",
-  }[c] ?? "bg-muted text-ink3";
+  }[c] ?? "bg-muted text-muted-foreground";
   return <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-[0.06em] ${tone}`}>{c}</span>;
 }
 
@@ -493,8 +493,8 @@ function PAYER_COLS(t: any): ColumnDef<any>[] {
     { key: "avg_payment", label: t("payments_dash.col_avg_pay"), numeric: true,
       render: (r) => "$" + fmtNum(r.avg_payment) },
     { key: "yoy_pct",   label: t("sales.col_yoy"), numeric: true,
-      render: (r) => r.yoy_pct == null ? <span className="text-ink3/60">—</span>
-        : <span className={r.yoy_pct > 0 ? "text-mintdk" : "text-coraldk"}>
+      render: (r) => r.yoy_pct == null ? <span className="text-muted-foreground/60">—</span>
+        : <span className={r.yoy_pct > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"}>
             {(r.yoy_pct * 100).toFixed(1)}%
           </span> },
     { key: "last_pay",  label: t("payments_dash.col_last_pay"), numeric: true, render: (r) => r.last_pay ?? "—" },
