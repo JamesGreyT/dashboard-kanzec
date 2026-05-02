@@ -32,19 +32,27 @@ echo "[$(date -Is)] installing backend deps"
 # -----------------------------------------------------------------------------
 # Frontend
 # -----------------------------------------------------------------------------
-echo "[$(date -Is)] building frontend"
-cd "$APP/frontend"
-# Force a fully clean node_modules before `npm ci`. We've hit the
-# occasional "Rollup failed to resolve transitive dep" error when a
-# partial install gets inherited between runs; wiping the tree costs
-# ~20 s and makes deploys deterministic.
-rm -rf node_modules
-if [ -f package-lock.json ]; then
-    npm ci --no-audit --no-fund
+# During the 2026-05 frontend rebuild, the directory may exist but contain
+# no package.json. Skip the build in that case so backend hotfixes can still
+# deploy. The previous dist on disk keeps serving until the new frontend
+# lands with a buildable package.json.
+if [ -f "$APP/frontend/package.json" ]; then
+    echo "[$(date -Is)] building frontend"
+    cd "$APP/frontend"
+    # Force a fully clean node_modules before `npm ci`. We've hit the
+    # occasional "Rollup failed to resolve transitive dep" error when a
+    # partial install gets inherited between runs; wiping the tree costs
+    # ~20 s and makes deploys deterministic.
+    rm -rf node_modules
+    if [ -f package-lock.json ]; then
+        npm ci --no-audit --no-fund
+    else
+        npm install --no-audit --no-fund
+    fi
+    npm run build
 else
-    npm install --no-audit --no-fund
+    echo "[$(date -Is)] frontend/package.json missing — skipping frontend build (rebuild in progress)"
 fi
-npm run build
 
 # -----------------------------------------------------------------------------
 # Migrations — idempotent on every deploy
