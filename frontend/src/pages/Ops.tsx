@@ -119,7 +119,7 @@ function ReportCard({
     <Card accent={tone === "live"} className="p-5 md:p-8">
       {/* Dateline — systemd unit + status pill */}
       <div className="flex items-center justify-between">
-        <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
+        <div className="text-xs text-ink3 uppercase tracking-wider font-medium">
           smartup-kanzec-etl-report@{r.key}.service
         </div>
         <StatusPill tone={tone}>{toneLabel}</StatusPill>
@@ -127,30 +127,30 @@ function ReportCard({
 
       {/* Article title + subline */}
       <div className="mt-6">
-        <h2 className="nums text-2xl font-semibold tracking-tight text-foreground leading-none">
+        <h2 className="nums text-2xl font-semibold tracking-tight text-ink leading-none">
           {r.key}
           <span className="">.</span>
         </h2>
         {subline && (
-          <div className="font-semibold italic text-sm text-foreground/80 mt-2">{subline}</div>
+          <div className="font-display font-semibold text-sm text-ink2 mt-2">{subline}</div>
         )}
       </div>
 
-      <div className="border-t border-border my-3" />
+      <div className="border-t border-line my-3" />
 
       {r.is_reference ? (
         /* Reference report — single-column "Full list" block. No deep. */
         <div>
-          <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium text-muted-foreground">{t("ops.full_pull_window")}</div>
+          <div className="text-xs text-ink3 uppercase tracking-wider font-medium text-ink3">{t("ops.full_pull_window")}</div>
           <div className="mt-5 flex items-baseline gap-2">
-            <span className="nums text-[44px] text-foreground leading-none tabular-nums">
+            <span className="nums text-[44px] text-ink leading-none tabular-nums">
               {r.last_all_rows != null
                 ? r.last_all_rows.toLocaleString()
                 : "—"}
             </span>
-            <span className="caption text-muted-foreground">{t("common.rows")}</span>
+            <span className="caption text-ink3">{t("common.rows")}</span>
           </div>
-          <div className="mt-3 caption text-muted-foreground tabular-nums">
+          <div className="mt-3 caption text-ink3 tabular-nums">
             <RelativeTime iso={r.last_all_at} />
           </div>
         </div>
@@ -158,19 +158,19 @@ function ReportCard({
         /* Transactional report — two-column RECENT | DEEP. */
         <div className="grid grid-cols-1 md:grid-cols-2 relative">
           <div className="md:pr-8">
-            <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium text-muted-foreground">{t("ops.recent_window")}</div>
-            <div className="mt-2 font-mono text-xs text-foreground/80 tabular-nums">
+            <div className="text-xs text-ink3 uppercase tracking-wider font-medium text-ink3">{t("ops.recent_window")}</div>
+            <div className="mt-2 font-mono text-xs text-ink2 tabular-nums">
               {r.last_recent_label ?? "—"}
             </div>
             <div className="mt-5 flex items-baseline gap-2">
-              <span className="nums text-[44px] text-foreground leading-none tabular-nums">
+              <span className="nums text-[44px] text-ink leading-none tabular-nums">
                 {r.last_recent_rows != null
                   ? r.last_recent_rows.toLocaleString()
                   : "—"}
               </span>
-              <span className="caption text-muted-foreground">{t("common.rows")}</span>
+              <span className="caption text-ink3">{t("common.rows")}</span>
             </div>
-            <div className="mt-3 caption text-muted-foreground tabular-nums">
+            <div className="mt-3 caption text-ink3 tabular-nums">
               {r.last_recent_ms != null
                 ? `${(r.last_recent_ms / 1000).toFixed(1)} s`
                 : "—"}
@@ -185,39 +185,39 @@ function ReportCard({
           />
 
           <div className="md:pl-8 mt-6 md:mt-0">
-            <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium text-muted-foreground">{t("ops.deep_window")}</div>
-            <div className="mt-2 font-mono text-xs text-foreground/80 tabular-nums">
+            <div className="text-xs text-ink3 uppercase tracking-wider font-medium text-ink3">{t("ops.deep_window")}</div>
+            <div className="mt-2 font-mono text-xs text-ink2 tabular-nums">
               {r.last_deep_label ?? "—"}
             </div>
             <div className="mt-5 flex items-baseline gap-2">
-              <span className="nums text-[44px] text-foreground leading-none tabular-nums">
+              <span className="nums text-[44px] text-ink leading-none tabular-nums">
                 {r.last_deep_rows != null
                   ? r.last_deep_rows.toLocaleString()
                   : "—"}
               </span>
-              <span className="caption text-muted-foreground">{t("common.rows")}</span>
+              <span className="caption text-ink3">{t("common.rows")}</span>
             </div>
-            <div className="mt-3 caption text-muted-foreground tabular-nums">
+            <div className="mt-3 caption text-ink3 tabular-nums">
               <RelativeTime iso={r.last_deep_at} />
             </div>
           </div>
         </div>
       )}
 
-      <div className="border-t border-border my-3" />
+      <div className="border-t border-line my-3" />
 
       {/* Metadata strip */}
       <div className="grid grid-cols-[120px_1fr] gap-y-2 gap-x-4 items-baseline">
-        <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">{t("ops.queue")}</div>
-        <div className="text-sm text-foreground">
+        <div className="text-xs text-ink3 uppercase tracking-wider font-medium">{t("ops.queue")}</div>
+        <div className="text-sm text-ink">
           {r.backfill_queue_len === 0 ? (
-            <span className="text-muted-foreground">{t("common.no_pending")}</span>
+            <span className="text-ink3">{t("common.no_pending")}</span>
           ) : (
             <>
               <span className="nums tabular-nums">
                 {r.backfill_queue_len}
               </span>{" "}
-              <span className="text-foreground/80">
+              <span className="text-ink2">
                 {r.backfill_queue_len === 1
                   ? t("common.chunk_singular")
                   : t("common.chunk_plural")}{" "}
@@ -226,24 +226,24 @@ function ReportCard({
             </>
           )}
         </div>
-        <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">{t("ops.errors")}</div>
+        <div className="text-xs text-ink3 uppercase tracking-wider font-medium">{t("ops.errors")}</div>
         <div className="text-sm">
           {r.last_error ? (
             <div className="border-l-2 border-red-500 pl-3">
-              <div className="text-xs text-red-700 dark:text-red-400 tabular-nums">
+              <div className="text-xs text-coraldk tabular-nums">
                 <RelativeTime iso={r.last_error_at} />
               </div>
-              <div className="caption text-red-700 dark:text-red-400 mt-0.5">
+              <div className="caption text-coraldk mt-0.5">
                 {r.last_error}
               </div>
             </div>
           ) : (
-            <span className="text-muted-foreground">—</span>
+            <span className="text-ink3">—</span>
           )}
         </div>
       </div>
 
-      <div className="border-t border-border my-3" />
+      <div className="border-t border-line my-3" />
 
       {/* Action line. Reference reports have no date range to backfill — the
           worker always pulls the full list — so we drop that button for them. */}
@@ -251,12 +251,12 @@ function ReportCard({
         {!r.is_reference && (
           <button
             onClick={onBackfill}
-            className="group inline-flex items-center gap-2 text-sm text-foreground hover:text-primary transition-colors"
+            className="group inline-flex items-center gap-2 text-sm text-ink hover:text-mintdk transition-colors"
           >
             <Calendar
               size={14}
               strokeWidth={1.25}
-              className="text-muted-foreground group-hover:text-primary transition-colors"
+              className="text-ink3 group-hover:text-mintdk transition-colors"
             />
             <span className="group-hover:underline decoration-primary underline-offset-[3px]">
               {t("ops.enqueue_backfill")}
@@ -265,7 +265,7 @@ function ReportCard({
         )}
         <button
           onClick={onLogs}
-          className="text-sm text-foreground/80 hover:text-primary hover:underline decoration-primary underline-offset-[3px] transition-colors"
+          className="text-sm text-ink2 hover:text-mintdk hover:underline decoration-primary underline-offset-[3px] transition-colors"
         >
           {t("ops.read_dispatches")}
         </button>
@@ -319,7 +319,7 @@ function BackfillModal({
     <Modal open onClose={onClose} title={t("ops.backfill_title", { key: reportKey })}>
       {count != null ? (
         <div>
-          <div className="text-sm text-foreground">
+          <div className="text-sm text-ink">
             {count === 1
               ? t("ops.backfill_queued_singular")
               : t("ops.backfill_queued_plural", { n: count.toLocaleString() })}
@@ -349,7 +349,7 @@ function BackfillModal({
             required
           />
           <label className="grid grid-cols-[100px_1fr] items-center gap-x-4">
-            <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium text-right">{t("ops.backfill_chunk")}</span>
+            <span className="text-xs text-ink3 uppercase tracking-wider font-medium text-right">{t("ops.backfill_chunk")}</span>
             <div className="flex gap-2">
               {(["year", "month", "week"] as const).map((v) => (
                 <button
@@ -358,8 +358,8 @@ function BackfillModal({
                   onClick={() => setChunk(v)}
                   className={`flex-1 h-10 rounded-[10px] text-sm transition-colors ${
                     chunk === v
-                      ? "bg-primary/10 text-primary"
-                      : "bg-muted text-foreground/80 hover:text-foreground"
+                      ? "bg-mintbg text-mintdk"
+                      : "bg-muted text-ink2 hover:text-ink"
                   }`}
                 >
                   {t(`ops.backfill_${v}`)}
@@ -368,7 +368,7 @@ function BackfillModal({
             </div>
           </label>
           {err && (
-            <div className="caption text-red-700 dark:text-red-400 border-l-2 border-red-500 pl-3">
+            <div className="caption text-coraldk border-l-2 border-red-500 pl-3">
               {err}
             </div>
           )}
@@ -461,14 +461,14 @@ function LogsDrawer({
         className="h-full overflow-auto bg-muted font-mono text-xs leading-[1.6] p-4 rounded-[8px] whitespace-pre-wrap"
       >
         {lines.length === 0 && (
-          <div className="text-muted-foreground italic">{t("common.awaiting_wire")}</div>
+          <div className="text-ink3 italic">{t("common.awaiting_wire")}</div>
         )}
         {lines.map((l, i) => {
           const tone = /ERROR|CRITICAL/.test(l)
-            ? "text-red-700 dark:text-red-400"
+            ? "text-coraldk"
             : /WARN/.test(l)
-            ? "text-amber-700 dark:text-amber-400"
-            : "text-foreground/80";
+            ? "text-amber"
+            : "text-ink2";
           return (
             <div key={i} className={tone}>
               {l}
