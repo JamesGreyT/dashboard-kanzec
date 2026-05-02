@@ -481,6 +481,11 @@
       "dateRange": "Sana oralig'i",
       "from": "Boshi",
       "to": "Oxiri",
+      "searchValues": "Qiymatni qidirish…",
+      "selectAll": "Hammasi",
+      "selectNone": "Tozalash",
+      "noValues": "Qiymat topilmadi.",
+      "limitedHint": "Birinchi 200 qiymat ko'rsatildi — qidiruvdan foydalaning.",
       "presets": {
         "today": "Bugun",
         "last7": "7 kun",
