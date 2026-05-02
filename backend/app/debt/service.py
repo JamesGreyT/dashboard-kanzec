@@ -27,6 +27,7 @@ from typing import Any, Literal
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..client_signals import compute_deal_status
 from ..scope import UserScope
 
 log = logging.getLogger(__name__)
@@ -906,6 +907,7 @@ async def compute_ledger(
       SELECT person_id::text AS person_id, opening_debt, opening_credit
         FROM smartup_rep.opening_balance
        WHERE person_id IS NOT NULL
+         {person_f}
     ),
     real_orders AS (
       SELECT person_id, delivery_date, deal_id, product_amount, room_id
@@ -1032,6 +1034,17 @@ async def compute_ledger(
       SELECT DISTINCT ON (person_id) person_id, room_id
         FROM attribution
        ORDER BY person_id, room_invoiced DESC, room_id
+    ),
+    payments_since_start AS (
+      SELECT lp.person_id::text AS person_id,
+             COALESCE(SUM(p.amount), 0) AS payments_since_start
+        FROM smartup_rep.legal_person lp
+        LEFT JOIN smartup_rep.payment p
+          ON p.person_id::text = lp.person_id::text
+         AND lp.deal_deadline_start IS NOT NULL
+         AND p.payment_date::date >= lp.deal_deadline_start
+         {person_f.replace("person_id::text", "p.person_id::text")}
+       GROUP BY lp.person_id::text
     )
     SELECT u.person_id,
            lp.name                                AS client_name,
@@ -1073,6 +1086,7 @@ async def compute_ledger(
            COALESCE(ag.bucket_90_plus, 0)         AS overdue_90,
            cg.last_order_date,
            rp.last_payment_date,
+           COALESCE(ps.payments_since_start, 0)   AS payments_since_start,
            dr.room_id                             AS primary_room_id,
            rr.room_name                           AS manager
       FROM universe u
@@ -1080,6 +1094,7 @@ async def compute_ledger(
       LEFT JOIN real_pay     rp USING (person_id)
       LEFT JOIN opening      ob USING (person_id)
       LEFT JOIN aging        ag USING (person_id)
+      LEFT JOIN payments_since_start ps USING (person_id)
       LEFT JOIN dominant_room dr USING (person_id)
       LEFT JOIN app.room rr ON rr.room_id = dr.room_id
       LEFT JOIN smartup_rep.legal_person lp ON lp.person_id::text = u.person_id
@@ -1120,8 +1135,25 @@ async def compute_ledger(
     """
     summary = (await session.execute(text(summary_sql), params)).mappings().one()
 
+    out_rows: list[dict[str, Any]] = []
+    today = date.today()
+    for raw_row in rows:
+        row = _jsonify_mapping(raw_row)
+        deadline_start = date.fromisoformat(row["deal_deadline_start"]) if row.get("deal_deadline_start") else None
+        row["deal_status"] = compute_deal_status(
+            client_group=row.get("client_group"),
+            deal_deadline_start=deadline_start,
+            deal_monthly_amount=float(row["deal_monthly_amount"]) if row.get("deal_monthly_amount") is not None else None,
+            instalment_days=int(row["term_days"]) if row.get("term_days") is not None else None,
+            current_debt=float(row.get("qarz") or 0),
+            overdue_debt=float(row.get("overdue") or 0),
+            payments_since_start=float(row.get("payments_since_start") or 0),
+            today=today,
+        )
+        out_rows.append(row)
+
     return {
-        "rows": [_jsonify_mapping(r) for r in rows],
+        "rows": out_rows,
         "total": total,
         "summary": _jsonify_mapping(summary),
         "default_term_days": int(DEFAULT_TERM_DAYS),
