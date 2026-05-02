@@ -70,7 +70,7 @@ export default function DataTable<R extends Record<string, unknown>>({
   const showChevron = !!onRowClick;
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-line bg-card shadow-card">
+    <div className="overflow-x-auto rounded-2xl border bg-card shadow-soft">
       <Table>
         <TableHeader>
           <TableRow>
@@ -78,7 +78,7 @@ export default function DataTable<R extends Record<string, unknown>>({
               <TableHead
                 key={c.name}
                 className={cn(
-                  "whitespace-nowrap sticky top-0 bg-paper/80 backdrop-blur z-10 eyebrow !text-[10px] !tracking-[0.14em] !font-medium border-b border-line",
+                  "whitespace-nowrap sticky top-0 bg-secondary/60 backdrop-blur z-10",
                   c.numeric && "text-right",
                 )}
                 style={c.width ? { width: c.width, minWidth: c.width } : undefined}
@@ -100,12 +100,12 @@ export default function DataTable<R extends Record<string, unknown>>({
                     disabled={!onSort}
                   >
                     <span>{c.label}</span>
-                    {c.sort === "asc" && <ArrowUp className="h-3 w-3 text-mint" />}
-                    {c.sort === "desc" && <ArrowDown className="h-3 w-3 text-mint" />}
+                    {c.sort === "asc" && <ArrowUp className="h-3 w-3 text-primary" />}
+                    {c.sort === "desc" && <ArrowDown className="h-3 w-3 text-primary" />}
                   </button>
                   {c.hasActiveFilter && (
                     <span
-                      className="w-1.5 h-1.5 rounded-full bg-mint"
+                      className="w-1.5 h-1.5 rounded-full bg-primary"
                       aria-label="filter active"
                     />
                   )}
@@ -144,9 +144,8 @@ export default function DataTable<R extends Record<string, unknown>>({
                   onClick={() => onRowClick?.(r)}
                   data-state={isActive ? "selected" : undefined}
                   className={cn(
-                    "group relative transition-colors",
-                    onRowClick && "cursor-pointer hover:bg-mintbg/40",
-                    isActive && "bg-mintbg/60",
+                    "group",
+                    onRowClick && "cursor-pointer",
                   )}
                   style={{ height: rowH }}
                 >
@@ -155,8 +154,8 @@ export default function DataTable<R extends Record<string, unknown>>({
                       key={c.name}
                       className={cn(
                         "whitespace-nowrap",
-                        c.numeric && "text-right font-mono tabular-nums",
-                        c.idColumn && "font-mono text-xs text-ink3",
+                        c.numeric && "text-right tabular-nums",
+                        c.idColumn && "font-mono text-xs text-muted-foreground",
                       )}
                       style={{
                         width: c.width ?? undefined,
@@ -169,7 +168,7 @@ export default function DataTable<R extends Record<string, unknown>>({
                   ))}
                   {showChevron && (
                     <TableCell className="w-9 text-center">
-                      <ChevronRight className="h-4 w-4 text-ink4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                     </TableCell>
                   )}
                 </TableRow>
@@ -220,28 +219,28 @@ function CardList<R extends Record<string, unknown>>({
           activeKey !== undefined && activeKey !== null && key === activeKey;
         const Element = onRowClick ? "button" : "div";
         return (
-          <li key={key} className="border-b border-line last:border-b-0">
+          <li key={key} className="border-b last:border-b-0">
             <Element
               {...(onRowClick
                 ? { type: "button" as const, onClick: () => onRowClick(r) }
                 : {})}
               className={cn(
                 "w-full text-left py-3 px-1 relative transition-colors",
-                onRowClick && "cursor-pointer active:bg-mintbg/60",
-                isActive && "bg-mintbg/40",
+                onRowClick && "cursor-pointer active:bg-muted",
+                isActive && "bg-muted",
               )}
             >
               {isActive && (
                 <span
                   aria-hidden
-                  className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-mint"
+                  className="absolute left-0 top-2 bottom-2 w-[2px] bg-primary"
                 />
               )}
               {headlineCol && (
                 <div
                   className={cn(
-                    "text-sm text-ink pl-3 pr-2",
-                    headlineCol.idColumn && "font-mono text-xs text-ink3",
+                    "text-sm text-foreground pl-3 pr-2",
+                    headlineCol.idColumn && "font-mono text-xs text-muted-foreground",
                   )}
                 >
                   {headlineCol.render
@@ -256,14 +255,14 @@ function CardList<R extends Record<string, unknown>>({
                       key={c.name}
                       className="flex items-baseline gap-2 justify-between"
                     >
-                      <dt className="eyebrow shrink-0">
+                      <dt className="text-xs text-muted-foreground uppercase tracking-wider shrink-0">
                         {c.label}
                       </dt>
                       <dd
                         className={cn(
                           "shrink-0 text-right",
-                          c.idColumn && "font-mono text-xs text-ink3",
-                          c.numeric ? "font-mono tabular-nums" : "text-sm text-ink",
+                          c.idColumn && "font-mono text-xs text-muted-foreground",
+                          c.numeric ? "tabular-nums" : "text-sm text-foreground",
                         )}
                         style={{ maxWidth: "60%" }}
                       >
@@ -289,7 +288,7 @@ function stringify(v: unknown): string {
 
 function formatCell<R>(value: unknown, col: Column<R>): ReactNode {
   if (value == null || value === "")
-    return <span className="text-ink4">—</span>;
+    return <span className="text-muted-foreground">—</span>;
   if (col.numeric) {
     const n = typeof value === "number" ? value : Number(value);
     if (Number.isNaN(n)) return String(value);
@@ -301,14 +300,14 @@ function formatCell<R>(value: unknown, col: Column<R>): ReactNode {
       return (
         <div className="flex flex-col items-end leading-tight">
           <span>{formatted}</span>
-          <span className="text-[10px] text-ink3 font-mono">{col.currency}</span>
+          <span className="text-xs text-muted-foreground">{col.currency}</span>
         </div>
       );
     }
     return formatted;
   }
   if (col.idColumn) {
-    return <span>{String(value)}</span>;
+    return <span>│ {String(value)}</span>;
   }
   if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}/.test(value)) {
     const d = new Date(value);

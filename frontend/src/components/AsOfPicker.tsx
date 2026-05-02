@@ -211,7 +211,7 @@ export default function AsOfPicker({
                 const next = e.target.value;
                 if (isValidIso(next)) onChange({ ...value, asOf: next });
               }}
-              className="border border-line rounded-lg px-3 py-1.5 text-[13px] font-mono tabular-nums text-ink bg-card focus-visible:outline-none focus-visible:border-mint focus-visible:ring-2 focus-visible:ring-mint/15"
+              className="border border-border/60 rounded px-2 py-1 text-[13px] font-mono tabular-nums text-foreground bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label={t("dayslice.as_of") as string}
             />
           </label>
@@ -226,7 +226,7 @@ export default function AsOfPicker({
                   const next = e.target.value;
                   if (isValidIso(next)) onChange({ ...value, sliceStart: next });
                 }}
-                className="border border-line rounded-lg px-3 py-1.5 text-[13px] font-mono tabular-nums text-ink bg-card focus-visible:outline-none focus-visible:border-mint focus-visible:ring-2 focus-visible:ring-mint/15"
+                className="border border-border/60 rounded px-2 py-1 text-[13px] font-mono tabular-nums text-foreground bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </label>
             <span className="text-muted-foreground">→</span>
@@ -241,7 +241,7 @@ export default function AsOfPicker({
                     onChange({ ...value, sliceEnd: next, asOf: next });
                   }
                 }}
-                className="border border-line rounded-lg px-3 py-1.5 text-[13px] font-mono tabular-nums text-ink bg-card focus-visible:outline-none focus-visible:border-mint focus-visible:ring-2 focus-visible:ring-mint/15"
+                className="border border-border/60 rounded px-2 py-1 text-[13px] font-mono tabular-nums text-foreground bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </label>
           </div>
@@ -254,7 +254,7 @@ export default function AsOfPicker({
             onClick={() => stepYears(-1)}
             disabled={value.years <= 2}
             aria-label="decrease years"
-            className="px-2 py-1 border border-line rounded-md text-ink hover:bg-mintbg disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint/40"
+            className="px-1.5 py-0.5 border border-border/60 rounded text-foreground hover:bg-muted/40 disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >−</button>
           <span className="font-mono tabular-nums text-foreground w-5 text-center">
             {value.years}
@@ -264,7 +264,7 @@ export default function AsOfPicker({
             onClick={() => stepYears(1)}
             disabled={value.years >= 6}
             aria-label="increase years"
-            className="px-2 py-1 border border-line rounded-md text-ink hover:bg-mintbg disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint/40"
+            className="px-1.5 py-0.5 border border-border/60 rounded text-foreground hover:bg-muted/40 disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >+</button>
         </div>
 
@@ -325,10 +325,10 @@ export default function AsOfPicker({
               aria-pressed={active}
               onClick={() => onChange(p.apply(value))}
               className={
-                "eyebrow !text-[10px] !font-medium px-2.5 py-1 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint focus-visible:ring-offset-2 " +
+                "px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring " +
                 (active
-                  ? "border-mint bg-mintbg text-mintdk"
-                  : "border-line bg-card hover:bg-mintbg/40 text-ink3 hover:text-ink")
+                  ? "border-primary/60 bg-primary/10 text-primary font-medium"
+                  : "border-border/60 bg-background hover:bg-muted/40 text-muted-foreground")
               }
             >
               {t(p.labelKey, { defaultValue: p.defaultLabel })}
@@ -338,7 +338,7 @@ export default function AsOfPicker({
       </div>
 
       {/* Eyebrow */}
-      <div className="text-[11px] text-ink3 font-mono">
+      <div className="text-[11px] italic text-muted-foreground font-mono">
         {eyebrow}
       </div>
     </div>

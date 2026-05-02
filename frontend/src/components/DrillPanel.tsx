@@ -155,7 +155,7 @@ export default function DrillPanel(props: DrillPanelProps) {
           {hasReturns && (
             <>
               {" · "}
-              <span className="text-coraldk">
+              <span className="text-red-700 dark:text-red-400">
                 {t("dayslice.drill_returns", {
                   defaultValue: "{{n}} returns: −${{amt}}",
                   n: returns_count,
@@ -176,7 +176,7 @@ export default function DrillPanel(props: DrillPanelProps) {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto border border-line rounded-2xl bg-card shadow-card">
+      <div className="overflow-x-auto border border-border/60 rounded bg-background/70">
         <table className="w-full text-[12px]">
           <thead className="bg-muted/40">
             {measure === "sotuv" ? (
@@ -219,8 +219,8 @@ export default function DrillPanel(props: DrillPanelProps) {
                   <tr
                     key={`${r.deal_id}-${i}`}
                     className={
-                      "border-t border-line " +
-                      (isReturn ? "bg-coralbg/60" : "")
+                      "border-t border-border/30 " +
+                      (isReturn ? "bg-red-50/40 dark:bg-red-950/10" : "")
                     }
                   >
                     <td className="px-3 py-1 font-mono tabular-nums text-muted-foreground whitespace-nowrap">
@@ -239,10 +239,10 @@ export default function DrillPanel(props: DrillPanelProps) {
                         </span>
                       )}
                     </td>
-                    <td className={"px-3 py-1 text-right font-mono tabular-nums " + (isReturn ? "text-coraldk" : "text-muted-foreground")}>
+                    <td className={"px-3 py-1 text-right font-mono tabular-nums " + (isReturn ? "text-red-700 dark:text-red-400" : "text-muted-foreground")}>
                       {fmtNum(r.qty)}
                     </td>
-                    <td className={"px-3 py-1 text-right font-mono tabular-nums " + (isReturn ? "text-coraldk" : "text-foreground")}>
+                    <td className={"px-3 py-1 text-right font-mono tabular-nums " + (isReturn ? "text-red-700 dark:text-red-400" : "text-foreground")}>
                       {r.amount < 0 ? "−$" + fmtNum(Math.abs(r.amount)) : "$" + fmtNum(r.amount)}
                     </td>
                   </tr>
@@ -250,7 +250,7 @@ export default function DrillPanel(props: DrillPanelProps) {
               })}
             {measure === "kirim" &&
               (rows as KirimRow[]).map((r, i) => (
-                <tr key={`${r.payment_id}-${i}`} className="border-t border-line">
+                <tr key={`${r.payment_id}-${i}`} className="border-t border-border/30">
                   <td className="px-3 py-1 font-mono tabular-nums text-muted-foreground whitespace-nowrap">
                     {fmtDate(r.date)}
                   </td>

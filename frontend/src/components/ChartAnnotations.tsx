@@ -89,19 +89,19 @@ export function AnnotationList({
       {rows.map((a) => (
         <div
           key={a.id}
-          className="group flex items-start gap-2 text-[11.5px] leading-snug text-ink2"
+          className="group flex items-start gap-2 text-[11.5px] leading-snug text-foreground/80"
         >
-          <span className="font-mono tabular-nums text-mintdk shrink-0 w-[72px]">
+          <span className="font-mono tabular-nums text-primary shrink-0 w-[72px]">
             {fmt(a.x_date)}
           </span>
           <span className="flex-1">{a.note}</span>
-          <span className="text-[10px] text-ink3 shrink-0">
+          <span className="text-[10px] text-muted-foreground italic shrink-0">
             {a.created_by_name}
           </span>
           <button
             type="button"
             onClick={() => onDelete(a.id)}
-            className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-ink3 hover:text-coraldk outline-none focus-visible:ring-2 focus-visible:ring-mint rounded"
+            className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-muted-foreground hover:text-destructive outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
             aria-label={t("chart_ann.delete", { defaultValue: "Delete" }) as string}
           >
             <Trash2 className="h-3 w-3" aria-hidden />
@@ -131,7 +131,7 @@ export function AddAnnotationButton({
         );
         if (note) onAdd(latestDate, note);
       }}
-      className="inline-flex items-center gap-1 eyebrow !text-[10px] text-mintdk hover:text-mint outline-none focus-visible:ring-2 focus-visible:ring-mint rounded px-1"
+      className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.1em] text-primary hover:underline outline-none focus-visible:ring-2 focus-visible:ring-ring rounded px-1"
       aria-label={t("chart_ann.add", { defaultValue: "Add note" }) as string}
     >
       <Plus className="h-3 w-3" aria-hidden />

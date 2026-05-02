@@ -54,10 +54,11 @@ export default function ProjectionStrip({
   return (
     <section className="mb-8">
       <div className="flex items-baseline justify-between mb-3">
-        <h3 className="font-display text-[18px] md:text-[20px] font-semibold tracking-[-0.02em] text-ink">
+        <h3 className="font-display text-[18px] md:text-[20px] font-medium tracking-[-0.01em] text-foreground">
           {t(titleKey)}
+          <span aria-hidden className="font-display-italic text-primary ml-[2px]">.</span>
         </h3>
-        <div className="eyebrow">
+        <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
           {t("dayslice.mtd_label")}: ${fmtNum(current_mtd, true)}
         </div>
       </div>
