@@ -106,10 +106,15 @@ export default function MonthPicker({ value, onChange, label }: Props) {
         <>
           <div className="fixed inset-0 z-40 bg-black/30 sm:bg-transparent" onClick={close} role="presentation" />
 
+          {/* Anchor the dropdown to the LEFT edge of the trigger button on
+              ≥sm so it opens rightward — anchoring to the right edge made
+              the 288px panel overflow into the sidebar on narrow desktop
+              widths. On <sm, we still pin to viewport edges so the panel
+              doesn't fly off the screen on phones. */}
           <div
             role="dialog"
             aria-label={t('dateRange.pickMonth')}
-            className="fixed left-4 right-4 bottom-4 sm:absolute sm:left-auto sm:right-0 sm:bottom-auto sm:top-full sm:mt-2 sm:w-72 z-50 glass-card rounded-xl p-4 shadow-2xl border border-border animate-fade-up space-y-3"
+            className="fixed left-4 right-4 bottom-4 sm:absolute sm:left-0 sm:right-auto sm:bottom-auto sm:top-full sm:mt-2 sm:w-72 z-50 glass-card rounded-xl p-4 shadow-2xl border border-border animate-fade-up space-y-3"
           >
             {/* Presets */}
             <div>
