@@ -221,9 +221,9 @@ export default function DaySlice() {
 
         {pivotQ.data && pivotQ.data.row_labels.length > 0 && (
           <section className="mb-12">
-            <h2 className="font-display text-[22px] md:text-[26px] font-medium tracking-[-0.01em] text-ink mb-3">
+            <h2 className="font-display text-[22px] md:text-[26px] font-medium tracking-[-0.01em] text-foreground mb-3">
               {t("dayslice.section_region")}
-              <span aria-hidden className="font-display text-mintdk ml-[2px]">.</span>
+              <span aria-hidden className="font-display-italic text-primary ml-[2px]">.</span>
             </h2>
             <Heatmap
               rowLabels={pivotQ.data.row_labels}
@@ -232,7 +232,7 @@ export default function DaySlice() {
               formatValue={(v) => (v === 0 ? "—" : fmtNum(v, true))}
               rowHeader={t("dayslice.region_label", { defaultValue: "Region" }) as string}
             />
-            <div className="mt-3 text-[11px] text-ink3 italic font-mono">
+            <div className="mt-3 text-[11px] text-muted-foreground italic font-mono">
               {t("dayslice.grand_total", { defaultValue: "Grand total" })}: ${fmtNum(pivotQ.data.grand_total)}
             </div>
           </section>
