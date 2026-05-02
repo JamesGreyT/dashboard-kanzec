@@ -952,7 +952,7 @@ const DirectionTag = ({
       className={[
         base,
         idle,
-        "hover:border-ink-3 hover:text-ink",
+        "hover:border-ink3 hover:text-ink",
         active ? "border-mint text-mintdk ring-2 ring-mint/15" : "",
       ].join(" ")}
       title={
@@ -1304,7 +1304,7 @@ function GroupCell({
           "text-[13px] leading-none font-mono transition-colors",
           "bg-muted border border-line text-ink",
           editable
-            ? "hover:border-ink-3 cursor-pointer"
+            ? "hover:border-ink3 cursor-pointer"
             : "cursor-default",
           open ? "border-mint text-mintdk ring-2 ring-mint/15" : "",
           pending ? "opacity-50" : "",
@@ -1495,7 +1495,7 @@ function InstalmentDaysCell({
           "inline-flex items-center gap-1 rounded-[7px] px-2.5 py-[5px]",
           "text-[13px] leading-none tabular-nums transition-colors",
           "bg-muted border border-line text-ink",
-          editable ? "hover:border-ink-3 cursor-pointer" : "cursor-default",
+          editable ? "hover:border-ink3 cursor-pointer" : "cursor-default",
           open ? "border-mint text-mintdk ring-2 ring-mint/15" : "",
           pending ? "opacity-50" : "",
         ].join(" ")}
@@ -1568,7 +1568,7 @@ function InstalmentDaysCell({
                     "text-[12.5px] px-2.5 py-1 rounded-[6px] tabular-nums border transition-colors",
                     staged === d
                       ? "bg-mint text-white border-mint"
-                      : "bg-card text-ink border-line hover:border-ink-3",
+                      : "bg-card text-ink border-line hover:border-ink3",
                   ].join(" ")}
                 >
                   {d}
