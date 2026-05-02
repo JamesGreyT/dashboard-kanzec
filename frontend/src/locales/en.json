@@ -29,7 +29,93 @@
     "search": "Search",
     "all": "All",
     "apply": "Apply",
-    "reset": "Reset"
+    "reset": "Reset",
+    "today": "Today"
+  },
+  "dashboard": {
+    "section": {
+      "ledger": "The ledger",
+      "firstCall": "First call",
+      "tribe": "The tribe"
+    },
+    "kpi": {
+      "outstanding": "Outstanding debt",
+      "revenue": "MTD revenue",
+      "revenueCaption": "this month so far",
+      "planProgress": "MTD plan progress",
+      "alerts": "Unread alerts",
+      "alertsPlaceholder": "wires up in session 5",
+      "adminOnly": "Admin only",
+      "planAdminCaption": "Visible to administrators only",
+      "day": "Day",
+      "of": "of"
+    },
+    "hero": {
+      "sinceYesterday": "since yesterday",
+      "vsMtdRevenue": "vs MTD revenue",
+      "collectionRatio": "Collection ratio",
+      "asOf": "As of"
+    },
+    "firstCall": {
+      "label": "Today's first call",
+      "manager": "manager",
+      "outstanding": "outstanding",
+      "daysOverdue": "days overdue",
+      "lastContact": "last contact",
+      "openFile": "Open file",
+      "seeAll": "See worklist",
+      "empty": "No clients to call today."
+    },
+    "prepayments": {
+      "label": "Pending prepayments",
+      "advance": "advance · awaiting fulfilment",
+      "awaiting": "awaiting fulfilment",
+      "see": "See prepayments",
+      "empty": "No prepayments waiting."
+    },
+    "tribe": {
+      "topSegment": "Top segment",
+      "clients": "clients",
+      "ofRevenue": "of revenue",
+      "trendLabel": "Trend, four years",
+      "trendPlaceholder": "The chart will be drawn here in Session 4.",
+      "empty": "No segment data yet."
+    }
+  },
+  "data": {
+    "meta": {
+      "registryOf": "Registry of"
+    },
+    "searchHint": "search the registry…",
+    "exportXlsx": "Export to Excel",
+    "folio": "Folio",
+    "of": "of",
+    "showing": "showing",
+    "rowsPerFolio": "Rows per folio",
+    "prev": "prev",
+    "next": "next",
+    "addFilter": "add filter",
+    "noFilters": "no filters applied",
+    "filterValueHint": "value",
+    "empty": {
+      "line1": "The registry holds no entries",
+      "line2": "under these conditions today.",
+      "line2withFilters": "No entries match the active filters.",
+      "clearAll": "clear all filters"
+    },
+    "drawer": {
+      "folioEntry": "Folio entry",
+      "entry": "Entry",
+      "editable": "Editable",
+      "direction": "Direction",
+      "instalment": "Instalment (days)",
+      "group": "Group",
+      "autosaved": "Changes are saved automatically.",
+      "readOnly": "You don't have edit permissions.",
+      "saved": "Saved.",
+      "saveFailed": "Save failed.",
+      "instalmentInvalid": "Enter 0–365 days."
+    }
   },
   "roles": {
     "admin": "Administrator",

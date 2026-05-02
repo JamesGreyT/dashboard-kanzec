@@ -29,7 +29,93 @@
     "search": "Поиск",
     "all": "Все",
     "apply": "Применить",
-    "reset": "Сбросить"
+    "reset": "Сбросить",
+    "today": "Сегодня"
+  },
+  "dashboard": {
+    "section": {
+      "ledger": "Книга записей",
+      "firstCall": "Первый звонок",
+      "tribe": "Клиенты"
+    },
+    "kpi": {
+      "outstanding": "Остаток долга",
+      "revenue": "Поступления MTD",
+      "revenueCaption": "за этот месяц",
+      "planProgress": "Выполнение плана",
+      "alerts": "Новые оповещения",
+      "alertsPlaceholder": "подключим в этапе 5",
+      "adminOnly": "Только админ",
+      "planAdminCaption": "Видно только администратору",
+      "day": "День",
+      "of": "/"
+    },
+    "hero": {
+      "sinceYesterday": "со вчерашнего дня",
+      "vsMtdRevenue": "Поступления MTD",
+      "collectionRatio": "Коэффициент сбора",
+      "asOf": "На"
+    },
+    "firstCall": {
+      "label": "Сегодня позвонить",
+      "manager": "менеджер",
+      "outstanding": "долг",
+      "daysOverdue": "дней просрочки",
+      "lastContact": "последний контакт",
+      "openFile": "Открыть досье",
+      "seeAll": "Все долги",
+      "empty": "Сегодня нет клиентов для обзвона."
+    },
+    "prepayments": {
+      "label": "Ожидающие предоплаты",
+      "advance": "предоплата",
+      "awaiting": "ждёт отгрузки",
+      "see": "Все предоплаты",
+      "empty": "Активных предоплат нет."
+    },
+    "tribe": {
+      "topSegment": "Главный сегмент",
+      "clients": "клиентов",
+      "ofRevenue": "доли в выручке",
+      "trendLabel": "Тренд за четыре года",
+      "trendPlaceholder": "График появится в этапе 4.",
+      "empty": "Данных по сегментам пока нет."
+    }
+  },
+  "data": {
+    "meta": {
+      "registryOf": "Реестр"
+    },
+    "searchHint": "ищите в этой книге записей…",
+    "exportXlsx": "Экспорт в Excel",
+    "folio": "Лист",
+    "of": "из",
+    "showing": "показаны",
+    "rowsPerFolio": "Записей на лист",
+    "prev": "пред",
+    "next": "след",
+    "addFilter": "добавить фильтр",
+    "noFilters": "фильтры не применены",
+    "filterValueHint": "значение",
+    "empty": {
+      "line1": "В книге нет записей",
+      "line2": "под этими фильтрами сегодня.",
+      "line2withFilters": "Записей по выбранным фильтрам не нашлось.",
+      "clearAll": "очистить все фильтры"
+    },
+    "drawer": {
+      "folioEntry": "Запись",
+      "entry": "Детали",
+      "editable": "Редактируемые поля",
+      "direction": "Направление",
+      "instalment": "Отсрочка (дн.)",
+      "group": "Группа",
+      "autosaved": "Изменения сохраняются автоматически.",
+      "readOnly": "У вас нет прав редактирования.",
+      "saved": "Сохранено.",
+      "saveFailed": "Не удалось сохранить.",
+      "instalmentInvalid": "Введите 0–365 дней."
+    }
   },
   "roles": {
     "admin": "Администратор",

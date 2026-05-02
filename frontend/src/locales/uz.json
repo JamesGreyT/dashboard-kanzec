@@ -29,7 +29,93 @@
     "search": "Qidirish",
     "all": "Barchasi",
     "apply": "Qo'llash",
-    "reset": "Tozalash"
+    "reset": "Tozalash",
+    "today": "Bugun"
+  },
+  "dashboard": {
+    "section": {
+      "ledger": "Daftar",
+      "firstCall": "Birinchi murojaat",
+      "tribe": "Mijozlar"
+    },
+    "kpi": {
+      "outstanding": "Qarz qoldigi",
+      "revenue": "MTD kirim",
+      "revenueCaption": "shu oy davomida",
+      "planProgress": "Reja bajarilishi",
+      "alerts": "Yangi ogohlantirishlar",
+      "alertsPlaceholder": "5-bosqichda ulanadi",
+      "adminOnly": "Faqat admin",
+      "planAdminCaption": "Faqat administrator ko'radi",
+      "day": "Kun",
+      "of": "/"
+    },
+    "hero": {
+      "sinceYesterday": "kechadan beri",
+      "vsMtdRevenue": "MTD kirim",
+      "collectionRatio": "Yig'im nisbati",
+      "asOf": "Holat"
+    },
+    "firstCall": {
+      "label": "Bugungi qo'ng'iroq",
+      "manager": "menejer",
+      "outstanding": "qarz",
+      "daysOverdue": "kun kechikkan",
+      "lastContact": "oxirgi aloqa",
+      "openFile": "Mijoz hujjatini ochish",
+      "seeAll": "Barcha qarzlar",
+      "empty": "Bugun qo'ng'iroq qilish uchun mijoz yo'q."
+    },
+    "prepayments": {
+      "label": "Ko'tarilgan oldindan to'lovlar",
+      "advance": "oldindan to'lov",
+      "awaiting": "yuk yetkazib berilishi kutilmoqda",
+      "see": "Hammasini ko'rish",
+      "empty": "Hozircha kutilayotgan to'lovlar yo'q."
+    },
+    "tribe": {
+      "topSegment": "Eng yirik segment",
+      "clients": "mijoz",
+      "ofRevenue": "kirimning ulushi",
+      "trendLabel": "To'rt yillik trend",
+      "trendPlaceholder": "Grafik 4-bosqichda chiziladi.",
+      "empty": "Hali segment ma'lumotlari yo'q."
+    }
+  },
+  "data": {
+    "meta": {
+      "registryOf": "Registr"
+    },
+    "searchHint": "ushbu daftarda qidiring…",
+    "exportXlsx": "Excelga eksport",
+    "folio": "Folio",
+    "of": "ning",
+    "showing": "ko'rsatilmoqda",
+    "rowsPerFolio": "Bir sahifa",
+    "prev": "oldingi",
+    "next": "keyingi",
+    "addFilter": "filtr qo'shish",
+    "noFilters": "filtrlar qo'llanilmagan",
+    "filterValueHint": "qiymat",
+    "empty": {
+      "line1": "Ushbu sahifada yozuv yo'q.",
+      "line2": "Hozircha bo'sh.",
+      "line2withFilters": "Tanlangan filtrlarga mos yozuv topilmadi.",
+      "clearAll": "Barcha filtrlarni olib tashlash"
+    },
+    "drawer": {
+      "folioEntry": "Yozuv",
+      "entry": "Tafsilotlar",
+      "editable": "Tahrirlanadigan maydonlar",
+      "direction": "Yo'nalish",
+      "instalment": "Muddat (kun)",
+      "group": "Guruh",
+      "autosaved": "O'zgartirishlar avtomatik saqlanadi.",
+      "readOnly": "Bu maydonlarni tahrirlash uchun huquq yetishmaydi.",
+      "saved": "Saqlandi.",
+      "saveFailed": "Saqlash muvaffaqiyatsiz.",
+      "instalmentInvalid": "0 dan 365 gacha bo'lgan kunlar."
+    }
   },
   "roles": {
     "admin": "Administrator",

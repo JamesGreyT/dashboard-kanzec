@@ -10,6 +10,10 @@ import { AuthProvider, useAuth } from '@/context/AuthContext'
 import Layout from '@/components/layout/Layout'
 import Login from '@/pages/Login'
 import PlaceholderPage from '@/pages/PlaceholderPage'
+import Dashboard from '@/pages/Dashboard'
+import OrdersPage from '@/pages/data/Orders'
+import PaymentsDataPage from '@/pages/data/Payments'
+import LegalPersonsPage from '@/pages/data/LegalPersons'
 
 function ProtectedRoute() {
   const { isAuthenticated, isLoading } = useAuth()
@@ -68,11 +72,11 @@ export default function App() {
                 <Route element={<ProtectedRoute />}>
                   <Route element={<Layout />}>
                     <Route index element={<Navigate to="/dashboard" replace />} />
-                    <Route path="/dashboard" element={<PlaceholderPage titleKey="nav.items.dashboard" />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
 
-                    <Route path="/data/orders" element={<PlaceholderPage titleKey="nav.items.orders" />} />
-                    <Route path="/data/payments" element={<PlaceholderPage titleKey="nav.items.dataPayments" />} />
-                    <Route path="/data/legal-persons" element={<PlaceholderPage titleKey="nav.items.legalPersons" />} />
+                    <Route path="/data/orders" element={<OrdersPage />} />
+                    <Route path="/data/payments" element={<PaymentsDataPage />} />
+                    <Route path="/data/legal-persons" element={<LegalPersonsPage />} />
 
                     <Route path="/collection/worklist" element={<PlaceholderPage titleKey="nav.items.worklist" />} />
                     <Route path="/collection/debt/client/:personId" element={<PlaceholderPage titleKey="nav.items.worklist" />} />
