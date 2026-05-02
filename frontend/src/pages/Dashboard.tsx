@@ -24,13 +24,15 @@ const PLEX_MONO = "'IBM Plex Mono', ui-monospace, monospace"
 
 function HeroDebtCard({
   outstanding,
-  delta,
+  over90,
+  debtorCount,
   mtdRevenue,
   collectionRatio,
   loading,
 }: {
   outstanding: number | null
-  delta: number | null
+  over90: number | null
+  debtorCount: number | null
   mtdRevenue: number | null
   collectionRatio: number | null
   loading: boolean
@@ -38,7 +40,7 @@ function HeroDebtCard({
   const { t, i18n } = useTranslation()
   if (loading) {
     return (
-      <div className="glass-card kpi-glow rounded-xl p-6 lg:p-8 lg:col-span-7 lg:row-span-3 min-h-[240px] lg:min-h-[320px] animate-fade-up animate-fade-up-delay-1">
+      <div className="glass-card kpi-glow rounded-xl p-6 lg:p-8 lg:col-span-7 lg:row-span-3 min-h-60 lg:min-h-80 animate-fade-up animate-fade-up-delay-1">
         <div className="space-y-4">
           <div className="shimmer-skeleton h-3 w-32" />
           <div className="shimmer-skeleton h-16 w-3/4" />
@@ -47,11 +49,11 @@ function HeroDebtCard({
       </div>
     )
   }
-  const deltaPositive = (delta ?? 0) >= 0
   const ratioOk = (collectionRatio ?? 0) >= 50
+  const over90Pct = outstanding && over90 ? (over90 / outstanding) * 100 : null
   return (
     <div
-      className="glass-card kpi-glow rounded-xl p-6 lg:p-8 lg:col-span-7 lg:row-span-3 flex flex-col justify-between min-h-[240px] lg:min-h-[320px] animate-fade-up animate-fade-up-delay-1"
+      className="glass-card kpi-glow rounded-xl p-6 lg:p-8 lg:col-span-7 lg:row-span-3 flex flex-col justify-between min-h-60 lg:min-h-80 animate-fade-up animate-fade-up-delay-1"
       style={{ ['--glow-color' as string]: '#9E7B2F' } as React.CSSProperties}
     >
       <div>
@@ -71,14 +73,18 @@ function HeroDebtCard({
           className="mt-1 text-xs text-muted-foreground uppercase tracking-widest"
           style={{ fontFamily: PLEX_MONO }}
         >
-          uzs
+          uzs · {debtorCount ?? '—'} {t('dashboard.hero.debtors')}
         </p>
-        {delta !== null && (
+        {over90 !== null && over90 > 0 && over90Pct !== null && (
           <p className="mt-4 text-sm" style={{ fontFamily: DM_SANS }}>
-            <span className={deltaPositive ? 'text-[#F87171]' : 'text-[#34D399]'}>
-              {deltaPositive ? '▲' : '▼'} <span className="tabular-nums">{formatNumber(Math.abs(delta))}</span>
+            <span className="text-[#F87171]">
+              ▲ <span className="tabular-nums">{formatNumber(over90)}</span>
             </span>
-            <span className="text-muted-foreground"> {t('dashboard.hero.sinceYesterday')}</span>
+            <span className="text-muted-foreground">
+              {' '}
+              {t('dashboard.hero.over90')} ·{' '}
+              <span className="tabular-nums">{formatPercent(over90Pct, 0)}</span>
+            </span>
           </p>
         )}
       </div>
@@ -447,21 +453,13 @@ export default function Dashboard() {
   const isAdmin = user?.role === 'admin'
   const dayslice = useDaysliceProjection({ enabled: isAdmin })
 
-  // Derived values for the Hero
-  const outstanding = (() => {
-    // The dashboard/overview endpoint doesn't expose a single "total outstanding"
-    // figure; we proxy it from the worklist preview's `total` (count) + a debt sum
-    // would require another call. Until then, fall back to the worklist row's
-    // outstanding figure as a "lead client" anchor when there's only the preview.
-    // TODO Session 3: the worklist endpoint will give us the full sum.
-    const top = worklist.data?.rows?.[0]
-    return top ? top.outstanding : null
-  })()
+  // Hero stats come from the worklist's top-level `summary` aggregate — that's
+  // the company-wide outstanding figure, not a single-row anchor.
+  const summary = worklist.data?.summary ?? null
+  const outstanding = summary?.total_outstanding ?? null
+  const over90 = summary?.total_over_90 ?? null
+  const debtorCount = summary?.debtor_count ?? null
   const mtdRevenue = overview.data?.today?.payments?.amount ?? null
-  // Yesterday delta in outstanding — proxy with delta in unpaid orders.
-  const delta = overview.data
-    ? overview.data.today.orders.amount - overview.data.yesterday.orders.amount
-    : null
   const collectionRatio = (() => {
     const billed = overview.data?.today?.orders?.amount
     const paid = overview.data?.today?.payments?.amount
@@ -490,7 +488,8 @@ export default function Dashboard() {
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-4 mb-10">
         <HeroDebtCard
           outstanding={outstanding}
-          delta={delta}
+          over90={over90}
+          debtorCount={debtorCount}
           mtdRevenue={mtdRevenue}
           collectionRatio={collectionRatio}
           loading={overview.isLoading || worklist.isLoading}

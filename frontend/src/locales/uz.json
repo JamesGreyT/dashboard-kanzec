@@ -7,7 +7,9 @@
     "signingIn": "Kirilmoqda...",
     "invalidCredentials": "Foydalanuvchi nomi yoki parol noto'g'ri",
     "loginFailed": "Kirish amalga oshmadi. Qayta urinib ko'ring.",
-    "footer": "Faqat ichki foydalanish uchun"
+    "footer": "Faqat ichki foydalanish uchun",
+    "contactAdmin": "Parolni unutdingizmi?",
+    "contactAdminHelp": "Parolni tiklash uchun administrator bilan bog'laning"
   },
   "common": {
     "loading": "Yuklanmoqda…",
@@ -54,7 +56,9 @@
       "sinceYesterday": "kechadan beri",
       "vsMtdRevenue": "MTD kirim",
       "collectionRatio": "Yig'im nisbati",
-      "asOf": "Holat"
+      "asOf": "Holat",
+      "debtors": "qarzdor",
+      "over90": "90+ kun kechikkan"
     },
     "firstCall": {
       "label": "Bugungi qo'ng'iroq",

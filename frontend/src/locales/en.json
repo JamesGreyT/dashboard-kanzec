@@ -7,7 +7,9 @@
     "signingIn": "Signing in…",
     "invalidCredentials": "Invalid username or password",
     "loginFailed": "Sign-in failed. Please try again.",
-    "footer": "Internal use only"
+    "footer": "Internal use only",
+    "contactAdmin": "Forgot password?",
+    "contactAdminHelp": "Contact your administrator to reset the password"
   },
   "common": {
     "loading": "Loading…",
@@ -54,7 +56,9 @@
       "sinceYesterday": "since yesterday",
       "vsMtdRevenue": "vs MTD revenue",
       "collectionRatio": "Collection ratio",
-      "asOf": "As of"
+      "asOf": "As of",
+      "debtors": "debtors",
+      "over90": "over 90 days"
     },
     "firstCall": {
       "label": "Today's first call",

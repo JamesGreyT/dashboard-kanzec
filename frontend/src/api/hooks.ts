@@ -118,9 +118,26 @@ export type DebtRow = {
   priority: number | string | null
 }
 
+export type DebtSummary = {
+  debtor_count: number
+  debtor_over_90_count: number
+  total_outstanding: number
+  total_over_90: number
+  total_overdue_promises: number
+}
+
+export type DebtByCollector = {
+  room_id: string
+  room_name: string
+  debtors_count: number
+  outstanding: number
+  over_90: number
+  collected_mtd: number
+}
+
 export type DebtListResponse = {
-  summary?: Record<string, unknown>
-  by_collector?: unknown[]
+  summary?: DebtSummary
+  by_collector?: DebtByCollector[]
   rows: DebtRow[]
   total: number
 }

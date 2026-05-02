@@ -1,9 +1,8 @@
 import { NavLink } from 'react-router-dom'
 import {
-  Moon, Sun, LogOut,
+  Moon, Sun, LogOut, Plus, Minus,
   LayoutDashboard, Target, ShoppingBag, Coins, Building2, ClipboardList,
   BarChart2, Wallet, Undo2, GitCompare, Activity, Bell, Users, Shield,
-  ChevronDown, ChevronRight,
 } from 'lucide-react'
 import { useTheme } from '@/context/ThemeContext'
 import { useAuth, type Role } from '@/context/AuthContext'
@@ -11,6 +10,9 @@ import { useLang, type Language } from '@/context/LanguageContext'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
+
+const PLAYFAIR = "'Playfair Display', Georgia, serif"
+const DM_SANS = "'DM Sans', system-ui"
 
 type NavItem = {
   to: string
@@ -93,17 +95,32 @@ function visibleFor(role: Role | undefined): NavGroup[] {
     .filter((group) => group.items.length > 0)
 }
 
-function NavGroupSection({ group, onClose }: { group: NavGroup; onClose?: () => void }) {
+function NavGroupSection({
+  group,
+  onClose,
+  showDivider,
+}: {
+  group: NavGroup
+  onClose?: () => void
+  showDivider: boolean
+}) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(group.defaultOpen ?? true)
   return (
     <div className="space-y-0.5">
+      {/* Group rule above each section except the first */}
+      {showDivider && (
+        <div className="h-px bg-border/40 mx-3 mb-2" aria-hidden />
+      )}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-3 py-1 rounded text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+        className="w-full flex items-center justify-between px-3 py-1 rounded text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80 hover:text-foreground transition-colors"
+        aria-expanded={open}
       >
-        {t(`nav.groups.${group.labelKey}`)}
-        {open ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+        <span>{t(`nav.groups.${group.labelKey}`)}</span>
+        <span className="text-muted-foreground/40">
+          {open ? <Minus size={10} /> : <Plus size={10} />}
+        </span>
       </button>
       {open &&
         group.items.map(({ to, labelKey, icon: Icon }) => (
@@ -113,7 +130,7 @@ function NavGroupSection({ group, onClose }: { group: NavGroup; onClose?: () => 
             end={to === '/dashboard'}
             className={({ isActive }) =>
               cn(
-                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200',
+                'flex items-center gap-2.5 px-3 py-1.5 min-h-7 rounded-lg text-sm transition-all duration-200',
                 isActive
                   ? 'nav-active'
                   : 'text-muted-foreground hover:text-foreground hover:bg-accent/60',
@@ -121,8 +138,8 @@ function NavGroupSection({ group, onClose }: { group: NavGroup; onClose?: () => 
             }
             onClick={onClose}
           >
-            <Icon size={14} aria-hidden="true" />
-            <span style={{ fontFamily: "'DM Sans', system-ui" }}>
+            <Icon size={14} aria-hidden="true" className="shrink-0" />
+            <span style={{ fontFamily: DM_SANS }} className="truncate">
               {t(`nav.items.${labelKey}`)}
             </span>
           </NavLink>
@@ -146,58 +163,64 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
   ]
 
   return (
-    <aside className="flex flex-col w-56 h-screen overflow-y-auto bg-sidebar border-r border-border shrink-0">
-      {/* Brand */}
-      <div className="flex items-center justify-between px-4 py-4 border-b border-border">
+    <aside className="flex flex-col w-[80vw] max-w-80 md:w-52 h-screen overflow-y-auto bg-sidebar border-r border-border shrink-0">
+      {/* Brand — no theme toggle here, that moves to the footer */}
+      <div className="px-4 py-4 border-b border-border">
         <span
           className="font-bold text-base tracking-tight text-foreground"
-          style={{ fontFamily: "'Playfair Display', serif" }}
+          style={{ fontFamily: PLAYFAIR }}
         >
           Kanzec
         </span>
-        <button
-          onClick={toggle}
-          className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-          aria-label={t('common.toggleTheme')}
-        >
-          {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
-        </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-4 px-2 space-y-3" aria-label="Main navigation">
-        {filteredGroups.map((group) => (
-          <NavGroupSection key={group.labelKey} group={group} onClose={onClose} />
+      <nav className="flex-1 py-3 px-2 space-y-2" aria-label="Main navigation">
+        {filteredGroups.map((group, idx) => (
+          <NavGroupSection
+            key={group.labelKey}
+            group={group}
+            onClose={onClose}
+            showDivider={idx > 0}
+          />
         ))}
       </nav>
 
       {/* Footer */}
-      <div className="px-3 py-4 border-t border-border flex flex-col gap-2">
-        {/* User info */}
-        <div className="px-2 py-2 bg-accent/30 rounded-lg flex items-center gap-3">
-          <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px] uppercase">
+      <div className="px-3 py-3 border-t border-border flex flex-col gap-2">
+        {/* User chip — compressed to one row, ~32px tall */}
+        <div className="flex items-center gap-2 px-1.5 py-1">
+          <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[9px] uppercase shrink-0">
             {user?.username?.substring(0, 2) || 'U'}
           </div>
-          <div className="flex-1 overflow-hidden">
-            <p className="text-xs font-medium truncate">{user?.username || 'User'}</p>
-            <p className="text-[9px] text-muted-foreground uppercase">
-              {user?.role ? t(`roles.${user.role}`) : ''}
-            </p>
-          </div>
+          <p className="text-xs truncate" style={{ fontFamily: DM_SANS }}>
+            <span className="font-medium">{user?.username || 'User'}</span>
+            {user?.role && (
+              <span className="text-muted-foreground">
+                {' · '}
+                {t(`roles.${user.role}`)}
+              </span>
+            )}
+          </p>
         </div>
 
-        {/* Language switcher */}
-        <div className="flex items-center gap-1.5 px-1">
-          <span className="text-[9px] text-muted-foreground uppercase tracking-wider shrink-0">
-            {t('common.language')}
-          </span>
+        {/* Theme toggle + language pills, sharing one row */}
+        <div className="flex items-center gap-1 px-1">
+          <button
+            onClick={toggle}
+            className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+            aria-label={t('common.toggleTheme')}
+            title={t('common.toggleTheme')}
+          >
+            {theme === 'dark' ? <Sun size={12} /> : <Moon size={12} />}
+          </button>
           <div className="flex gap-0.5 ml-auto">
             {LANGS.map(({ code, label }) => (
               <button
                 key={code}
                 onClick={() => setLang(code)}
                 className={cn(
-                  'px-2 py-0.5 rounded text-[10px] font-bold transition-colors',
+                  'px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors',
                   lang === code
                     ? 'bg-[#D4A843] text-black'
                     : 'text-muted-foreground hover:text-foreground hover:bg-accent/60',
@@ -212,9 +235,9 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
         {/* Sign out */}
         <button
           onClick={logout}
-          className="w-full flex items-center justify-center gap-2 py-2 text-xs font-semibold text-red-500/80 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors border border-transparent hover:border-red-500/20"
+          className="w-full flex items-center justify-center gap-2 py-1.5 text-xs font-semibold text-red-500/80 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors border border-transparent hover:border-red-500/20"
         >
-          <LogOut size={14} />
+          <LogOut size={13} />
           {t('common.signOut')}
         </button>
       </div>
