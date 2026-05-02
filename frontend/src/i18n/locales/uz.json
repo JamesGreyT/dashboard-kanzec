@@ -77,6 +77,7 @@
   },
   "dashboard": {
     "title": "Boshqaruv panel",
+    "crumb_dashboard": "Boshqaruv paneli",
     "subtitle": "Bugungi asosiy ko'rsatkichlar, eng ko'p qaraladigan to'rt sahifaning qisqa kartalari va to'liq sahifalarga tezkor navigatsiya.",
     "today_orders": "Bugungi sotuvlar",
     "today_payments": "Bugungi to'lovlar",

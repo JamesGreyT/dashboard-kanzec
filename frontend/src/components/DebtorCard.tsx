@@ -117,7 +117,11 @@ export default function DebtorCard({
   onClick: () => void;
   index: number;
 }) {
-  const isUrgent = row.aging_90_plus > 0 && row.aging_90_plus >= (row.outstanding * 0.5);
+  // Urgent stripe only for P1/P2 — P3 debtors are low-priority by definition
+  const isUrgent =
+    row.priority <= 2 &&
+    row.aging_90_plus > 0 &&
+    row.aging_90_plus >= row.outstanding * 0.5;
   const agingTotal =
     row.aging_0_30 + row.aging_30_60 + row.aging_60_90 + row.aging_90_plus;
 
