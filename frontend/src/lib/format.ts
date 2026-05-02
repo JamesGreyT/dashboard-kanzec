@@ -13,8 +13,10 @@ export function formatNumber(n: number, opts?: { decimals?: number }): string {
 export function formatCurrency(n: number, currency: string | null): string {
   if (!Number.isFinite(n)) return '—'
   // Currency codes are always uppercase in financial reports — "35 USD" not
-  // "35 usd". Default to UZS when the schema doesn't tag a currency.
-  const code = (currency ?? 'UZS').toUpperCase()
+  // "35 usd". The Smartup ETL ledger is denominated in USD (see
+  // backend/app/data/catalog.py, where `product_amount` is tagged
+  // currency="USD"); default to USD when the schema doesn't tag one.
+  const code = (currency ?? 'USD').toUpperCase()
   return `${formatNumber(n)}${NBSP}${code}`
 }
 

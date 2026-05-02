@@ -75,7 +75,7 @@ function HeroDebtCard({
           className="mt-1 text-xs text-muted-foreground uppercase tracking-widest"
           style={{ fontFamily: PLEX_MONO }}
         >
-          uzs · {debtorCount ?? '—'} {t('dashboard.hero.debtors')}
+          usd · {debtorCount ?? '—'} {t('dashboard.hero.debtors')}
         </p>
         {over90 !== null && over90 > 0 && over90Pct !== null && (
           <p className="mt-4 text-sm" style={{ fontFamily: DM_SANS }}>
@@ -319,7 +319,7 @@ function DossierPreview({ row, loading }: { row: DebtRow | undefined; loading: b
             <span className="tabular-nums font-medium" style={{ fontFamily: PLAYFAIR }}>
               {formatNumber(row.outstanding)}
             </span>
-            <span className="text-muted-foreground"> uzs · {t('dashboard.firstCall.outstanding')}</span>
+            <span className="text-muted-foreground"> usd · {t('dashboard.firstCall.outstanding')}</span>
           </p>
         </>
       ) : (
@@ -334,7 +334,7 @@ function DossierPreview({ row, loading }: { row: DebtRow | undefined; loading: b
             className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mt-1"
             style={{ fontFamily: PLEX_MONO }}
           >
-            uzs · {t('dashboard.firstCall.neverPaid')}
+            usd · {t('dashboard.firstCall.neverPaid')}
           </p>
         </>
       )}

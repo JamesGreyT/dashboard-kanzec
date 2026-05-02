@@ -185,7 +185,7 @@ export default function ClientDetail() {
                 {formatNumber(totalDebt)}
               </p>
               <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mt-1" style={{ fontFamily: PLEX_MONO }}>
-                UZS
+                USD
               </p>
             </div>
             <BucketCell label={t('debt.aging.current')} value={aging.aging_0_30} total={totalDebt} />
@@ -241,7 +241,7 @@ export default function ClientDetail() {
             <span className="section-title flex-1">{t('debt.client.ordersTimeline')}</span>
             {data && (
               <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground" style={{ fontFamily: PLEX_MONO }}>
-                {data.orders_total} · {formatNumber(data.orders_sum)} UZS
+                {data.orders_total} · {formatNumber(data.orders_sum)} USD
               </span>
             )}
           </div>
