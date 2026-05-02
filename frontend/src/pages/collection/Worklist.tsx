@@ -191,13 +191,13 @@ export default function Worklist() {
           <Stat
             label={t('debt.stats.totalDebt')}
             value={formatNumber(summary.total_outstanding)}
-            unit="UZS"
+            unit="USD"
             tone="default"
           />
           <Stat
             label={t('debt.stats.over90')}
             value={formatNumber(summary.total_over_90)}
-            unit="UZS"
+            unit="USD"
             tone="critical"
             sub={
               summary.total_outstanding
@@ -214,7 +214,7 @@ export default function Worklist() {
           <Stat
             label={t('debt.stats.overduePromises')}
             value={formatNumber(summary.total_overdue_promises)}
-            unit={summary.total_overdue_promises ? 'UZS' : ''}
+            unit={summary.total_overdue_promises ? 'USD' : ''}
             tone={summary.total_overdue_promises > 0 ? 'urgent' : 'default'}
           />
         </section>

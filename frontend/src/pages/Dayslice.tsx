@@ -137,7 +137,7 @@ export default function Dayslice() {
             values={regionQ.data.values}
             format="currency"
             accentColor="#9E7B2F"
-            caption={`${t('admin.dayslice.regionByManager')} · ${formatNumber(regionQ.data.grand_total)} UZS`}
+            caption={`${t('admin.dayslice.regionByManager')} · ${formatNumber(regionQ.data.grand_total)} USD`}
           />
         ) : regionQ.isLoading ? (
           <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="shimmer-skeleton h-8 w-full" />)}</div>
@@ -283,7 +283,7 @@ function ProjectionCard({
         {formatNumber(current)}
       </p>
       <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground" style={{ fontFamily: PLEX_MONO }}>
-        UZS · {t('admin.dayslice.mtdAt')} {dayN}/{monthDays}
+        USD · {t('admin.dayslice.mtdAt')} {dayN}/{monthDays}
       </p>
       <div className="mt-4 flex items-baseline gap-3 text-xs" style={{ fontFamily: DM_SANS }}>
         <span className={cn('tabular-nums font-medium', aheadOfPace ? 'text-[#34D399]' : 'text-[#FB923C]')}>

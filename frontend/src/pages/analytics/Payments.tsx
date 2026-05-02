@@ -45,7 +45,7 @@ function PaymentsContent({ filters }: { filters: AnalyticsFilters }) {
     <div className="space-y-10 mt-2">
       {/* KPI strip */}
       <section className="grid grid-cols-2 lg:grid-cols-5 gap-3 lg:gap-4">
-        <KpiDelta label={t('analytics.payments.receipts')} block={o?.receipts ?? { current: 0 }} unit="UZS" delay={1} loading={isLoading} />
+        <KpiDelta label={t('analytics.payments.receipts')} block={o?.receipts ?? { current: 0 }} unit="USD" delay={1} loading={isLoading} />
         <KpiDelta label={t('analytics.payments.payments')} block={o?.payments ?? { current: 0 }} delay={2} loading={isLoading} />
         <KpiDelta label={t('analytics.payments.payers')} block={o?.payers ?? { current: 0 }} delay={3} loading={isLoading} />
         <KpiDelta

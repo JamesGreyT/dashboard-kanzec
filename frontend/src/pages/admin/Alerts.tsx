@@ -24,8 +24,8 @@ const PLEX_MONO = "'IBM Plex Mono', ui-monospace, monospace"
 
 const RULE_KINDS = [
   { value: 'dso_gt', unit: 'days' },
-  { value: 'debt_total_gt', unit: 'UZS' },
-  { value: 'single_debtor_gt', unit: 'UZS' },
+  { value: 'debt_total_gt', unit: 'USD' },
+  { value: 'single_debtor_gt', unit: 'USD' },
   { value: 'over_90_count_gt', unit: '' },
   { value: 'revenue_drop_pct', unit: '%' },
   { value: 'deal_count_drop_pct', unit: '%' },

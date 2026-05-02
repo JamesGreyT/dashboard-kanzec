@@ -52,7 +52,7 @@ function SalesContent({ filters }: { filters: AnalyticsFilters }) {
         <KpiDelta
           label={t('analytics.sales.revenue')}
           block={o?.revenue ?? { current: 0 }}
-          unit="UZS"
+          unit="USD"
           delay={1}
           loading={isLoading}
         />
@@ -71,7 +71,7 @@ function SalesContent({ filters }: { filters: AnalyticsFilters }) {
         <KpiDelta
           label={t('analytics.sales.avgDeal')}
           block={o?.avg_deal ?? { current: 0 }}
-          unit="UZS"
+          unit="USD"
           delay={4}
           loading={isLoading}
         />

@@ -40,7 +40,7 @@ function Content({ filters }: { filters: AnalyticsFilters }) {
   return (
     <div className="space-y-10 mt-2">
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <KpiDelta label={t('analytics.returns.amount')} block={o?.returns ?? { current: 0 }} unit="UZS" inverse delay={1} loading={isLoading} />
+        <KpiDelta label={t('analytics.returns.amount')} block={o?.returns ?? { current: 0 }} unit="USD" inverse delay={1} loading={isLoading} />
         <KpiDelta
           label={t('analytics.returns.rate')}
           block={{ current: (o?.rate?.current ?? 0) * 100 }}
@@ -50,7 +50,7 @@ function Content({ filters }: { filters: AnalyticsFilters }) {
           loading={isLoading}
         />
         <KpiDelta label={t('analytics.returns.lines')} block={o?.return_lines ?? { current: 0 }} inverse delay={3} loading={isLoading} />
-        <KpiDelta label={t('analytics.returns.avgTicket')} block={{ current: o?.avg_ticket?.current ?? 0 }} unit="UZS" delay={4} loading={isLoading} />
+        <KpiDelta label={t('analytics.returns.avgTicket')} block={{ current: o?.avg_ticket?.current ?? 0 }} unit="USD" delay={4} loading={isLoading} />
       </section>
 
       <Section title={t('analytics.returns.timeline')}>
