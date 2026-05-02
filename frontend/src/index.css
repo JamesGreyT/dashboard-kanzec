@@ -275,19 +275,31 @@
 
 /* ── Table Enhancements ─────────────────────────────────────── */
 .premium-table tbody tr {
-  transition: background-color 0.15s;
+  position: relative;
+  transition: background-color 0.15s, box-shadow 0.15s;
 }
 .premium-table tbody tr:hover {
-  background-color: rgba(158, 123, 47, 0.06);
+  background-color: rgba(158, 123, 47, 0.10);
+  /* Inset gold left rail on hover — operator's eye lands on the row,
+     not the cell. Same vocabulary as .nav-active::before but inset so
+     it doesn't break the rounded card edges of the table wrapper. */
+  box-shadow: inset 3px 0 0 0 #D4A843;
 }
 .dark .premium-table tbody tr:hover {
-  background-color: rgba(212, 168, 67, 0.04);
+  background-color: rgba(212, 168, 67, 0.07);
 }
 .premium-table tbody tr:nth-child(even) {
   background-color: rgba(44, 36, 24, 0.02);
 }
 .dark .premium-table tbody tr:nth-child(even) {
   background-color: rgba(255, 255, 255, 0.015);
+}
+.premium-table tbody tr:nth-child(even):hover {
+  /* Override stripe so hover tint reads cleanly */
+  background-color: rgba(158, 123, 47, 0.10);
+}
+.dark .premium-table tbody tr:nth-child(even):hover {
+  background-color: rgba(212, 168, 67, 0.07);
 }
 .premium-table thead th {
   position: sticky;
@@ -297,6 +309,16 @@
 }
 .dark .premium-table thead th {
   background: #111118;
+}
+
+/* ── Empty cell convention ─────────────────────────────────── */
+/* True unknowns (NULL) render as `<span class="cell-empty">—</span>` —
+   muted + italic to distinguish "we don't know" from "intentionally blank". */
+.cell-empty {
+  color: var(--muted-foreground);
+  opacity: 0.5;
+  font-style: italic;
+  font-family: 'DM Sans', system-ui, sans-serif;
 }
 
 /* ── Active Nav Indicator ───────────────────────────────────── */

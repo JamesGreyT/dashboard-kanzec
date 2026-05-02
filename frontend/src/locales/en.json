@@ -67,6 +67,8 @@
       "manager": "manager",
       "outstanding": "outstanding",
       "daysOverdue": "days overdue",
+      "daysOverdueLong": "days since payment",
+      "neverPaid": "never paid",
       "lastContact": "last contact",
       "openFile": "Open file",
       "seeAll": "See worklist",
@@ -75,6 +77,7 @@
     "prepayments": {
       "label": "Pending prepayments",
       "advance": "advance · awaiting fulfilment",
+      "creditBalance": "credit balance",
       "awaiting": "awaiting fulfilment",
       "see": "See prepayments",
       "empty": "No prepayments waiting."
@@ -121,6 +124,7 @@
       "readOnlyShort": "Read-only",
       "saved": "Saved.",
       "saveFailed": "Save failed.",
+      "savedAt": "saved",
       "instalmentInvalid": "Enter 0–365 days."
     }
   },

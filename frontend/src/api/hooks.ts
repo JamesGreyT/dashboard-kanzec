@@ -143,6 +143,27 @@ export type DebtListResponse = {
 }
 
 /**
+ * /debt/prepayments returns a leaner row — clients in credit, not debt.
+ * No aging buckets, no contact log fields. `credit_balance` is the surplus
+ * (paid - invoiced); positive means we owe them goods.
+ */
+export type PrepaymentRow = {
+  person_id: number
+  name: string
+  tin: string | null
+  region_name: string | null
+  gross_invoiced: number
+  gross_paid: number
+  credit_balance: number
+  last_payment_date: string | null
+}
+
+export type PrepaymentListResponse = {
+  rows: PrepaymentRow[]
+  total: number
+}
+
+/**
  * Pick the aging bucket label given a worklist row. The backend doesn't return
  * a single 'aging_bucket' field — it spreads across four columns. We classify
  * by which bucket holds the largest non-zero share, then map to the
@@ -179,7 +200,7 @@ export function useDebtPrepaymentsPreview() {
   return useQuery({
     queryKey: ['debt', 'prepayments', { limit: 1 }],
     queryFn: async () =>
-      (await api.get<DebtListResponse>('/debt/prepayments', { params: { limit: 1 } })).data,
+      (await api.get<PrepaymentListResponse>('/debt/prepayments', { params: { limit: 1 } })).data,
   })
 }
 

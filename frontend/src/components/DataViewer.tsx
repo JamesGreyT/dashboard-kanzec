@@ -161,6 +161,49 @@ export default function DataViewer({ tableKey, title, editable = false }: Props)
 
   const exportHref = dataExportHref(tableKey, { sort, search, filters })
 
+  // Keyboard navigation in the drawer: ↑/↓ moves between rows. At the edges
+  // of the current page, jump to the next/prev page if available. The drawer
+  // itself only consumes the keys when it has focus; the listener is on
+  // window so keyboard scrolling works even when the cursor isn't in the
+  // drawer.
+  useEffect(() => {
+    if (!drawerPk || !schema) return
+    const rows = rowsQ.data?.rows ?? []
+    const idx = rows.findIndex((r) => encodePk(r, schema.pk) === drawerPk)
+    if (idx < 0) return
+
+    function onKey(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null
+      const tag = target?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        if (idx < rows.length - 1) {
+          setDrawerPk(encodePk(rows[idx + 1], schema!.pk))
+        } else if (offset + limit < total) {
+          // Jump to first row of next page
+          setOffset(offset + limit)
+          // The drawer pk will be updated when the next page's rows arrive;
+          // we set a marker so the next `useEffect` run can re-anchor.
+          setDrawerPk(null)
+        }
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        if (idx > 0) {
+          setDrawerPk(encodePk(rows[idx - 1], schema!.pk))
+        } else if (offset > 0) {
+          setOffset(Math.max(0, offset - limit))
+          setDrawerPk(null)
+        }
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawerPk, schema, rowsQ.data, offset, limit, total])
+
   return (
     <div>
       <PageHeader />
@@ -249,14 +292,19 @@ export default function DataViewer({ tableKey, title, editable = false }: Props)
                   </td>
                 </tr>
               ) : (
-                rowsQ.data?.rows.map((row, idx) => (
-                  <RegistryRow
-                    key={`${idx}-${encodePk(row, schema.pk)}`}
-                    row={row}
-                    columns={visibleColumns}
-                    onClick={() => setDrawerPk(encodePk(row, schema.pk))}
-                  />
-                ))
+                rowsQ.data?.rows.map((row, idx) => {
+                  const rowPk = encodePk(row, schema.pk)
+                  return (
+                    <RegistryRow
+                      key={`${idx}-${rowPk}`}
+                      rowIndex={idx}
+                      row={row}
+                      columns={visibleColumns}
+                      onClick={() => setDrawerPk(rowPk)}
+                      isFocused={drawerPk === rowPk}
+                    />
+                  )
+                })
               )}
             </tbody>
           </table>
@@ -592,17 +640,34 @@ function HeaderFilterMenu({
 
 // ── Row renderers ─────────────────────────────────────────────────────────
 
+function CellValue({ value, col, lang }: { value: unknown; col: Column; lang?: string }) {
+  const formatted = formatCell(value, col, lang)
+  if (formatted === '—') {
+    return <span className="cell-empty">—</span>
+  }
+  return <>{formatted}</>
+}
+
 function RegistryRow({
   row,
   columns,
   onClick,
+  isFocused,
+  rowIndex,
 }: {
   row: Record<string, unknown>
   columns: Column[]
   onClick: () => void
+  isFocused?: boolean
+  rowIndex: number
 }) {
   return (
-    <tr onClick={onClick} className="cursor-pointer">
+    <tr
+      onClick={onClick}
+      className="cursor-pointer"
+      data-row-index={rowIndex}
+      aria-current={isFocused ? 'true' : undefined}
+    >
       {columns.map((col) => {
         const figure = shouldRenderAsFigure(col)
         const idLike = isIdLike(col)
@@ -617,7 +682,7 @@ function RegistryRow({
             )}
             style={{ fontFamily: typographyFor(col) }}
           >
-            {formatCell(row[col.name], col)}
+            <CellValue value={row[col.name]} col={col} />
           </td>
         )
       })}
@@ -962,7 +1027,10 @@ function EditableSection({
         )}
       </div>
       <div className="mt-4 space-y-3">
-        <EditableRow label={t('data.drawer.direction')}>
+        <EditableRow
+          label={t('data.drawer.direction')}
+          updatedAt={initial.direction_updated_at}
+        >
           <select
             disabled={!canEdit || directionsQ.isLoading}
             value={direction}
@@ -979,7 +1047,10 @@ function EditableSection({
           </select>
         </EditableRow>
 
-        <EditableRow label={t('data.drawer.instalment')}>
+        <EditableRow
+          label={t('data.drawer.instalment')}
+          updatedAt={initial.instalment_days_updated_at}
+        >
           <input
             type="number"
             min={0}
@@ -992,7 +1063,10 @@ function EditableSection({
           />
         </EditableRow>
 
-        <EditableRow label={t('data.drawer.group')}>
+        <EditableRow
+          label={t('data.drawer.group')}
+          updatedAt={initial.client_group_updated_at}
+        >
           <select
             disabled={!canEdit || groupsQ.isLoading}
             value={groupVal}
@@ -1022,7 +1096,17 @@ function EditableSection({
   )
 }
 
-function EditableRow({ label, children }: { label: string; children: React.ReactNode }) {
+function EditableRow({
+  label,
+  children,
+  updatedAt,
+}: {
+  label: string
+  children: React.ReactNode
+  updatedAt?: unknown
+}) {
+  const { t, i18n } = useTranslation()
+  const stamp = typeof updatedAt === 'string' && updatedAt ? formatRelativeTime(updatedAt, t, i18n.language) : null
   return (
     <div className="grid grid-cols-[110px_1fr] gap-3 items-baseline">
       <span
@@ -1031,7 +1115,71 @@ function EditableRow({ label, children }: { label: string; children: React.React
       >
         {label}
       </span>
-      <div>{children}</div>
+      <div>
+        {children}
+        {stamp && (
+          <p
+            className="mt-1 text-[10px] italic text-muted-foreground"
+            style={{ fontFamily: DM_SANS }}
+          >
+            {stamp}
+          </p>
+        )}
+      </div>
     </div>
   )
+}
+
+// ── Relative time helper ──────────────────────────────────────────────────
+// "saved 3 minutes ago / 2 days ago / 17 Apr". Uses Intl.RelativeTimeFormat
+// when the gap is ≤ 30 days, falls back to short date for older edits.
+
+const RELATIVE_KEY: Record<string, string> = {
+  uz: 'uz',
+  ru: 'ru',
+  en: 'en',
+}
+
+function formatRelativeTime(iso: string, t: (k: string) => string, lang: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const now = Date.now()
+  const diffMs = d.getTime() - now
+  const diffSec = diffMs / 1000
+  const absSec = Math.abs(diffSec)
+  const absDays = absSec / 86400
+
+  // Format-of-record: anything older than 30 days falls back to short date.
+  if (absDays > 30) {
+    return `${t('data.drawer.savedAt')} ${formatShortDateForRelative(iso, lang)}`
+  }
+
+  const rtf = new Intl.RelativeTimeFormat(RELATIVE_KEY[lang] ?? 'uz', { numeric: 'auto' })
+  let value: number
+  let unit: Intl.RelativeTimeFormatUnit
+  if (absSec < 60) {
+    value = Math.round(diffSec)
+    unit = 'second'
+  } else if (absSec < 3600) {
+    value = Math.round(diffSec / 60)
+    unit = 'minute'
+  } else if (absSec < 86400) {
+    value = Math.round(diffSec / 3600)
+    unit = 'hour'
+  } else {
+    value = Math.round(diffSec / 86400)
+    unit = 'day'
+  }
+  return `${t('data.drawer.savedAt')} ${rtf.format(value, unit)}`
+}
+
+function formatShortDateForRelative(iso: string, lang: string): string {
+  const d = new Date(iso)
+  const months: Record<string, string[]> = {
+    uz: ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn', 'Iyl', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek'],
+    ru: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'],
+    en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  }
+  const m = (months[lang] ?? months.uz)[d.getMonth()]
+  return `${d.getDate()} ${m} ${d.getFullYear()}`
 }

@@ -67,6 +67,8 @@
       "manager": "менеджер",
       "outstanding": "долг",
       "daysOverdue": "дней просрочки",
+      "daysOverdueLong": "дней без оплаты",
+      "neverPaid": "ни разу не платил",
       "lastContact": "последний контакт",
       "openFile": "Открыть досье",
       "seeAll": "Все долги",
@@ -75,6 +77,7 @@
     "prepayments": {
       "label": "Ожидающие предоплаты",
       "advance": "предоплата",
+      "creditBalance": "кредитный остаток",
       "awaiting": "ждёт отгрузки",
       "see": "Все предоплаты",
       "empty": "Активных предоплат нет."
@@ -121,6 +124,7 @@
       "readOnlyShort": "Только чтение",
       "saved": "Сохранено.",
       "saveFailed": "Не удалось сохранить.",
+      "savedAt": "сохранено",
       "instalmentInvalid": "Введите 0–365 дней."
     }
   },

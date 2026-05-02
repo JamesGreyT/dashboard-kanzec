@@ -67,6 +67,8 @@
       "manager": "menejer",
       "outstanding": "qarz",
       "daysOverdue": "kun kechikkan",
+      "daysOverdueLong": "kun to'lovsiz",
+      "neverPaid": "hech qachon to'lamagan",
       "lastContact": "oxirgi aloqa",
       "openFile": "Mijoz hujjatini ochish",
       "seeAll": "Barcha qarzlar",
@@ -75,6 +77,7 @@
     "prepayments": {
       "label": "Ko'tarilgan oldindan to'lovlar",
       "advance": "oldindan to'lov",
+      "creditBalance": "ortiqcha to'lov",
       "awaiting": "yuk yetkazib berilishi kutilmoqda",
       "see": "Hammasini ko'rish",
       "empty": "Hozircha kutilayotgan to'lovlar yo'q."
@@ -121,6 +124,7 @@
       "readOnlyShort": "Faqat o'qish",
       "saved": "Saqlandi.",
       "saveFailed": "Saqlash muvaffaqiyatsiz.",
+      "savedAt": "saqlangan",
       "instalmentInvalid": "0 dan 365 gacha bo'lgan kunlar."
     }
   },

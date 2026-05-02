@@ -11,6 +11,7 @@ import {
   useDaysliceProjection,
   dominantAgingBucket,
   type DebtRow,
+  type PrepaymentRow,
 } from '@/api/hooks'
 import PageHeader from '@/components/PageHeader'
 import SectionTitle from '@/components/SectionTitle'
@@ -40,7 +41,7 @@ function HeroDebtCard({
   const { t, i18n } = useTranslation()
   if (loading) {
     return (
-      <div className="glass-card kpi-glow rounded-xl p-6 lg:p-8 lg:col-span-7 lg:row-span-3 min-h-60 lg:min-h-80 animate-fade-up animate-fade-up-delay-1">
+      <div className="glass-card kpi-glow rounded-xl p-6 lg:p-8 lg:col-span-7 lg:row-span-3 min-h-56 lg:min-h-72 animate-fade-up animate-fade-up-delay-1">
         <div className="space-y-4">
           <div className="shimmer-skeleton h-3 w-32" />
           <div className="shimmer-skeleton h-16 w-3/4" />
@@ -53,7 +54,7 @@ function HeroDebtCard({
   const over90Pct = outstanding && over90 ? (over90 / outstanding) * 100 : null
   return (
     <div
-      className="glass-card kpi-glow rounded-xl p-6 lg:p-8 lg:col-span-7 lg:row-span-3 flex flex-col justify-between min-h-60 lg:min-h-80 animate-fade-up animate-fade-up-delay-1"
+      className="glass-card kpi-glow rounded-xl p-6 lg:p-8 lg:col-span-7 lg:row-span-3 flex flex-col justify-between min-h-56 lg:min-h-72 animate-fade-up animate-fade-up-delay-1"
       style={{ ['--glow-color' as string]: '#9E7B2F' } as React.CSSProperties}
     >
       <div>
@@ -92,13 +93,13 @@ function HeroDebtCard({
       <div className="mt-auto pt-5 border-t border-border/60 flex items-baseline gap-6 flex-wrap">
         <div>
           <p
-            className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground"
+            className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground"
             style={{ fontFamily: DM_SANS }}
           >
             {t('dashboard.hero.vsMtdRevenue')}
           </p>
           <p
-            className="text-base lg:text-lg font-semibold tabular-nums"
+            className="text-xl lg:text-2xl font-semibold tabular-nums leading-none mt-0.5"
             style={{ fontFamily: PLAYFAIR }}
           >
             {mtdRevenue === null ? '—' : formatCurrency(mtdRevenue, null)}
@@ -106,13 +107,13 @@ function HeroDebtCard({
         </div>
         <div className="ml-auto text-right">
           <p
-            className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground"
+            className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground"
             style={{ fontFamily: DM_SANS }}
           >
             {t('dashboard.hero.collectionRatio')}
           </p>
           <p
-            className={`text-base lg:text-lg font-semibold tabular-nums ${ratioOk ? 'text-foreground' : 'text-[#FB923C]'}`}
+            className={`text-xl lg:text-2xl font-semibold tabular-nums leading-none mt-0.5 ${ratioOk ? 'text-foreground' : 'text-[#FB923C]'}`}
             style={{ fontFamily: PLAYFAIR }}
           >
             {collectionRatio === null ? '—' : formatPercent(collectionRatio)}
@@ -152,18 +153,16 @@ function StackedKpi({
 }) {
   if (loading) {
     return (
-      <div className={`glass-card rounded-xl p-4 lg:col-span-5 animate-fade-up animate-fade-up-delay-${delay}`}>
-        <div className="space-y-2">
-          <div className="shimmer-skeleton h-3 w-24" />
-          <div className="shimmer-skeleton h-7 w-32" />
-          <div className="shimmer-skeleton h-3 w-20" />
-        </div>
+      <div className={`glass-card rounded-xl p-4 lg:col-span-5 min-h-26 flex flex-col justify-between animate-fade-up animate-fade-up-delay-${delay}`}>
+        <div className="shimmer-skeleton h-3 w-24" />
+        <div className="shimmer-skeleton h-7 w-32" />
+        <div className="shimmer-skeleton h-3 w-20" />
       </div>
     )
   }
   return (
     <div
-      className={`glass-card kpi-glow rounded-xl p-4 lg:col-span-5 animate-fade-up animate-fade-up-delay-${delay}`}
+      className={`glass-card kpi-glow rounded-xl p-4 lg:col-span-5 min-h-26 flex flex-col animate-fade-up animate-fade-up-delay-${delay}`}
       style={{ ['--glow-color' as string]: glow } as React.CSSProperties}
     >
       <div className="flex items-start justify-between mb-2">
@@ -177,15 +176,19 @@ function StackedKpi({
           <Icon size={13} style={{ color: glow }} />
         </div>
       </div>
-      <p
-        className="text-2xl font-semibold tabular-nums leading-tight animate-count-up"
-        style={{ fontFamily: PLAYFAIR }}
-      >
-        {value}
-      </p>
-      <p className="mt-1 text-[11px] text-muted-foreground" style={{ fontFamily: DM_SANS }}>
-        {caption}
-      </p>
+      <div className="mt-auto">
+        <p
+          className="text-2xl font-semibold tabular-nums leading-tight animate-count-up"
+          style={{ fontFamily: PLAYFAIR }}
+        >
+          {value}
+        </p>
+        {caption && (
+          <p className="mt-1 text-[11px] text-muted-foreground" style={{ fontFamily: DM_SANS }}>
+            {caption}
+          </p>
+        )}
+      </div>
     </div>
   )
 }
@@ -220,57 +223,89 @@ function DossierPreview({ row, loading }: { row: DebtRow | undefined; loading: b
   const bucket = dominantAgingBucket(row)
   const daysOverdue = row.days_since_payment
   const variant = agingBadgeVariant(daysOverdue, bucket)
+  // Lead with `days overdue` (not the outstanding amount, which would
+  // duplicate the hero figure). The hero answers "how much do we owe", this
+  // card answers "who do I call first and why is it urgent".
   return (
     <Link
       to="/collection/worklist"
-      className="glass-card rounded-xl p-6 lg:p-8 lg:col-span-7 animate-fade-up animate-fade-up-delay-2 block group"
+      className="glass-card rounded-xl p-6 lg:p-8 lg:col-span-7 animate-fade-up animate-fade-up-delay-2 block group hover:border-[#9E7B2F]/35 hover:shadow-[0_2px_12px_rgba(212,168,67,0.08)] transition-all"
     >
-      <p
-        className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.18em] mb-2"
-        style={{ fontFamily: DM_SANS }}
-      >
-        <span className="text-[#D4A843] mr-1.5">◆</span>
-        {t('dashboard.firstCall.label')}
-      </p>
+      <div className="flex items-baseline justify-between gap-3 mb-2">
+        <p
+          className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.18em]"
+          style={{ fontFamily: DM_SANS }}
+        >
+          <span className="text-[#D4A843] mr-1.5">◆</span>
+          {t('dashboard.firstCall.label')}
+        </p>
+        <span className={`action-badge ${variant}`}>{bucket}</span>
+      </div>
       <h3
-        className="text-2xl font-semibold leading-tight mb-1 group-hover:text-[#9E7B2F] transition-colors"
+        className="text-2xl lg:text-3xl font-semibold leading-tight mb-1 group-hover:text-[#9E7B2F] transition-colors"
         style={{ fontFamily: PLAYFAIR }}
       >
         {row.name}
       </h3>
-      <p className="text-xs text-muted-foreground mb-4" style={{ fontFamily: DM_SANS }}>
+      <p className="text-xs text-muted-foreground mb-5" style={{ fontFamily: DM_SANS }}>
         {t('dashboard.firstCall.manager')} · {row.primary_room_name ?? row.owner_name ?? '—'}
       </p>
 
-      <p
-        className="text-3xl font-semibold tabular-nums leading-none"
-        style={{ fontFamily: PLAYFAIR }}
-      >
-        {formatNumber(row.outstanding)}
-      </p>
-      <p className="text-xs uppercase tracking-widest text-muted-foreground mt-1" style={{ fontFamily: PLEX_MONO }}>
-        uzs · {t('dashboard.firstCall.outstanding')}
-      </p>
-
-      <div className="mt-5 flex items-baseline gap-3 flex-wrap">
-        {daysOverdue !== null && (
-          <span className="text-sm" style={{ fontFamily: DM_SANS }}>
-            <span className="tabular-nums font-medium">{daysOverdue}</span>{' '}
-            <span className="text-muted-foreground">{t('dashboard.firstCall.daysOverdue')}</span>
-          </span>
-        )}
-        <span className={`action-badge ${variant}`}>{bucket}</span>
-      </div>
+      {/* The urgent figure is "days since payment". Some clients have never
+          paid us (days_since_payment === null) — for those, the hero figure
+          is the per-client outstanding instead, with a "90+ kun" sub-caption
+          inferred from the aging bucket. Either way, the hero answers
+          "why is this the first call". */}
+      {daysOverdue !== null ? (
+        <>
+          <p
+            className="text-5xl lg:text-6xl font-semibold tabular-nums leading-none"
+            style={{ fontFamily: PLAYFAIR }}
+          >
+            {daysOverdue}
+          </p>
+          <p
+            className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mt-1"
+            style={{ fontFamily: PLEX_MONO }}
+          >
+            {t('dashboard.firstCall.daysOverdueLong')}
+          </p>
+          <p className="mt-5 text-sm" style={{ fontFamily: DM_SANS }}>
+            <span className="tabular-nums font-medium" style={{ fontFamily: PLAYFAIR }}>
+              {formatNumber(row.outstanding)}
+            </span>
+            <span className="text-muted-foreground"> uzs · {t('dashboard.firstCall.outstanding')}</span>
+          </p>
+        </>
+      ) : (
+        <>
+          <p
+            className="text-5xl lg:text-6xl font-semibold tabular-nums leading-none"
+            style={{ fontFamily: PLAYFAIR }}
+          >
+            {formatNumber(row.outstanding)}
+          </p>
+          <p
+            className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mt-1"
+            style={{ fontFamily: PLEX_MONO }}
+          >
+            uzs · {t('dashboard.firstCall.neverPaid')}
+          </p>
+        </>
+      )}
 
       {row.last_contact_at && (
-        <p className="mt-4 text-xs text-muted-foreground italic" style={{ fontFamily: DM_SANS }}>
+        <p className="mt-3 text-xs text-muted-foreground italic" style={{ fontFamily: DM_SANS }}>
           {t('dashboard.firstCall.lastContact')} · {formatShortDate(row.last_contact_at, i18n.language)}
           {row.last_contact_outcome ? <> · "{row.last_contact_outcome}"</> : null}
         </p>
       )}
 
-      <p className="mt-6 text-xs text-[#9E7B2F] group-hover:text-[#7A5E20] transition-colors" style={{ fontFamily: DM_SANS }}>
-        {t('dashboard.firstCall.openFile')} →
+      <p
+        className="mt-5 text-xs text-[#9E7B2F] inline-flex items-center gap-1 group-hover:gap-2 transition-all"
+        style={{ fontFamily: DM_SANS }}
+      >
+        {t('dashboard.firstCall.openFile')} <span aria-hidden>→</span>
       </p>
     </Link>
   )
@@ -278,7 +313,7 @@ function DossierPreview({ row, loading }: { row: DebtRow | undefined; loading: b
 
 // ── Prepayments aside ──────────────────────────────────────────────────────
 
-function PrepaymentsAside({ row, loading }: { row: DebtRow | undefined; loading: boolean }) {
+function PrepaymentsAside({ row, loading }: { row: PrepaymentRow | undefined; loading: boolean }) {
   const { t } = useTranslation()
   if (loading) {
     return (
@@ -294,7 +329,7 @@ function PrepaymentsAside({ row, loading }: { row: DebtRow | undefined; loading:
   return (
     <Link
       to="/collection/worklist"
-      className="glass-card rounded-xl p-6 lg:col-span-5 animate-fade-up animate-fade-up-delay-3 block group"
+      className="glass-card rounded-xl p-6 lg:col-span-5 animate-fade-up animate-fade-up-delay-3 block group hover:border-[#9E7B2F]/35 hover:shadow-[0_2px_12px_rgba(212,168,67,0.08)] transition-all"
     >
       <p
         className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.18em] mb-3"
@@ -316,21 +351,27 @@ function PrepaymentsAside({ row, loading }: { row: DebtRow | undefined; loading:
             {row.name}
           </p>
           <p className="text-xs text-muted-foreground mb-2" style={{ fontFamily: DM_SANS }}>
-            {t('dashboard.prepayments.advance')}
+            {row.region_name ?? t('dashboard.prepayments.advance')}
           </p>
           <p
-            className="text-xl font-semibold tabular-nums"
+            className="text-2xl font-semibold tabular-nums leading-tight"
             style={{ fontFamily: PLAYFAIR }}
           >
-            {formatCurrency(Math.abs(row.outstanding), null)}
+            {formatCurrency(row.credit_balance, null)}
+          </p>
+          <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground" style={{ fontFamily: PLEX_MONO }}>
+            {t('dashboard.prepayments.creditBalance')}
           </p>
           <p className="mt-2 text-xs italic text-muted-foreground" style={{ fontFamily: DM_SANS }}>
             {t('dashboard.prepayments.awaiting')}
           </p>
         </>
       )}
-      <p className="mt-4 text-xs text-[#9E7B2F] group-hover:text-[#7A5E20] transition-colors" style={{ fontFamily: DM_SANS }}>
-        {t('dashboard.prepayments.see')} →
+      <p
+        className="mt-4 text-xs text-[#9E7B2F] inline-flex items-center gap-1 group-hover:gap-2 transition-all"
+        style={{ fontFamily: DM_SANS }}
+      >
+        {t('dashboard.prepayments.see')} <span aria-hidden>→</span>
       </p>
     </Link>
   )
@@ -512,7 +553,7 @@ export default function Dashboard() {
 
       <SectionTitle label={t('dashboard.section.ledger')} className="mb-3" />
 
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-4 mb-10">
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-4 mb-7">
         <HeroDebtCard
           outstanding={outstanding}
           over90={over90}
@@ -579,7 +620,7 @@ export default function Dashboard() {
         className="mb-3"
       />
 
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-4 mb-10">
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-4 mb-7">
         <DossierPreview row={worklist.data?.rows?.[0]} loading={worklist.isLoading} />
         <PrepaymentsAside row={prepayments.data?.rows?.[0]} loading={prepayments.isLoading} />
       </section>
