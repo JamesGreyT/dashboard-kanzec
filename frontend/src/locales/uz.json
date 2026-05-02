@@ -135,6 +135,7 @@
       "overdueOnly": "Faqat muddati o'tganlar",
       "overdueTotal": "Jami muddati o'tgan",
       "cols": {
+        "status": "Holat",
         "termDays": "Necha kun?",
         "qarz": "Qarz",
         "notDue": "Muddati tugamagan",
@@ -144,6 +145,22 @@
         "group": "Guruh",
         "category": "Izoh"
       }
+    },
+    "dealStatus": {
+      "ON_TRACK": "Reja bo'yicha",
+      "OVERDUE": "Muddati o'tgan",
+      "DEFAULT": "Kelishuv buzilgan",
+      "BEHIND": "Orqada",
+      "FULFILLED": "Bajardi",
+      "CLOSED": "Yopilgan",
+      "UNKNOWN": "Aniqmas"
+    },
+    "clientGroups": {
+      "NORMAL": "Normal",
+      "PROBLEM_DEADLINE": "Muddatli muammoli",
+      "PROBLEM_MONTHLY": "Oylik muammoli",
+      "PROBLEM_UNDEFINED": "Aniqlanmagan muammoli",
+      "CLOSED": "Yopilgan"
     },
     "searchPlaceholder": "Mijoz nomi bo'yicha qidirish…",
     "stats": {

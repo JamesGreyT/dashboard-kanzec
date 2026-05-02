@@ -102,10 +102,19 @@ class InstalmentDaysBody(BaseModel):
 
 
 class GroupBody(BaseModel):
-    client_group: str = Field(..., min_length=1, max_length=1)
+    client_group: str = Field(..., min_length=1, max_length=20)
 
 
-ALLOWED_GROUPS: frozenset[str] = frozenset({"A", "B", "C", "D"})
+# 5-token deal-status enum, matching the CHECK constraint on
+# smartup_rep.legal_person.client_group. Replaces the legacy A/B/C/D tier.
+# See docs in scripts/load_kelishuv.py and the schema migration.
+ALLOWED_GROUPS: frozenset[str] = frozenset({
+    "NORMAL",
+    "PROBLEM_DEADLINE",
+    "PROBLEM_MONTHLY",
+    "PROBLEM_UNDEFINED",
+    "CLOSED",
+})
 
 
 @router.get("/legal-persons/directions")
@@ -242,7 +251,11 @@ async def set_legal_person_group(
     _: Annotated[object, Depends(require_role("admin", "operator"))],
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> dict:
-    """Set the per-client client_group (A/B/C/D). Scope-enforced."""
+    """Set the per-client client_group (5-token deal-status enum). Scope-enforced.
+
+    Writes client_group_source='manual' so scripts/load_kelishuv.py will
+    refuse to overwrite the operator's choice on the next loader run.
+    """
     if body.client_group not in ALLOWED_GROUPS:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
@@ -256,10 +269,11 @@ async def set_legal_person_group(
                 f"""
                 UPDATE smartup_rep.legal_person
                    SET client_group = :v,
+                       client_group_source = 'manual',
                        client_group_updated_at = now()
                  WHERE person_id = :pid
                    {scope_where}
-                RETURNING person_id, name, client_group, client_group_updated_at
+                RETURNING person_id, name, client_group, client_group_source, client_group_updated_at
                 """
             ),
             {"v": body.client_group, "pid": person_id, **scope_params},
@@ -282,6 +296,7 @@ async def set_legal_person_group(
         "person_id": row["person_id"],
         "name": row["name"],
         "client_group": row["client_group"],
+        "client_group_source": row["client_group_source"],
         "client_group_updated_at": row["client_group_updated_at"].isoformat()
             if row["client_group_updated_at"] else None,
     }

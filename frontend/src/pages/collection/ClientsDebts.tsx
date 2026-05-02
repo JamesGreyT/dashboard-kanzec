@@ -7,7 +7,9 @@ import {
   useDebtClientsAging,
   useRooms,
   useSnapshotsDirections,
+  type ClientGroup,
   type ClientsAgingRow,
+  type DealStatus,
 } from '@/api/hooks'
 import PageHeader from '@/components/PageHeader'
 import { formatNumber } from '@/lib/format'
@@ -18,6 +20,37 @@ const DM_SANS = "'DM Sans', system-ui"
 const PLEX_MONO = "'IBM Plex Mono', ui-monospace, monospace"
 
 const ROWS_PER_FOLIO = [25, 50, 100, 200] as const
+
+// 5-token enum, mirrors backend ALLOWED_GROUPS. Filter pill order chosen
+// so the most actionable groups come first (problem-deadline blacklist
+// then problem-monthly partial-payers).
+const CLIENT_GROUPS: ClientGroup[] = [
+  'NORMAL',
+  'PROBLEM_DEADLINE',
+  'PROBLEM_MONTHLY',
+  'PROBLEM_UNDEFINED',
+  'CLOSED',
+]
+
+/** Map a deal_status to one of the existing .action-badge variants from
+ *  index.css (critical / urgent / markdown / monitor / plan). */
+function dealStatusVariant(s: DealStatus): string {
+  switch (s) {
+    case 'ON_TRACK':
+      return 'monitor'
+    case 'OVERDUE':
+    case 'BEHIND':
+      return 'urgent'
+    case 'DEFAULT':
+      return 'critical'
+    case 'FULFILLED':
+    case 'CLOSED':
+      return 'markdown'
+    case 'UNKNOWN':
+    default:
+      return 'plan'
+  }
+}
 
 /**
  * Mijoz qarzlari — Excel-`Data` sheet equivalent.
@@ -46,6 +79,7 @@ export default function ClientsDebts() {
   const roomId = searchParams.get('room') ?? ''
   const direction = searchParams.get('direction') ?? ''
   const region = searchParams.get('region') ?? ''
+  const clientGroup = searchParams.get('group') ?? ''
   const overdueOnly = searchParams.get('overdue_only') === '1'
 
   const setParam = (mutate: (next: URLSearchParams) => void) =>
@@ -88,9 +122,10 @@ export default function ClientsDebts() {
       sales_manager_room_id: roomId,
       direction,
       region,
+      client_group: clientGroup,
       overdue_only: overdueOnly,
     }),
-    [limit, offset, search, roomId, direction, region, overdueOnly],
+    [limit, offset, search, roomId, direction, region, clientGroup, overdueOnly],
   )
 
   const agingQ = useDebtClientsAging(filters)
@@ -108,7 +143,7 @@ export default function ClientsDebts() {
   const showingTo = Math.min(offset + limit, total)
 
   const activeFiltersCount =
-    [roomId, direction, region, search].filter(Boolean).length + (overdueOnly ? 1 : 0)
+    [roomId, direction, region, clientGroup, search].filter(Boolean).length + (overdueOnly ? 1 : 0)
 
   const clearAll = () =>
     setParam((p) => {
@@ -116,6 +151,7 @@ export default function ClientsDebts() {
       p.delete('room')
       p.delete('direction')
       p.delete('region')
+      p.delete('group')
       p.delete('overdue_only')
       p.set('offset', '0')
     })
@@ -215,6 +251,15 @@ export default function ClientsDebts() {
           onChange={(v) => setSimple('direction', v)}
           options={(directionsQ.data ?? []).map((d) => ({ value: d, label: d }))}
         />
+        <SelectPill
+          label={t('debt.filters.group')}
+          value={clientGroup}
+          onChange={(v) => setSimple('group', v)}
+          options={CLIENT_GROUPS.map((g) => ({
+            value: g,
+            label: t(`debt.clientGroups.${g}`),
+          }))}
+        />
         <button
           type="button"
           onClick={() => setOverdue(!overdueOnly)}
@@ -240,6 +285,7 @@ export default function ClientsDebts() {
           <thead>
             <tr>
               <Th label={t('debt.cols.client')} sticky />
+              <Th label={t('debt.clientsDebts.cols.status')} />
               <Th label={t('debt.clientsDebts.cols.termDays')} align="right" />
               <Th label={t('debt.clientsDebts.cols.qarz')} align="right" />
               <Th label={t('debt.clientsDebts.cols.notDue')} align="right" />
@@ -257,7 +303,7 @@ export default function ClientsDebts() {
             {isLoading
               ? Array.from({ length: 8 }).map((_, i) => (
                   <tr key={i}>
-                    {Array.from({ length: 12 }).map((__, j) => (
+                    {Array.from({ length: 13 }).map((__, j) => (
                       <td key={j} className="px-3 py-2.5 border-b border-border/40">
                         <div className="shimmer-skeleton h-3 w-full" />
                       </td>
@@ -372,6 +418,9 @@ function Row({ row }: { row: ClientsAgingRow }) {
           {row.client_name}
         </Link>
       </td>
+      <td className="px-3 py-2.5 border-b border-border/40 whitespace-nowrap">
+        <StatusBadge status={row.deal_status} />
+      </td>
       <NumCell value={row.term_days ?? '—'} mono />
       <NumCell value={row.qarz} bold />
       <NumCell value={row.not_due} muted={row.not_due === 0} />
@@ -390,6 +439,18 @@ function Row({ row }: { row: ClientsAgingRow }) {
         {row.direction ?? '—'}
       </td>
     </tr>
+  )
+}
+
+/** Pill-style badge for the Holat column. Reuses the .action-badge palette
+ *  defined in index.css: monitor (green) / urgent (amber) / critical (red)
+ *  / markdown (muted) / plan (default). */
+function StatusBadge({ status }: { status: DealStatus }) {
+  const { t } = useTranslation()
+  return (
+    <span className={`action-badge ${dealStatusVariant(status)}`}>
+      {t(`debt.dealStatus.${status}`)}
+    </span>
   )
 }
 
