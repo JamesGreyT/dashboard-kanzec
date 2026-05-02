@@ -177,18 +177,29 @@ export default function ClientsDebts() {
           {t('data.filters.label')}
         </span>
 
-        {/* Search — Search icon at left-3 with the input's left padding bumped
-            to pl-8 so the icon never overlaps the placeholder. */}
+        {/* Search — explicit padding rather than the .month-btn class because
+            .month-btn ships `padding: 4px 8px` (shorthand), which overrides
+            any utility padding-left we'd want to add for the leading icon.
+            Style mimics .month-btn so the row stays visually consistent. */}
         <div className="relative">
-          <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 pointer-events-none" aria-hidden />
+          <Search
+            size={12}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 pointer-events-none"
+            aria-hidden
+          />
           <input
             type="text"
             value={search}
             onChange={(e) => setSimple('q', e.target.value)}
             placeholder={t('debt.searchPlaceholder')}
-            className="month-btn pl-8 pr-3 normal-case font-normal placeholder:italic placeholder:text-muted-foreground/50"
-            style={{ minWidth: '240px' }}
             aria-label={t('debt.searchPlaceholder')}
+            className={cn(
+              'rounded-md border border-transparent text-[11px] font-medium',
+              'bg-[#EDE7DC] text-[#2C2418] placeholder:text-muted-foreground/50 placeholder:italic',
+              'focus:outline-none focus:border-[#9E7B2F]/40 focus:ring-2 focus:ring-[#D4A843]/15',
+              'dark:bg-[#1A1A28] dark:text-foreground dark:placeholder:text-muted-foreground/40',
+            )}
+            style={{ minWidth: '240px', padding: '4px 12px 4px 32px' }}
           />
         </div>
 
