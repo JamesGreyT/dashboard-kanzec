@@ -19,10 +19,6 @@ const PLEX_MONO = "'IBM Plex Mono', ui-monospace, monospace"
 
 const ROWS_PER_FOLIO = [25, 50, 100, 200] as const
 
-// "client_group" is a single-letter classifier ETL'd from Smartup
-// (A / B / C / D etc). Static enum so the dropdown is instant.
-const CLIENT_GROUPS = ['A', 'B', 'C', 'D'] as const
-
 /**
  * Mijoz qarzlari — Excel-`Data` sheet equivalent.
  *
@@ -50,7 +46,6 @@ export default function ClientsDebts() {
   const roomId = searchParams.get('room') ?? ''
   const direction = searchParams.get('direction') ?? ''
   const region = searchParams.get('region') ?? ''
-  const clientGroup = searchParams.get('group') ?? ''
   const overdueOnly = searchParams.get('overdue_only') === '1'
 
   const setParam = (mutate: (next: URLSearchParams) => void) =>
@@ -93,10 +88,9 @@ export default function ClientsDebts() {
       sales_manager_room_id: roomId,
       direction,
       region,
-      client_group: clientGroup,
       overdue_only: overdueOnly,
     }),
-    [limit, offset, search, roomId, direction, region, clientGroup, overdueOnly],
+    [limit, offset, search, roomId, direction, region, overdueOnly],
   )
 
   const agingQ = useDebtClientsAging(filters)
@@ -114,7 +108,7 @@ export default function ClientsDebts() {
   const showingTo = Math.min(offset + limit, total)
 
   const activeFiltersCount =
-    [roomId, direction, region, clientGroup, search].filter(Boolean).length + (overdueOnly ? 1 : 0)
+    [roomId, direction, region, search].filter(Boolean).length + (overdueOnly ? 1 : 0)
 
   const clearAll = () =>
     setParam((p) => {
@@ -122,7 +116,6 @@ export default function ClientsDebts() {
       p.delete('room')
       p.delete('direction')
       p.delete('region')
-      p.delete('group')
       p.delete('overdue_only')
       p.set('offset', '0')
     })
@@ -184,16 +177,17 @@ export default function ClientsDebts() {
           {t('data.filters.label')}
         </span>
 
-        {/* Search */}
+        {/* Search — Search icon at left-3 with the input's left padding bumped
+            to pl-8 so the icon never overlaps the placeholder. */}
         <div className="relative">
-          <Search size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/50" aria-hidden />
+          <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 pointer-events-none" aria-hidden />
           <input
             type="text"
             value={search}
             onChange={(e) => setSimple('q', e.target.value)}
             placeholder={t('debt.searchPlaceholder')}
-            className="month-btn pl-7 pr-2 normal-case font-normal placeholder:italic placeholder:text-muted-foreground/50"
-            style={{ minWidth: '220px' }}
+            className="month-btn pl-8 pr-3 normal-case font-normal placeholder:italic placeholder:text-muted-foreground/50"
+            style={{ minWidth: '240px' }}
             aria-label={t('debt.searchPlaceholder')}
           />
         </div>
@@ -209,12 +203,6 @@ export default function ClientsDebts() {
           value={direction}
           onChange={(v) => setSimple('direction', v)}
           options={(directionsQ.data ?? []).map((d) => ({ value: d, label: d }))}
-        />
-        <SelectPill
-          label={t('debt.filters.group')}
-          value={clientGroup}
-          onChange={(v) => setSimple('group', v)}
-          options={CLIENT_GROUPS.map((g) => ({ value: g, label: g }))}
         />
         <button
           type="button"
@@ -252,15 +240,13 @@ export default function ClientsDebts() {
               <Th label={t('debt.cols.manager')} />
               <Th label={t('debt.clientsDebts.cols.region')} />
               <Th label={t('debt.clientsDebts.cols.direction')} />
-              <Th label={t('debt.clientsDebts.cols.group')} />
-              <Th label={t('debt.clientsDebts.cols.category')} />
             </tr>
           </thead>
           <tbody>
             {isLoading
               ? Array.from({ length: 8 }).map((_, i) => (
                   <tr key={i}>
-                    {Array.from({ length: 14 }).map((__, j) => (
+                    {Array.from({ length: 12 }).map((__, j) => (
                       <td key={j} className="px-3 py-2.5 border-b border-border/40">
                         <div className="shimmer-skeleton h-3 w-full" />
                       </td>
@@ -392,16 +378,6 @@ function Row({ row }: { row: ClientsAgingRow }) {
       <td className="px-3 py-2.5 border-b border-border/40 text-muted-foreground whitespace-nowrap">
         {row.direction ?? '—'}
       </td>
-      <td className="px-3 py-2.5 border-b border-border/40">
-        {row.client_group ? (
-          <span className="action-badge monitor">{row.client_group}</span>
-        ) : (
-          <span className="text-muted-foreground/40">—</span>
-        )}
-      </td>
-      <td className="px-3 py-2.5 border-b border-border/40 text-xs text-muted-foreground italic max-w-50 truncate" title={row.category ?? undefined}>
-        {row.category ?? '—'}
-      </td>
     </tr>
   )
 }
@@ -471,26 +447,52 @@ function Stat({
   sub?: string
   tone?: 'default' | 'critical' | 'urgent'
 }) {
+  // Top rail color matches the Almanac KPI vocabulary: gold for default,
+  // red for critical (90+ overdue), amber for "urgent" pacing problems.
+  const railColor =
+    tone === 'critical' ? '#F87171' : tone === 'urgent' ? '#FB923C' : '#D4A843'
   return (
-    <div className="glass-card kpi-glow rounded-xl p-4">
+    <div
+      className="glass-card kpi-glow rounded-xl p-5 relative overflow-hidden"
+      style={{ ['--glow-color' as string]: railColor } as React.CSSProperties}
+    >
+      <span
+        aria-hidden
+        className="absolute top-0 left-0 right-0 h-0.5 opacity-60 rounded-t-xl"
+        style={{ background: railColor }}
+      />
       <p
-        className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-2"
+        className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-3"
         style={{ fontFamily: DM_SANS }}
       >
         {label}
       </p>
       <p
         className={cn(
-          'text-2xl font-semibold tabular-nums leading-none',
+          'text-3xl font-semibold tabular-nums leading-none',
           tone === 'critical' && 'text-[#F87171]',
           tone === 'urgent' && 'text-[#FB923C]',
         )}
         style={{ fontFamily: PLAYFAIR }}
       >
         {value}
-        {unit && <span className="text-xs text-muted-foreground/70 ml-1.5 font-normal">{unit}</span>}
+        {unit && (
+          <span
+            className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/60 ml-1.5 font-normal"
+            style={{ fontFamily: PLEX_MONO }}
+          >
+            {unit}
+          </span>
+        )}
       </p>
-      {sub && <p className="text-[10px] text-muted-foreground mt-1.5">{sub}</p>}
+      {sub && (
+        <p
+          className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mt-2"
+          style={{ fontFamily: DM_SANS }}
+        >
+          {sub}
+        </p>
+      )}
     </div>
   )
 }

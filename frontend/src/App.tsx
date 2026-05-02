@@ -14,7 +14,6 @@ import Dashboard from '@/pages/Dashboard'
 import OrdersPage from '@/pages/data/Orders'
 import PaymentsDataPage from '@/pages/data/Payments'
 import LegalPersonsPage from '@/pages/data/LegalPersons'
-import Worklist from '@/pages/collection/Worklist'
 import ClientsDebts from '@/pages/collection/ClientsDebts'
 import ClientDetail from '@/pages/collection/ClientDetail'
 
@@ -116,7 +115,11 @@ export default function App() {
                     <Route path="/data/payments" element={<PaymentsDataPage />} />
                     <Route path="/data/legal-persons" element={<LegalPersonsPage />} />
 
-                    <Route path="/collection/worklist" element={<Worklist />} />
+                    {/* /collection/worklist was retired in favor of the
+                        denser Mijoz qarzlari view. Keep the path live as a
+                        redirect so old bookmarks and links from the
+                        dashboard / client detail back-link still work. */}
+                    <Route path="/collection/worklist" element={<Navigate to="/collection/clients-debts" replace />} />
                     <Route path="/collection/clients-debts" element={<ClientsDebts />} />
                     <Route path="/collection/debt/client/:personId" element={<ClientDetail />} />
 
