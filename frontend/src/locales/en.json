@@ -25,6 +25,8 @@
     "language": "Language",
     "signOut": "Sign out",
     "toggleTheme": "Toggle theme",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar",
     "accessDenied": "Access denied",
     "accessDeniedDesc": "You don't have access to this page:",
     "comingSoon": "This page will land in a later session.",

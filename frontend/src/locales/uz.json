@@ -25,6 +25,8 @@
     "language": "Til",
     "signOut": "Chiqish",
     "toggleTheme": "Mavzuni almashtirish",
+    "collapseSidebar": "Yon panelni yig'ish",
+    "expandSidebar": "Yon panelni yoyish",
     "accessDenied": "Ruxsat yo'q",
     "accessDeniedDesc": "Sizda quyidagi sahifaga kirish huquqi yo'q:",
     "comingSoon": "Bu sahifa keyingi bosqichda ishga tushiriladi.",

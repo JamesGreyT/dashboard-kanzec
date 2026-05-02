@@ -549,7 +549,7 @@ export default function Dashboard() {
 
   return (
     <div>
-      <PageHeader />
+      <PageHeader variant="dashboard" />
 
       <SectionTitle label={t('dashboard.section.ledger')} className="mb-3" />
 

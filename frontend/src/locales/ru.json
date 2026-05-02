@@ -25,6 +25,8 @@
     "language": "Язык",
     "signOut": "Выйти",
     "toggleTheme": "Переключить тему",
+    "collapseSidebar": "Свернуть панель",
+    "expandSidebar": "Развернуть панель",
     "accessDenied": "Доступ запрещён",
     "accessDeniedDesc": "У вас нет доступа к странице:",
     "comingSoon": "Эта страница появится в следующем этапе.",

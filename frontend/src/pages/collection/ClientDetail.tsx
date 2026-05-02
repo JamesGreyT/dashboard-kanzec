@@ -18,6 +18,7 @@ import {
 } from '@/api/hooks'
 import { useAuth } from '@/context/AuthContext'
 import PageHeader from '@/components/PageHeader'
+import Breadcrumb from '@/components/Breadcrumb'
 import { formatNumber, formatCurrency, formatShortDate, formatLongDate, agingBadgeVariant } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -107,16 +108,17 @@ export default function ClientDetail() {
     <div>
       <PageHeader />
 
-      {/* Back link */}
+      {/* Breadcrumb — orientation back to the worklist, w/ the client name as
+          the current crumb. The Almanac chevron register matches the rest of
+          the editorial chrome, replacing the standalone "← back" link. */}
       <div className="animate-fade-up">
-        <Link
-          to="/collection/worklist"
-          className="inline-flex items-baseline gap-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-[#9E7B2F] transition-colors"
-          style={{ fontFamily: PLEX_MONO }}
-        >
-          <ArrowLeft size={11} />
-          {t('debt.client.backToWorklist')}
-        </Link>
+        <Breadcrumb
+          items={[
+            { label: t('nav.groups.collection'), to: '/collection/worklist' },
+            { label: t('nav.items.worklist'), to: '/collection/worklist' },
+            { label: contact?.name ?? '…' },
+          ]}
+        />
       </div>
 
       {/* Header band */}

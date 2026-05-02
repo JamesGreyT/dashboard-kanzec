@@ -21,13 +21,22 @@ function nowLabel(lang: string): string {
   return `${pad(d.getDate())} ${m} ${d.getFullYear()} · ${pad(d.getHours())}:${pad(d.getMinutes())} GMT+5`
 }
 
-const ROLE_BADGE_VARIANT: Record<Role, string> = {
-  admin: 'critical',
-  operator: 'plan',
-  viewer: 'monitor',
+const ROLE_DOT: Record<Role, string> = {
+  admin: 'bg-red-500/70',
+  operator: 'bg-[#D4A843]',
+  viewer: 'bg-emerald-500/70',
 }
 
-export default function PageHeader() {
+/**
+ * Site-wide page header.
+ *
+ * - `variant="dashboard"` shows the editorial BUGUN stamp + the user's role
+ *   as a pill. Used only on `/dashboard`, where a temporal anchor reads as
+ *   intentional rather than repetitive.
+ * - default compact variant shows the user identity with a small role-dot.
+ *   No stamp, no pill — chrome stays out of the way on detail pages.
+ */
+export default function PageHeader({ variant = 'compact' }: { variant?: 'dashboard' | 'compact' } = {}) {
   const { user } = useAuth()
   const { t, i18n } = useTranslation()
   const [stamp, setStamp] = useState(() => nowLabel(i18n.language))
@@ -40,31 +49,42 @@ export default function PageHeader() {
     return () => clearInterval(id)
   }, [i18n.language])
 
+  const isDashboard = variant === 'dashboard'
+
   return (
     <header className="flex items-baseline justify-between gap-3 pb-3 mb-6 border-b border-border/40 animate-fade-up">
-      {/* Operational stamp — keep as the only "Bugun" surface on the page;
-          the dashboard sidebar/group headers don't repeat it any longer. */}
-      <span
-        className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground truncate"
-        style={{ fontFamily: PLEX_MONO }}
-      >
-        {t('common.today')} · {stamp}
-      </span>
+      {isDashboard ? (
+        <span
+          className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground truncate"
+          style={{ fontFamily: PLEX_MONO }}
+        >
+          {t('common.today')} · {stamp}
+        </span>
+      ) : (
+        <span aria-hidden />
+      )}
 
       {user && (
-        <div className="flex items-baseline gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <span
             className="text-xs text-foreground/90 truncate"
             style={{ fontFamily: DM_SANS }}
           >
             {user.username}
           </span>
-          <span
-            className={`action-badge ${ROLE_BADGE_VARIANT[user.role]}`}
-            style={{ fontFamily: DM_SANS }}
-          >
-            {t(`roles.${user.role}`)}
-          </span>
+          {/* Compact: a 6-px role dot + text label. Dashboard: keep the pill
+              for editorial weight, but use the same monitor variant — the
+              red admin pill was reading as a warning, not as identity. */}
+          {isDashboard ? (
+            <span className="action-badge monitor" style={{ fontFamily: DM_SANS }}>
+              {t(`roles.${user.role}`)}
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] text-muted-foreground" style={{ fontFamily: DM_SANS }}>
+              <span className={`inline-block w-1.5 h-1.5 rounded-full ${ROLE_DOT[user.role]}`} aria-hidden />
+              {t(`roles.${user.role}`)}
+            </span>
+          )}
         </div>
       )}
     </header>
