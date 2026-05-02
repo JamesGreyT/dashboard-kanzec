@@ -112,12 +112,12 @@ export default function AdminAlerts() {
       />
 
       <section className="stagger-2 mb-10">
-        <div className="eyebrow !tracking-[0.18em] text-primary mb-3">
+        <div className="eyebrow !tracking-[0.18em] text-mintdk mb-3">
           {t("alerts_admin.new_rule", { defaultValue: "New rule" })}
         </div>
         <div className="flex flex-wrap items-end gap-3 max-w-[880px]">
           <div>
-            <label className="block text-[10px] uppercase tracking-[0.1em] text-muted-foreground mb-1">
+            <label className="block text-[10px] uppercase tracking-[0.1em] text-ink3 mb-1">
               {t("alerts_admin.kind", { defaultValue: "Kind" })}
             </label>
             <Select value={kind} onValueChange={(v) => setKind(v as Kind)}>
@@ -134,7 +134,7 @@ export default function AdminAlerts() {
             </Select>
           </div>
           <div>
-            <label className="block text-[10px] uppercase tracking-[0.1em] text-muted-foreground mb-1">
+            <label className="block text-[10px] uppercase tracking-[0.1em] text-ink3 mb-1">
               {t("alerts_admin.threshold", { defaultValue: "Threshold" })}
             </label>
             <input
@@ -146,7 +146,7 @@ export default function AdminAlerts() {
             />
           </div>
           <div>
-            <label className="block text-[10px] uppercase tracking-[0.1em] text-muted-foreground mb-1">
+            <label className="block text-[10px] uppercase tracking-[0.1em] text-ink3 mb-1">
               {t("alerts_admin.label_optional", { defaultValue: "Label (optional)" })}
             </label>
             <input
@@ -157,7 +157,7 @@ export default function AdminAlerts() {
             />
           </div>
           {user?.role === "admin" && (
-            <label className="inline-flex items-center gap-1.5 text-[12px] text-foreground/80 h-9">
+            <label className="inline-flex items-center gap-1.5 text-[12px] text-ink/80 h-9">
               <input
                 type="checkbox"
                 checked={shared}
@@ -186,49 +186,49 @@ export default function AdminAlerts() {
       <hr className="mark-rule mb-8" aria-hidden />
 
       <section className="stagger-3">
-        <div className="eyebrow !tracking-[0.18em] text-primary mb-3">
+        <div className="eyebrow !tracking-[0.18em] text-mintdk mb-3">
           {t("alerts_admin.existing", { defaultValue: "Existing rules" })}
         </div>
         {rulesQ.data && rulesQ.data.rows.length === 0 ? (
-          <div className="py-10 text-center text-muted-foreground italic text-sm border border-border/60 rounded-md">
+          <div className="py-10 text-center text-ink3 italic text-sm border border-line/60 rounded-md">
             {t("alerts_admin.no_rules", { defaultValue: "No rules yet. Create your first above." })}
           </div>
         ) : (
-          <div className="overflow-x-auto border border-border/60 rounded-md bg-background/70">
+          <div className="overflow-x-auto border border-line/60 rounded-md bg-background/70">
             <table className="w-full text-[13px]">
               <thead className="bg-muted/50">
                 <tr>
-                  <th className="text-left px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-medium">
+                  <th className="text-left px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-ink3 font-medium">
                     {t("alerts_admin.col_kind", { defaultValue: "Kind" })}
                   </th>
-                  <th className="text-right px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-medium">
+                  <th className="text-right px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-ink3 font-medium">
                     {t("alerts_admin.col_threshold", { defaultValue: "Threshold" })}
                   </th>
-                  <th className="text-left px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-medium">
+                  <th className="text-left px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-ink3 font-medium">
                     {t("alerts_admin.col_label", { defaultValue: "Label" })}
                   </th>
-                  <th className="text-left px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-medium">
+                  <th className="text-left px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-ink3 font-medium">
                     {t("alerts_admin.col_owner", { defaultValue: "Owner" })}
                   </th>
-                  <th className="text-center px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-medium">
+                  <th className="text-center px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-ink3 font-medium">
                     {t("alerts_admin.col_enabled", { defaultValue: "Enabled" })}
                   </th>
-                  <th className="text-right px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-medium" />
+                  <th className="text-right px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-ink3 font-medium" />
                 </tr>
               </thead>
               <tbody>
                 {rulesQ.data?.rows.map((r) => (
-                  <tr key={r.id} className="border-t border-border/40">
+                  <tr key={r.id} className="border-t border-line/40">
                     <td className="px-3 py-2">{KIND_LABELS[r.kind][lang]}</td>
                     <td className="px-3 py-2 text-right font-mono tabular-nums">
                       {Number(r.threshold).toLocaleString("en-US")}
                     </td>
-                    <td className="px-3 py-2 text-muted-foreground italic">
+                    <td className="px-3 py-2 text-ink3 italic">
                       {r.label ?? "—"}
                     </td>
-                    <td className="px-3 py-2 text-muted-foreground">
+                    <td className="px-3 py-2 text-ink3">
                       {r.user_id === null ? (
-                        <span className="inline-block px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium uppercase tracking-[0.06em]">
+                        <span className="inline-block px-2 py-0.5 rounded-full bg-mintbg text-mintdk text-[10px] font-medium uppercase tracking-[0.06em]">
                           Shared
                         </span>
                       ) : (
@@ -243,7 +243,7 @@ export default function AdminAlerts() {
                           "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-[0.06em]",
                           r.enabled
                             ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
-                            : "bg-muted text-muted-foreground",
+                            : "bg-muted text-ink3",
                           "outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         )}
                       >
@@ -260,7 +260,7 @@ export default function AdminAlerts() {
                           }
                         }}
                         aria-label={t("alerts_admin.delete", { defaultValue: "Delete rule" }) as string}
-                        className="text-muted-foreground hover:text-destructive outline-none focus-visible:ring-2 focus-visible:ring-ring rounded p-1"
+                        className="text-ink3 hover:text-destructive outline-none focus-visible:ring-2 focus-visible:ring-ring rounded p-1"
                       >
                         <Trash2 className="h-3.5 w-3.5" aria-hidden />
                       </button>
@@ -311,12 +311,12 @@ function PreferencesPanel() {
 
   return (
     <div>
-      <div className="eyebrow !tracking-[0.18em] text-primary mb-3">
+      <div className="eyebrow !tracking-[0.18em] text-mintdk mb-3">
         {t("alerts_admin.prefs_title", { defaultValue: "My dashboard defaults" })}
       </div>
       <div className="flex flex-wrap items-end gap-3 max-w-[880px] mb-3">
         <div>
-          <label className="block text-[10px] uppercase tracking-[0.1em] text-muted-foreground mb-1">
+          <label className="block text-[10px] uppercase tracking-[0.1em] text-ink3 mb-1">
             {t("alerts_admin.default_window", { defaultValue: "Default window" })}
           </label>
           <Select value={window} onValueChange={setWindow}>
@@ -329,7 +329,7 @@ function PreferencesPanel() {
           </Select>
         </div>
         <div className="flex-1 min-w-[260px]">
-          <label className="block text-[10px] uppercase tracking-[0.1em] text-muted-foreground mb-1">
+          <label className="block text-[10px] uppercase tracking-[0.1em] text-ink3 mb-1">
             {t("alerts_admin.default_directions", { defaultValue: "Default directions" })}
           </label>
           <div className="flex flex-wrap gap-1 py-1">
@@ -342,8 +342,8 @@ function PreferencesPanel() {
                   className={cn(
                     "px-2 py-1 rounded-full border text-[11px] uppercase tracking-[0.06em]",
                     on
-                      ? "bg-primary/10 text-primary border-primary/30"
-                      : "text-muted-foreground border-input hover:text-foreground",
+                      ? "bg-mintbg text-mintdk border-mint/30"
+                      : "text-ink3 border-input hover:text-ink",
                     "outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   )}
                 >
