@@ -1,6 +1,7 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowUpRight, ArrowDownRight, Bell, ClipboardList, Coins, Hourglass } from 'lucide-react'
+import { ArrowUpRight, ArrowDownRight, Bell, ChevronDown, ClipboardList, Coins, Hourglass } from 'lucide-react'
 
 import { useAuth } from '@/context/AuthContext'
 import {
@@ -134,6 +135,22 @@ function HeroDebtCard({
 
 // ── Stacked KPI tiles (right column) ───────────────────────────────────────
 
+type StackedKpiProps = {
+  label: string
+  value: string
+  caption: string
+  glow: string
+  delay: 2 | 3 | 4
+  icon: React.ElementType
+  loading: boolean
+  /** Optional destination route. When set, the entire card becomes a Link
+   *  with hover affordances; the corner icon swaps to `ArrowUpRight`. */
+  to?: string
+  /** When provided AND `value === '—'`, render this italic Playfair line in
+   *  place of the dashed value to give the empty state editorial weight. */
+  emptyMessage?: string
+}
+
 function StackedKpi({
   label,
   value,
@@ -142,15 +159,9 @@ function StackedKpi({
   delay,
   icon: Icon,
   loading,
-}: {
-  label: string
-  value: string
-  caption: string
-  glow: string
-  delay: 2 | 3 | 4
-  icon: React.ElementType
-  loading: boolean
-}) {
+  to,
+  emptyMessage,
+}: StackedKpiProps) {
   if (loading) {
     return (
       <div className={`glass-card rounded-xl p-4 lg:col-span-5 min-h-26 flex flex-col justify-between animate-fade-up animate-fade-up-delay-${delay}`}>
@@ -160,11 +171,11 @@ function StackedKpi({
       </div>
     )
   }
-  return (
-    <div
-      className={`glass-card kpi-glow rounded-xl p-4 lg:col-span-5 min-h-26 flex flex-col animate-fade-up animate-fade-up-delay-${delay}`}
-      style={{ ['--glow-color' as string]: glow } as React.CSSProperties}
-    >
+
+  const isEmpty = value === '—' && !!emptyMessage
+
+  const inner = (
+    <>
       <div className="flex items-start justify-between mb-2">
         <p
           className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.14em]"
@@ -172,23 +183,57 @@ function StackedKpi({
         >
           {label}
         </p>
-        <div className="p-1.5 rounded-md bg-accent/50">
+        <div className="p-1.5 rounded-md bg-accent/50 transition-colors group-hover:bg-accent">
           <Icon size={13} style={{ color: glow }} />
         </div>
       </div>
       <div className="mt-auto">
-        <p
-          className="text-2xl font-semibold tabular-nums leading-tight animate-count-up"
-          style={{ fontFamily: PLAYFAIR }}
-        >
-          {value}
-        </p>
-        {caption && (
-          <p className="mt-1 text-[11px] text-muted-foreground" style={{ fontFamily: DM_SANS }}>
-            {caption}
+        {isEmpty ? (
+          <p
+            className="text-base italic text-muted-foreground leading-snug"
+            style={{ fontFamily: PLAYFAIR }}
+          >
+            {emptyMessage}
           </p>
+        ) : (
+          <>
+            <p
+              className="text-2xl font-semibold tabular-nums leading-tight animate-count-up"
+              style={{ fontFamily: PLAYFAIR }}
+            >
+              {value}
+            </p>
+            {caption && (
+              <p className="mt-1 text-[11px] text-muted-foreground" style={{ fontFamily: DM_SANS }}>
+                {caption}
+              </p>
+            )}
+          </>
         )}
       </div>
+    </>
+  )
+
+  const className = `glass-card kpi-glow rounded-xl p-4 lg:col-span-5 min-h-26 flex flex-col animate-fade-up animate-fade-up-delay-${delay} group`
+
+  if (to) {
+    return (
+      <Link
+        to={to}
+        className={`${className} hover:border-[#9E7B2F]/35 hover:shadow-[0_2px_12px_rgba(212,168,67,0.08)] transition-all`}
+        style={{ ['--glow-color' as string]: glow } as React.CSSProperties}
+      >
+        {inner}
+      </Link>
+    )
+  }
+
+  return (
+    <div
+      className={className}
+      style={{ ['--glow-color' as string]: glow } as React.CSSProperties}
+    >
+      {inner}
     </div>
   )
 }
@@ -326,6 +371,11 @@ function PrepaymentsAside({ row, loading }: { row: PrepaymentRow | undefined; lo
       </div>
     )
   }
+  // Tightened layout: name + region (caption), figure with credit-balance
+  // unit caption, then the link affordance. The "awaiting delivery" line
+  // is dropped — it's true for *every* prepayment row by definition, so
+  // it adds no signal. The diamond glyph is also dropped here so the
+  // first-call card stays the only diamond surface on the page.
   return (
     <Link
       to="/collection/worklist"
@@ -344,31 +394,32 @@ function PrepaymentsAside({ row, loading }: { row: PrepaymentRow | undefined; lo
       ) : (
         <>
           <p
-            className="text-lg font-semibold mb-1 group-hover:text-[#9E7B2F] transition-colors"
+            className="text-lg font-semibold leading-tight group-hover:text-[#9E7B2F] transition-colors"
             style={{ fontFamily: PLAYFAIR }}
           >
-            <span className="text-[#D4A843] mr-1.5">◇</span>
             {row.name}
           </p>
-          <p className="text-xs text-muted-foreground mb-2" style={{ fontFamily: DM_SANS }}>
-            {row.region_name ?? t('dashboard.prepayments.advance')}
-          </p>
+          {row.region_name && (
+            <p className="text-xs text-muted-foreground mt-0.5" style={{ fontFamily: DM_SANS }}>
+              {row.region_name}
+            </p>
+          )}
           <p
-            className="text-2xl font-semibold tabular-nums leading-tight"
+            className="mt-3 text-2xl font-semibold tabular-nums leading-none"
             style={{ fontFamily: PLAYFAIR }}
           >
             {formatCurrency(row.credit_balance, null)}
           </p>
-          <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground" style={{ fontFamily: PLEX_MONO }}>
+          <p
+            className="mt-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground"
+            style={{ fontFamily: PLEX_MONO }}
+          >
             {t('dashboard.prepayments.creditBalance')}
-          </p>
-          <p className="mt-2 text-xs italic text-muted-foreground" style={{ fontFamily: DM_SANS }}>
-            {t('dashboard.prepayments.awaiting')}
           </p>
         </>
       )}
       <p
-        className="mt-4 text-xs text-[#9E7B2F] inline-flex items-center gap-1 group-hover:gap-2 transition-all"
+        className="mt-5 text-xs text-[#9E7B2F] inline-flex items-center gap-1 group-hover:gap-2 transition-all"
         style={{ fontFamily: DM_SANS }}
       >
         {t('dashboard.prepayments.see')} <span aria-hidden>→</span>
@@ -571,6 +622,7 @@ export default function Dashboard() {
           delay={2}
           icon={ArrowUpRight}
           loading={overview.isLoading}
+          to="/analytics/payments"
         />
 
         <StackedKpi
@@ -597,8 +649,14 @@ export default function Dashboard() {
           delay={3}
           icon={(planProgress?.vsExpectedPct ?? 100) < 90 ? ArrowDownRight : ArrowUpRight}
           loading={isAdmin && dayslice.isLoading}
+          to={isAdmin ? '/dayslice' : undefined}
         />
 
+        {/* Alerts tile — `value="—"` is a real "no incidents" state, not
+            missing data. Pair the dash with an editorial empty message so
+            a healthy system reads as a deliberate "all clear", not as
+            broken UI. Tile links into /admin/alerts so a click on the
+            empty tile still surfaces the rules console. */}
         <StackedKpi
           label={t('dashboard.kpi.alerts')}
           value="—"
@@ -607,6 +665,8 @@ export default function Dashboard() {
           delay={4}
           icon={Bell}
           loading={false}
+          to="/admin/alerts"
+          emptyMessage={t('dashboard.kpi.alertsEmpty')}
         />
       </section>
 
@@ -625,13 +685,72 @@ export default function Dashboard() {
         <PrepaymentsAside row={prepayments.data?.rows?.[0]} loading={prepayments.isLoading} />
       </section>
 
-      <SectionTitle label={t('dashboard.section.tribe')} className="mb-3" />
-
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-4 mb-6">
-        <TopSegmentCard distribution={rfm.data?.segment_distribution ?? null} loading={rfm.isLoading} />
-        <TrendPlaceholder />
-      </section>
+      <TribeSection
+        rfmData={rfm.data?.segment_distribution ?? null}
+        rfmLoading={rfm.isLoading}
+      />
     </div>
+  )
+}
+
+// ── Tribe (RFM segments + trend) — collapsible ──────────────────────────
+//
+// The RFM matrix and trend are useful but not load-bearing on the dashboard
+// — most days an operator scrolls past them. Hide behind a "show details"
+// toggle so the dashboard's first viewport stays signal-dense; persist the
+// open/closed choice so power users who do want it don't re-toggle daily.
+
+const TRIBE_OPEN_KEY = 'kanzec.dashboard.tribe.open'
+
+function TribeSection({
+  rfmData,
+  rfmLoading,
+}: {
+  rfmData: RfmSegmentDistribution[] | null
+  rfmLoading: boolean
+}) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    return window.localStorage.getItem(TRIBE_OPEN_KEY) === '1'
+  })
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(TRIBE_OPEN_KEY, open ? '1' : '0')
+    } catch {
+      /* ignore */
+    }
+  }, [open])
+
+  return (
+    <>
+      <SectionTitle
+        label={t('dashboard.section.tribe')}
+        className="mb-3"
+        action={
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="inline-flex items-center gap-1 text-xs hover:text-[#9E7B2F] transition-colors"
+            aria-expanded={open}
+          >
+            {open ? t('dashboard.tribe.hide') : t('dashboard.tribe.show')}
+            <ChevronDown
+              size={12}
+              className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+              aria-hidden
+            />
+          </button>
+        }
+      />
+
+      {open && (
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-4 mb-6">
+          <TopSegmentCard distribution={rfmData} loading={rfmLoading} />
+          <TrendPlaceholder />
+        </section>
+      )}
+    </>
   )
 }
 

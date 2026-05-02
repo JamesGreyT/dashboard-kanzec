@@ -52,6 +52,7 @@
       "planProgress": "MTD plan progress",
       "alerts": "Unread alerts",
       "alertsPlaceholder": "",
+      "alertsEmpty": "All clear — no new events.",
       "adminOnly": "Admin only",
       "planAdminCaption": "Visible to administrators only",
       "day": "Day",
@@ -93,7 +94,9 @@
       "ofRevenue": "of revenue",
       "trendLabel": "Trend, four years",
       "trendPlaceholder": "The chart will be drawn here in Session 4.",
-      "empty": "No segment data yet."
+      "empty": "No segment data yet.",
+      "show": "Show details",
+      "hide": "Hide"
     }
   },
   "debt": {

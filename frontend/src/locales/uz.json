@@ -52,6 +52,7 @@
       "planProgress": "Reja bajarilishi",
       "alerts": "Yangi ogohlantirishlar",
       "alertsPlaceholder": "",
+      "alertsEmpty": "Hammasi joyida — yangi hodisa yo'q.",
       "adminOnly": "Faqat admin",
       "planAdminCaption": "Faqat administrator ko'radi",
       "day": "Kun",
@@ -93,7 +94,9 @@
       "ofRevenue": "kirimning ulushi",
       "trendLabel": "To'rt yillik trend",
       "trendPlaceholder": "Grafik 4-bosqichda chiziladi.",
-      "empty": "Hali segment ma'lumotlari yo'q."
+      "empty": "Hali segment ma'lumotlari yo'q.",
+      "show": "Tafsilotlarni ochish",
+      "hide": "Yashirish"
     }
   },
   "debt": {
