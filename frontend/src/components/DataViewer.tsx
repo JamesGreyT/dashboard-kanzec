@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { X, Plus } from 'lucide-react'
+import { X, ChevronDown, Filter } from 'lucide-react'
 
 import {
   useDataTables,
@@ -17,7 +17,14 @@ import {
   type TableSchema,
 } from '@/api/hooks'
 import { useAuth } from '@/context/AuthContext'
-import { formatCell, encodePk, toRomanLower } from '@/lib/format'
+import {
+  formatCell,
+  encodePk,
+  toRomanLower,
+  isIdLike,
+  shouldRenderAsFigure,
+  pickHeadlineColumn,
+} from '@/lib/format'
 import PageHeader from '@/components/PageHeader'
 import { cn } from '@/lib/utils'
 
@@ -28,19 +35,8 @@ const PLEX_MONO = "'IBM Plex Mono', ui-monospace, monospace"
 const ROWS_PER_FOLIO_OPTIONS = [25, 50, 100, 200] as const
 
 interface Props {
-  /**
-   * The data table key. Must match a `key` from /api/data/tables. The
-   * three known viewers correspond to:
-   *   'deal_order' (Orders), 'payment' (Payments), 'legal_person' (LegalPersons)
-   * but we keep this generic so the schema endpoint stays the source of truth.
-   */
   tableKey: string
-  /** Heading shown in the registry mast. Falls back to schema's `label`. */
   title?: string
-  /**
-   * If the editable drawer (direction / instalment-days / group) should be
-   * available. Only legal_person supports it server-side.
-   */
   editable?: boolean
 }
 
@@ -48,7 +44,6 @@ interface Props {
 
 function parseFilters(searchParams: URLSearchParams): FilterTriple[] {
   return searchParams.getAll('f').flatMap((s) => {
-    // We re-encode with single colons; values can contain colons, so split max=3.
     const idx1 = s.indexOf(':')
     if (idx1 < 0) return []
     const idx2 = s.indexOf(':', idx1 + 1)
@@ -68,6 +63,12 @@ function writeFilters(filters: FilterTriple[], base: URLSearchParams): URLSearch
   return next
 }
 
+function typographyFor(col: Column): string {
+  if (isIdLike(col)) return PLEX_MONO
+  if (shouldRenderAsFigure(col)) return PLAYFAIR
+  return DM_SANS
+}
+
 // ── The page ──────────────────────────────────────────────────────────────
 
 export default function DataViewer({ tableKey, title, editable = false }: Props) {
@@ -85,9 +86,11 @@ export default function DataViewer({ tableKey, title, editable = false }: Props)
   )
   const offset = Math.max(Number(searchParams.get('offset') ?? 0), 0)
   const search = searchParams.get('q') ?? ''
-  const sort = searchParams.get('sort') ?? schema?.default_sort?.[0]
-    ? `${schema!.default_sort[0].field}:${schema!.default_sort[0].dir}`
-    : undefined
+  const sort =
+    searchParams.get('sort') ??
+    (schema?.default_sort?.[0]
+      ? `${schema.default_sort[0].field}:${schema.default_sort[0].dir}`
+      : undefined)
   const filters = parseFilters(searchParams)
 
   const setParam = (mutate: (next: URLSearchParams) => void) => {
@@ -116,15 +119,18 @@ export default function DataViewer({ tableKey, title, editable = false }: Props)
       else next.delete('q')
       next.set('offset', '0')
     })
-  const removeFilter = (i: number) => {
-    const remaining = filters.filter((_, idx) => idx !== i)
+  const removeFilter = (idx: number) => {
+    const remaining = filters.filter((_, i) => i !== idx)
     setSearchParams(writeFilters(remaining, searchParams), { replace: false })
     setOffset(0)
   }
-  const addFilter = (f: FilterTriple) => {
-    const next = writeFilters([...filters, f], searchParams)
-    next.set('offset', '0')
-    setSearchParams(next, { replace: false })
+  const upsertFilter = (col: string, f: FilterTriple | null) => {
+    // Replace any existing filter on this column; if `f` is null, just remove.
+    const others = filters.filter((existing) => existing.col !== col)
+    const next = f ? [...others, f] : others
+    const params = writeFilters(next, searchParams)
+    params.set('offset', '0')
+    setSearchParams(params, { replace: false })
   }
   const clearAll = () => {
     setSearchParams({}, { replace: false })
@@ -136,10 +142,8 @@ export default function DataViewer({ tableKey, title, editable = false }: Props)
     { enabled: !!schema },
   )
 
-  // Drawer state
   const [drawerPk, setDrawerPk] = useState<string | null>(null)
 
-  // Reset offset when total drops below the current page
   useEffect(() => {
     if (rowsQ.data && offset >= rowsQ.data.total && rowsQ.data.total > 0) {
       setOffset(0)
@@ -198,35 +202,41 @@ export default function DataViewer({ tableKey, title, editable = false }: Props)
         </div>
       </header>
 
-      {/* ── Filter citation ─────────────────────────────────────────────── */}
-      {schema && (
-        <FilterCitation
+      {/* ── Active filter chips (only when filters exist) ───────────────── */}
+      {schema && filters.length > 0 && (
+        <ActiveFilterChips
           schema={schema}
           filters={filters}
-          folioNumber={currentPage}
           onRemove={removeFilter}
-          onAdd={addFilter}
+          onClearAll={clearAll}
         />
       )}
 
       {/* ── Table ───────────────────────────────────────────────────────── */}
-      <div className="overflow-x-auto -mx-2 mt-6 animate-fade-up animate-fade-up-delay-3 hidden md:block">
+      <div className="overflow-x-auto -mx-2 mt-4 animate-fade-up animate-fade-up-delay-2 hidden md:block">
         {schema && (
           <table className="premium-table w-full text-sm" style={{ fontFamily: DM_SANS }}>
             <thead>
               <tr>
-                {visibleColumns.map((col) => (
-                  <th
-                    key={col.name}
-                    className={cn(
-                      'px-3 py-2.5 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground border-b border-border',
-                      col.numeric && 'text-right',
-                      col.id_column && 'text-right',
-                    )}
-                  >
-                    {col.label}
-                  </th>
-                ))}
+                {visibleColumns.map((col) => {
+                  const activeFilter = filters.find((f) => f.col === col.name) ?? null
+                  return (
+                    <th
+                      key={col.name}
+                      className={cn(
+                        'px-3 py-2.5 border-b border-border',
+                        shouldRenderAsFigure(col) || isIdLike(col) ? 'text-right' : 'text-left',
+                      )}
+                    >
+                      <FilterableHeader
+                        col={col}
+                        tableKey={tableKey}
+                        activeFilter={activeFilter}
+                        onApply={(f) => upsertFilter(col.name, f)}
+                      />
+                    </th>
+                  )
+                })}
               </tr>
             </thead>
             <tbody>
@@ -254,7 +264,7 @@ export default function DataViewer({ tableKey, title, editable = false }: Props)
       </div>
 
       {/* ── Mobile card view ────────────────────────────────────────────── */}
-      <div className="md:hidden mt-6 space-y-2 animate-fade-up animate-fade-up-delay-3">
+      <div className="md:hidden mt-4 space-y-2 animate-fade-up animate-fade-up-delay-2">
         {schema && rowsQ.isLoading && !rowsQ.data
           ? Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="glass-card rounded-xl p-3 space-y-2">
@@ -264,9 +274,7 @@ export default function DataViewer({ tableKey, title, editable = false }: Props)
               </div>
             ))
           : rowsQ.data?.rows.length === 0
-          ? (
-            <EmptyRegistry filters={filters} onClear={clearAll} />
-          )
+          ? <EmptyRegistry filters={filters} onClear={clearAll} />
           : rowsQ.data?.rows.map((row, idx) => schema && (
               <RegistryCard
                 key={`m-${idx}`}
@@ -351,120 +359,80 @@ export default function DataViewer({ tableKey, title, editable = false }: Props)
   )
 }
 
-// ── Filter citation (chips as a printed bibliography line) ────────────────
+// ── Active filter chips strip ─────────────────────────────────────────────
 
-function FilterCitation({
+function ActiveFilterChips({
   schema,
   filters,
-  folioNumber,
   onRemove,
-  onAdd,
+  onClearAll,
 }: {
   schema: TableSchema
   filters: FilterTriple[]
-  folioNumber: number
   onRemove: (idx: number) => void
-  onAdd: (f: FilterTriple) => void
+  onClearAll: () => void
 }) {
   const { t } = useTranslation()
-  const [adding, setAdding] = useState(false)
   return (
     <div
-      className="text-xs leading-relaxed flex flex-wrap items-baseline gap-x-1 gap-y-1.5 animate-fade-up animate-fade-up-delay-2"
+      className="flex flex-wrap items-center gap-2 mt-4 animate-fade-up animate-fade-up-delay-2"
       style={{ fontFamily: DM_SANS }}
     >
-      <span className="text-muted-foreground italic mr-1.5">
-        {t('data.folio')} {toRomanLower(folioNumber)} —
-      </span>
-
-      {filters.length === 0 && (
-        <span className="text-muted-foreground/70 italic">
-          {t('data.noFilters')}
-        </span>
-      )}
-
+      <Filter size={11} className="text-muted-foreground/60 shrink-0" aria-hidden />
       {filters.map((f, i) => {
         const colMeta = schema.columns.find((c) => c.name === f.col)
         return (
-          <span key={`${f.col}-${f.op}-${i}`} className="inline-flex items-baseline gap-0.5">
-            {i > 0 && <span className="text-muted-foreground/40 mx-0.5">·</span>}
-            <button
-              type="button"
-              onClick={() => onRemove(i)}
-              className="group inline-flex items-baseline gap-1 text-foreground hover:text-[#9E7B2F] transition-colors"
-            >
-              <span className="font-medium">{colMeta?.label ?? f.col}</span>
-              <span className="text-muted-foreground">{f.op}</span>
-              <span className="font-medium">{f.value}</span>
-              <X
-                size={10}
-                className="text-muted-foreground group-hover:text-red-500 transition-colors"
-                aria-hidden
-              />
-            </button>
-          </span>
+          <button
+            key={`${f.col}-${f.op}-${i}`}
+            type="button"
+            onClick={() => onRemove(i)}
+            className="month-btn active inline-flex items-center gap-1.5 group"
+            title={t('data.clickToRemove')}
+          >
+            <span>{colMeta?.label ?? f.col}</span>
+            <span className="text-muted-foreground/80">{f.op}</span>
+            <span className="font-semibold">{f.value}</span>
+            <X size={10} className="text-muted-foreground/60 group-hover:text-red-500 transition-colors" aria-hidden />
+          </button>
         )
       })}
-
       <button
         type="button"
-        onClick={() => setAdding(true)}
-        className="ml-2 inline-flex items-baseline gap-1 text-[#9E7B2F] hover:text-[#7A5E20] underline decoration-dotted underline-offset-2 transition-colors"
+        onClick={onClearAll}
+        className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground hover:text-[#9E7B2F] transition-colors ml-1"
       >
-        <Plus size={10} />
-        {t('data.addFilter')}
+        {t('data.clearAll')}
       </button>
-
-      {adding && (
-        <AddFilterPopover
-          schema={schema}
-          onAdd={(f) => {
-            onAdd(f)
-            setAdding(false)
-          }}
-          onCancel={() => setAdding(false)}
-        />
-      )}
     </div>
   )
 }
 
-function AddFilterPopover({
-  schema,
-  onAdd,
-  onCancel,
+// ── Filterable header cell ───────────────────────────────────────────────
+// Click the header → opens an inline anchored menu (NOT a popover) with op +
+// value. The menu sits absolutely positioned beneath the header; click-outside
+// closes it.
+
+function FilterableHeader({
+  col,
+  tableKey,
+  activeFilter,
+  onApply,
 }: {
-  schema: TableSchema
-  onAdd: (f: FilterTriple) => void
-  onCancel: () => void
+  col: Column
+  tableKey: string
+  activeFilter: FilterTriple | null
+  onApply: (f: FilterTriple | null) => void
 }) {
-  const { t } = useTranslation()
-  const [col, setCol] = useState<string>(() => schema.columns.find((c) => c.visible)?.name ?? '')
-  const [op, setOp] = useState<string>('=')
-  const [value, setValue] = useState<string>('')
-  const colMeta = schema.columns.find((c) => c.name === col)
-  const ops = colMeta?.ops ?? ['=']
-
-  // Autocomplete via /distinct for text columns
-  const distinct = useDataDistinct(schema.key, col, value, {
-    enabled: !!colMeta && colMeta.type === 'text' && !colMeta.id_column,
-  })
-
-  useEffect(() => {
-    // When column changes, re-pick a sensible default operator
-    if (!colMeta) return
-    if (!colMeta.ops.includes(op)) setOp(colMeta.ops[0] ?? '=')
-    setValue('')
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [col])
-
+  const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
+    if (!open) return
     function onClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) onCancel()
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
     }
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onCancel()
+      if (e.key === 'Escape') setOpen(false)
     }
     document.addEventListener('mousedown', onClick)
     document.addEventListener('keydown', onKey)
@@ -472,71 +440,147 @@ function AddFilterPopover({
       document.removeEventListener('mousedown', onClick)
       document.removeEventListener('keydown', onKey)
     }
-  }, [onCancel])
+  }, [open])
 
   return (
-    <div ref={ref} className="absolute z-30 mt-2 ml-0 glass-card rounded-xl p-4 shadow-xl w-[320px]" style={{ fontFamily: DM_SANS }}>
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-        {t('data.addFilter')}
-      </p>
-      <div className="space-y-2">
-        <select
-          value={col}
-          onChange={(e) => setCol(e.target.value)}
-          className="inv-filter w-full"
-        >
-          {schema.columns
-            .filter((c) => c.visible)
-            .map((c) => (
-              <option key={c.name} value={c.name}>
-                {c.label}
-              </option>
-            ))}
-        </select>
+    <div ref={ref} className="relative inline-block">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={cn(
+          'inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors',
+          activeFilter ? 'text-[#9E7B2F]' : 'text-muted-foreground hover:text-foreground',
+        )}
+        aria-expanded={open}
+        aria-label={`Filter ${col.label}`}
+      >
+        <span>{col.label}</span>
+        <ChevronDown
+          size={10}
+          className={cn(
+            'transition-transform',
+            open ? 'rotate-180' : '',
+            activeFilter ? 'opacity-100' : 'opacity-30',
+          )}
+        />
+      </button>
+      {open && (
+        <HeaderFilterMenu
+          col={col}
+          tableKey={tableKey}
+          activeFilter={activeFilter}
+          onApply={(f) => {
+            onApply(f)
+            setOpen(false)
+          }}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </div>
+  )
+}
 
-        <select value={op} onChange={(e) => setOp(e.target.value)} className="inv-filter w-full">
-          {ops.map((o) => (
+function HeaderFilterMenu({
+  col,
+  tableKey,
+  activeFilter,
+  onApply,
+  onClose,
+}: {
+  col: Column
+  tableKey: string
+  activeFilter: FilterTriple | null
+  onApply: (f: FilterTriple | null) => void
+  onClose: () => void
+}) {
+  const { t } = useTranslation()
+  const [op, setOp] = useState<string>(activeFilter?.op ?? col.ops[0] ?? '=')
+  const [value, setValue] = useState<string>(activeFilter?.value ?? '')
+  const distinct = useDataDistinct(tableKey, col.name, value, {
+    enabled: col.type === 'text' && !isIdLike(col),
+  })
+
+  const inputType = col.type === 'date' ? 'date' : (col.type === 'numeric' || col.type === 'int') ? 'number' : 'text'
+
+  function commit() {
+    if (!value) return
+    onApply({ col: col.name, op, value })
+  }
+
+  function clear() {
+    onApply(null)
+  }
+
+  // Side of header to anchor — right-aligned columns flow the menu to the right
+  const anchorRight = shouldRenderAsFigure(col) || isIdLike(col)
+
+  return (
+    <div
+      className={cn(
+        'absolute z-30 mt-1 bg-card border border-border rounded-lg shadow-lg p-3 w-64',
+        anchorRight ? 'right-0' : 'left-0',
+      )}
+      style={{ fontFamily: DM_SANS, boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}
+    >
+      <div className="flex items-center gap-2">
+        <select
+          value={op}
+          onChange={(e) => setOp(e.target.value)}
+          className="inv-filter shrink-0 normal-case font-normal"
+          style={{ minWidth: '60px' }}
+        >
+          {col.ops.map((o) => (
             <option key={o} value={o}>
               {o}
             </option>
           ))}
         </select>
-
         <input
-          type={colMeta?.type === 'date' ? 'date' : colMeta?.numeric ? 'number' : 'text'}
+          type={inputType}
           value={value}
           onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') commit()
+          }}
           placeholder={t('data.filterValueHint')}
-          list={colMeta?.type === 'text' && !colMeta.id_column ? `distinct-${col}` : undefined}
-          className="w-full text-xs bg-input border border-border rounded-md px-2 py-1.5 focus:outline-none focus:border-[#9E7B2F]/40 focus:ring-2 focus:ring-[#9E7B2F]/10"
+          list={col.type === 'text' && !isIdLike(col) ? `distinct-${col.name}` : undefined}
+          className="flex-1 text-xs bg-input border border-border rounded-md px-2 py-1.5 focus:outline-none focus:border-[#9E7B2F]/40 focus:ring-2 focus:ring-[#9E7B2F]/10 normal-case font-normal"
           autoFocus
         />
-        {colMeta?.type === 'text' && !colMeta.id_column && distinct.data && (
-          <datalist id={`distinct-${col}`}>
+        {col.type === 'text' && !isIdLike(col) && distinct.data && (
+          <datalist id={`distinct-${col.name}`}>
             {distinct.data.values.map((v) => (
-              <option key={v.value} value={v.value}>
-                {v.count}
-              </option>
+              <option key={v.value} value={v.value} />
             ))}
           </datalist>
         )}
+      </div>
 
-        <div className="flex items-center justify-end gap-2 pt-2">
+      <div className="flex items-center justify-between gap-2 mt-3 text-[10px] uppercase tracking-[0.14em]">
+        {activeFilter ? (
           <button
             type="button"
-            onClick={onCancel}
-            className="text-xs px-3 py-1.5 text-muted-foreground hover:text-foreground transition-colors"
+            onClick={clear}
+            className="text-red-500/80 hover:text-red-500 transition-colors normal-case font-medium"
+          >
+            {t('data.clearFilter')}
+          </button>
+        ) : (
+          <span />
+        )}
+        <div className="flex items-center gap-2 ml-auto">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground transition-colors normal-case font-medium"
           >
             {t('common.cancel')}
           </button>
           <button
             type="button"
-            disabled={!col || !value}
-            onClick={() => {
-              if (!col || !value) return
-              onAdd({ col, op, value })
-            }}
-            className="text-xs px-3 py-1.5 rounded bg-[#D4A843] hover:bg-[#C49833] disabled:bg-[#D4A843]/30 disabled:cursor-not-allowed text-black font-semibold transition-colors"
+            disabled={!value}
+            onClick={commit}
+            className="px-2.5 py-1 rounded bg-[#D4A843] hover:bg-[#C49833] disabled:bg-[#D4A843]/30 disabled:cursor-not-allowed text-black font-semibold normal-case"
           >
             {t('common.apply')}
           </button>
@@ -547,12 +591,6 @@ function AddFilterPopover({
 }
 
 // ── Row renderers ─────────────────────────────────────────────────────────
-
-function typographyFor(col: Column): string {
-  if (col.id_column) return PLEX_MONO
-  if (col.numeric) return PLAYFAIR
-  return DM_SANS
-}
 
 function RegistryRow({
   row,
@@ -565,19 +603,24 @@ function RegistryRow({
 }) {
   return (
     <tr onClick={onClick} className="cursor-pointer">
-      {columns.map((col) => (
-        <td
-          key={col.name}
-          className={cn(
-            'px-3 py-2.5 border-b border-border/40',
-            col.numeric && 'text-right tabular-nums',
-            col.id_column && 'text-right text-muted-foreground',
-          )}
-          style={{ fontFamily: typographyFor(col) }}
-        >
-          {formatCell(row[col.name], col)}
-        </td>
-      ))}
+      {columns.map((col) => {
+        const figure = shouldRenderAsFigure(col)
+        const idLike = isIdLike(col)
+        return (
+          <td
+            key={col.name}
+            className={cn(
+              'px-3 py-2.5 border-b border-border/40',
+              (figure || idLike) && 'text-right',
+              figure && 'tabular-nums',
+              idLike && 'text-muted-foreground',
+            )}
+            style={{ fontFamily: typographyFor(col) }}
+          >
+            {formatCell(row[col.name], col)}
+          </td>
+        )
+      })}
     </tr>
   )
 }
@@ -591,12 +634,15 @@ function RegistryCard({
   columns: Column[]
   onClick: () => void
 }) {
-  const headlineCol = columns.find((c) => c.type === 'text' && !c.id_column) ?? columns[0]
+  const headlineCol = pickHeadlineColumn(columns) ?? columns[0]
   const dateCol = columns.find((c) => c.type === 'date' || c.type === 'timestamp')
-  const idCol = columns.find((c) => c.id_column)
-  const numericCol = columns.find((c) => c.numeric)
+  const idCol = columns.find((c) => isIdLike(c))
+  const figureCol = columns.find((c) => shouldRenderAsFigure(c))
   const secondaryTextCol = columns.find(
-    (c) => c.type === 'text' && !c.id_column && c.name !== headlineCol?.name,
+    (c) =>
+      c.type === 'text' &&
+      !isIdLike(c) &&
+      c.name !== headlineCol?.name,
   )
 
   return (
@@ -628,9 +674,9 @@ function RegistryCard({
             {formatCell(row[secondaryTextCol.name], secondaryTextCol)}
           </span>
         )}
-        {numericCol && (
+        {figureCol && (
           <span className="tabular-nums font-medium text-foreground" style={{ fontFamily: PLAYFAIR }}>
-            {formatCell(row[numericCol.name], numericCol)}
+            {formatCell(row[figureCol.name], figureCol)}
           </span>
         )}
       </div>
@@ -638,7 +684,7 @@ function RegistryCard({
   )
 }
 
-// ── Empty registry (asterism, italic line, dotted-undertline actions) ────
+// ── Empty registry ────────────────────────────────────────────────────────
 
 function EmptyRegistry({
   filters,
@@ -711,7 +757,6 @@ function RegistryDrawer({
   const open = !!pk
   const rowQ = useDataRow(tableKey, pk)
 
-  // Lock body scroll while drawer is open
   useEffect(() => {
     if (open) {
       const prev = document.body.style.overflow
@@ -722,7 +767,6 @@ function RegistryDrawer({
     }
   }, [open])
 
-  // Close on Escape
   useEffect(() => {
     if (!open) return
     function onKey(e: KeyboardEvent) {
@@ -734,13 +778,12 @@ function RegistryDrawer({
 
   const row = rowQ.data
   const visibleColumns = schema.columns.filter((c) => c.visible)
-  const headlineCol = visibleColumns.find((c) => c.type === 'text' && !c.id_column) ?? visibleColumns[0]
-  const idCol = visibleColumns.find((c) => c.id_column)
+  const headlineCol = pickHeadlineColumn(visibleColumns) ?? visibleColumns[0]
+  const idCol = visibleColumns.find((c) => isIdLike(c))
   const dateCol = visibleColumns.find((c) => c.type === 'date' || c.type === 'timestamp')
 
   return (
     <>
-      {/* dim overlay */}
       <div
         className={cn(
           'fixed inset-0 z-30 bg-black/30 transition-opacity duration-300',
@@ -755,19 +798,28 @@ function RegistryDrawer({
         aria-modal="true"
         aria-label={t('data.drawer.folioEntry')}
         className={cn(
-          'fixed inset-y-0 right-0 z-40 w-full sm:w-[480px] bg-card border-l border-border',
+          'fixed inset-y-0 right-0 z-40 w-full sm:w-120 bg-card border-l border-border flex flex-col',
           'transform transition-transform duration-300',
           open ? 'translate-x-0' : 'translate-x-full pointer-events-none',
         )}
-        style={{
-          transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-        }}
+        style={{ transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}
       >
-        <div className="h-full overflow-y-auto p-6 lg:p-8">
-          <span className="section-title">{t('data.drawer.folioEntry')}</span>
+        {/* Header — close button lives here, top-right */}
+        <div className="flex items-center justify-between gap-3 px-6 lg:px-8 pt-6 pb-3 border-b border-border/40 shrink-0">
+          <span className="section-title flex-1">{t('data.drawer.folioEntry')}</span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 -m-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors shrink-0"
+            aria-label={t('common.close')}
+          >
+            <X size={16} />
+          </button>
+        </div>
 
+        <div className="flex-1 overflow-y-auto px-6 lg:px-8 py-5">
           {!row ? (
-            <div className="mt-4 space-y-3">
+            <div className="space-y-3">
               <div className="shimmer-skeleton h-7 w-2/3" />
               <div className="shimmer-skeleton h-3 w-1/2" />
               <div className="shimmer-skeleton h-3 w-full mt-6" />
@@ -777,10 +829,10 @@ function RegistryDrawer({
           ) : (
             <>
               <h2
-                className="text-2xl font-semibold leading-tight mt-3 mb-1"
+                className="text-2xl font-semibold leading-tight mb-1"
                 style={{ fontFamily: PLAYFAIR }}
               >
-                {headlineCol ? String(row[headlineCol.name] ?? '—') : t('data.drawer.entry')}
+                {headlineCol ? formatCell(row[headlineCol.name], headlineCol, i18n.language) : t('data.drawer.entry')}
               </h2>
 
               <div
@@ -789,7 +841,7 @@ function RegistryDrawer({
               >
                 {idCol && (
                   <span style={{ fontFamily: PLEX_MONO }}>
-                    ⌘ {formatCell(row[idCol.name], idCol)}
+                    № {formatCell(row[idCol.name], idCol)}
                   </span>
                 )}
                 {dateCol && <span>{formatCell(row[dateCol.name], dateCol, i18n.language)}</span>}
@@ -802,7 +854,10 @@ function RegistryDrawer({
                       {col.label}
                     </dt>
                     <dd
-                      className={cn('text-sm', col.numeric && 'tabular-nums font-medium')}
+                      className={cn(
+                        'text-sm wrap-break-word',
+                        shouldRenderAsFigure(col) && 'tabular-nums font-medium',
+                      )}
                       style={{ fontFamily: typographyFor(col) }}
                     >
                       {formatCell(row[col.name], col, i18n.language)}
@@ -816,15 +871,6 @@ function RegistryDrawer({
               )}
             </>
           )}
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute bottom-6 right-6 text-xs uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground transition-colors"
-            style={{ fontFamily: DM_SANS }}
-          >
-            {t('common.close')} ✕
-          </button>
         </div>
       </aside>
     </>
@@ -898,9 +944,23 @@ function EditableSection({
     )
   }
 
+  // Highlight the editable section so it visually distinguishes itself from
+  // the read-only definition list above. Gold left rail (same vocabulary as
+  // .nav-active and .perf-section.is-open) + slightly warmer paper tint.
   return (
-    <section className="mt-8">
-      <span className="section-title">{t('data.drawer.editable')}</span>
+    <section className="relative mt-8 -mx-6 lg:-mx-8 px-6 lg:px-8 py-5 bg-[#9E7B2F]/4 border-t border-[#9E7B2F]/15">
+      <span
+        aria-hidden
+        className="absolute left-0 top-0 bottom-0 w-1 bg-linear-to-b from-[#D4A843] to-[#B8922E]"
+      />
+      <div className="flex items-baseline gap-2 mb-1">
+        <span className="section-title flex-1">{t('data.drawer.editable')}</span>
+        {!canEdit && (
+          <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+            {t('data.drawer.readOnlyShort')}
+          </span>
+        )}
+      </div>
       <div className="mt-4 space-y-3">
         <EditableRow label={t('data.drawer.direction')}>
           <select

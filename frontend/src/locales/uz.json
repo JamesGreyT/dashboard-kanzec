@@ -46,11 +46,13 @@
       "revenueCaption": "shu oy davomida",
       "planProgress": "Reja bajarilishi",
       "alerts": "Yangi ogohlantirishlar",
-      "alertsPlaceholder": "5-bosqichda ulanadi",
+      "alertsPlaceholder": "",
       "adminOnly": "Faqat admin",
       "planAdminCaption": "Faqat administrator ko'radi",
       "day": "Kun",
-      "of": "/"
+      "of": "/",
+      "aheadOfPace": "tezroq",
+      "behindOfPace": "sekinroq"
     },
     "hero": {
       "sinceYesterday": "kechadan beri",
@@ -92,15 +94,15 @@
     },
     "searchHint": "ushbu daftarda qidiring…",
     "exportXlsx": "Excelga eksport",
-    "folio": "Folio",
     "of": "ning",
     "showing": "ko'rsatilmoqda",
     "rowsPerFolio": "Bir sahifa",
     "prev": "oldingi",
     "next": "keyingi",
-    "addFilter": "filtr qo'shish",
-    "noFilters": "filtrlar qo'llanilmagan",
     "filterValueHint": "qiymat",
+    "clearFilter": "filtrni tozalash",
+    "clearAll": "barchasini tozalash",
+    "clickToRemove": "Olib tashlash uchun bosing",
     "empty": {
       "line1": "Ushbu sahifada yozuv yo'q.",
       "line2": "Hozircha bo'sh.",
@@ -116,6 +118,7 @@
       "group": "Guruh",
       "autosaved": "O'zgartirishlar avtomatik saqlanadi.",
       "readOnly": "Bu maydonlarni tahrirlash uchun huquq yetishmaydi.",
+      "readOnlyShort": "Faqat o'qish",
       "saved": "Saqlandi.",
       "saveFailed": "Saqlash muvaffaqiyatsiz.",
       "instalmentInvalid": "0 dan 365 gacha bo'lgan kunlar."

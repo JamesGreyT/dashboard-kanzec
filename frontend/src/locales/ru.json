@@ -46,11 +46,13 @@
       "revenueCaption": "за этот месяц",
       "planProgress": "Выполнение плана",
       "alerts": "Новые оповещения",
-      "alertsPlaceholder": "подключим в этапе 5",
+      "alertsPlaceholder": "",
       "adminOnly": "Только админ",
       "planAdminCaption": "Видно только администратору",
       "day": "День",
-      "of": "/"
+      "of": "/",
+      "aheadOfPace": "опережение",
+      "behindOfPace": "отставание"
     },
     "hero": {
       "sinceYesterday": "со вчерашнего дня",
@@ -92,15 +94,15 @@
     },
     "searchHint": "ищите в этой книге записей…",
     "exportXlsx": "Экспорт в Excel",
-    "folio": "Лист",
     "of": "из",
     "showing": "показаны",
     "rowsPerFolio": "Записей на лист",
     "prev": "пред",
     "next": "след",
-    "addFilter": "добавить фильтр",
-    "noFilters": "фильтры не применены",
     "filterValueHint": "значение",
+    "clearFilter": "снять фильтр",
+    "clearAll": "очистить всё",
+    "clickToRemove": "Нажмите, чтобы убрать",
     "empty": {
       "line1": "В книге нет записей",
       "line2": "под этими фильтрами сегодня.",
@@ -116,6 +118,7 @@
       "group": "Группа",
       "autosaved": "Изменения сохраняются автоматически.",
       "readOnly": "У вас нет прав редактирования.",
+      "readOnlyShort": "Только чтение",
       "saved": "Сохранено.",
       "saveFailed": "Не удалось сохранить.",
       "instalmentInvalid": "Введите 0–365 дней."

@@ -459,24 +459,51 @@ export default function Dashboard() {
   const outstanding = summary?.total_outstanding ?? null
   const over90 = summary?.total_over_90 ?? null
   const debtorCount = summary?.debtor_count ?? null
-  const mtdRevenue = overview.data?.today?.payments?.amount ?? null
-  const collectionRatio = (() => {
-    const billed = overview.data?.today?.orders?.amount
-    const paid = overview.data?.today?.payments?.amount
-    if (!billed || !Number.isFinite(billed) || billed === 0) return null
-    return ((paid ?? 0) / billed) * 100
+
+  // MTD revenue = sum of payments in `series_30d` filtered to the current
+  // month. The `today.payments.amount` field is just today, not MTD.
+  const mtdRevenue = (() => {
+    const series = overview.data?.series_30d
+    if (!series) return null
+    const now = new Date()
+    const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-`
+    return series
+      .filter((r) => r.day.startsWith(monthPrefix))
+      .reduce((sum, r) => sum + (Number.isFinite(r.payments) ? r.payments : 0), 0)
   })()
 
-  // Plan progress (admin only — falls back to '—')
-  const planProgressPct = (() => {
+  // Collection ratio uses MTD billed vs MTD paid for stability — daily
+  // ratios swing wildly. Falls back to null if either side is zero/missing.
+  const collectionRatio = (() => {
+    const series = overview.data?.series_30d
+    if (!series) return null
+    const now = new Date()
+    const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-`
+    const monthRows = series.filter((r) => r.day.startsWith(monthPrefix))
+    const billed = monthRows.reduce((s, r) => s + (Number.isFinite(r.orders) ? r.orders : 0), 0)
+    const paid = monthRows.reduce((s, r) => s + (Number.isFinite(r.payments) ? r.payments : 0), 0)
+    if (!billed) return null
+    return (paid / billed) * 100
+  })()
+
+  // Plan progress (admin only).
+  // `actualVsExpected`: ratio of MTD sotuv to the day-prorated mean projection.
+  // 100 = on pace; >100 = ahead; <100 = behind.
+  // The displayed KPI is "% of full-month projection achieved" so the figure
+  // climbs from 0 → 100 across the month — easier to read than the prior
+  // 156% ahead-of-pace number that confused everyone.
+  const planProgress = (() => {
     if (!dayslice.data) return null
     const { day_n, month_days } = dayslice.data.slice
-    const expected = day_n / month_days
-    if (!expected) return 0
     const sotuvProj = dayslice.data.projection.sotuv.mean || 0
     const sotuvMtd = dayslice.data.current_mtd.sotuv || 0
-    if (sotuvProj === 0) return 0
-    return ((sotuvMtd / (sotuvProj * expected)) * 100)
+    if (!month_days || !sotuvProj) {
+      return { ofMonthPct: 0, vsExpectedPct: 0, dayN: day_n, monthDays: month_days }
+    }
+    const ofMonthPct = (sotuvMtd / sotuvProj) * 100
+    const expectedSoFar = sotuvProj * (day_n / month_days)
+    const vsExpectedPct = expectedSoFar ? (sotuvMtd / expectedSoFar) * 100 : 0
+    return { ofMonthPct, vsExpectedPct, dayN: day_n, monthDays: month_days }
   })()
 
   return (
@@ -510,27 +537,31 @@ export default function Dashboard() {
           value={
             !isAdmin
               ? t('dashboard.kpi.adminOnly')
-              : planProgressPct === null
+              : planProgress === null
               ? '—'
-              : formatPercent(planProgressPct, 0)
+              : formatPercent(planProgress.ofMonthPct, 0)
           }
           caption={
             !isAdmin
               ? t('dashboard.kpi.planAdminCaption')
-              : dayslice.data
-              ? `${t('dashboard.kpi.day')} ${dayslice.data.slice.day_n} ${t('dashboard.kpi.of')} ${dayslice.data.slice.month_days}`
+              : planProgress
+              ? `${t('dashboard.kpi.day')} ${planProgress.dayN} ${t('dashboard.kpi.of')} ${planProgress.monthDays} · ${
+                  planProgress.vsExpectedPct >= 100
+                    ? `+${Math.round(planProgress.vsExpectedPct - 100)}% ${t('dashboard.kpi.aheadOfPace')}`
+                    : `${Math.round(100 - planProgress.vsExpectedPct)}% ${t('dashboard.kpi.behindOfPace')}`
+                }`
               : ''
           }
-          glow={(planProgressPct ?? 100) < 90 ? '#FB923C' : '#34D399'}
+          glow={(planProgress?.vsExpectedPct ?? 100) < 90 ? '#FB923C' : '#34D399'}
           delay={3}
-          icon={(planProgressPct ?? 100) < 90 ? ArrowDownRight : ArrowUpRight}
+          icon={(planProgress?.vsExpectedPct ?? 100) < 90 ? ArrowDownRight : ArrowUpRight}
           loading={isAdmin && dayslice.isLoading}
         />
 
         <StackedKpi
           label={t('dashboard.kpi.alerts')}
-          value="0"
-          caption={t('dashboard.kpi.alertsPlaceholder')}
+          value="—"
+          caption=""
           glow="#F87171"
           delay={4}
           icon={Bell}

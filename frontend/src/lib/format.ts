@@ -12,7 +12,9 @@ export function formatNumber(n: number, opts?: { decimals?: number }): string {
 
 export function formatCurrency(n: number, currency: string | null): string {
   if (!Number.isFinite(n)) return '—'
-  const code = (currency ?? 'uzs').toLowerCase()
+  // Currency codes are always uppercase in financial reports — "35 USD" not
+  // "35 usd". Default to UZS when the schema doesn't tag a currency.
+  const code = (currency ?? 'UZS').toUpperCase()
   return `${formatNumber(n)}${NBSP}${code}`
 }
 
@@ -61,10 +63,35 @@ export function formatTime(iso: string | null | undefined): string {
   return `${hh}:${mm}`
 }
 
+// ── ID heuristic ──────────────────────────────────────────────────────────
+// The backend's `id_column` flag isn't always set on numeric ID fields like
+// `person_id` (which the schema sometimes returns as type=numeric, id_column=
+// false). Fall back to a name-pattern check so the renderer treats them as
+// machine identifiers (Plex Mono, no thousands separators).
+
+const ID_NAME_PATTERN = /(^|_)(id|tin|code|sku|barcode|guid|uuid|number|hash)$/i
+
+export function isIdLike(col: Column): boolean {
+  if (col.id_column) return true
+  return ID_NAME_PATTERN.test(col.name)
+}
+
+// True if the column should render in Playfair Display (currency-tagged
+// numerics only — plain integers and ID-like numerics get DM Sans / Plex Mono).
+export function shouldRenderAsFigure(col: Column): boolean {
+  return col.type === 'numeric' && !!col.currency && !isIdLike(col)
+}
+
 // ── Cell formatter for the registry table ─────────────────────────────────
 
 export function formatCell(value: unknown, col: Column, lang = 'uz'): string {
   if (value === null || value === undefined || value === '') return '—'
+
+  // ID-like fields (whether numeric or text) render verbatim in monospace.
+  // No thousands separators, no currency suffix.
+  if (isIdLike(col)) {
+    return String(value)
+  }
 
   switch (col.type) {
     case 'date':
@@ -87,6 +114,30 @@ export function formatCell(value: unknown, col: Column, lang = 'uz'): string {
     default:
       return String(value)
   }
+}
+
+// ── Headline column heuristic for drawer / mobile card ────────────────────
+// Prefer columns that semantically describe an entity ("name", "client_name",
+// "person_name", "title") over generic text columns that happen to come first
+// (e.g. "room_name" on an order row, where the client matters more).
+
+const HEADLINE_PRIORITY = [
+  'name',
+  'client_name',
+  'person_name',
+  'company_name',
+  'short_name',
+  'title',
+  'description',
+]
+
+export function pickHeadlineColumn(columns: Column[]): Column | undefined {
+  for (const wanted of HEADLINE_PRIORITY) {
+    const c = columns.find((col) => col.name === wanted && col.visible)
+    if (c) return c
+  }
+  // Fallback: first visible text column that isn't an ID
+  return columns.find((c) => c.visible && c.type === 'text' && !isIdLike(c))
 }
 
 // ── Roman numerals (lower-case for the folio footer) ──────────────────────

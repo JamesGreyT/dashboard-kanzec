@@ -46,11 +46,13 @@
       "revenueCaption": "this month so far",
       "planProgress": "MTD plan progress",
       "alerts": "Unread alerts",
-      "alertsPlaceholder": "wires up in session 5",
+      "alertsPlaceholder": "",
       "adminOnly": "Admin only",
       "planAdminCaption": "Visible to administrators only",
       "day": "Day",
-      "of": "of"
+      "of": "of",
+      "aheadOfPace": "ahead of pace",
+      "behindOfPace": "behind pace"
     },
     "hero": {
       "sinceYesterday": "since yesterday",
@@ -92,15 +94,15 @@
     },
     "searchHint": "search the registry…",
     "exportXlsx": "Export to Excel",
-    "folio": "Folio",
     "of": "of",
     "showing": "showing",
     "rowsPerFolio": "Rows per folio",
     "prev": "prev",
     "next": "next",
-    "addFilter": "add filter",
-    "noFilters": "no filters applied",
     "filterValueHint": "value",
+    "clearFilter": "clear filter",
+    "clearAll": "clear all",
+    "clickToRemove": "Click to remove",
     "empty": {
       "line1": "The registry holds no entries",
       "line2": "under these conditions today.",
@@ -116,6 +118,7 @@
       "group": "Group",
       "autosaved": "Changes are saved automatically.",
       "readOnly": "You don't have edit permissions.",
+      "readOnlyShort": "Read-only",
       "saved": "Saved.",
       "saveFailed": "Save failed.",
       "instalmentInvalid": "Enter 0–365 days."
