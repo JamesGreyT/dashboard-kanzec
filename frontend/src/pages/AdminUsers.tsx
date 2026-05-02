@@ -431,7 +431,7 @@ function RoomChecklist({
               <span
                 aria-hidden
                 className={`shrink-0 inline-block h-4 w-4 rounded-sm border ${
-                  checked ? "bg-primary border-mint" : "border-ink-3/40"
+                  checked ? "bg-mint border-mint" : "border-ink3/40"
                 }`}
               />
               <span className="flex-1 text-sm text-ink">{r.room_name}</span>
