@@ -53,6 +53,43 @@ function dealStatusVariant(s: DealStatus): string {
 }
 
 /**
+ * Compute the deal_status badge from row data. Mirrors the backend SQL
+ * CASE that originally lived in compute_ledger — moved here because the
+ * SQL kept hitting prod-only failures we couldn't reproduce locally and
+ * we already have all the inputs in the row anyway.
+ *
+ * Rules (in priority order):
+ *   - CLOSED group → CLOSED status.
+ *   - qarz <= 0   → FULFILLED (debt closed regardless of group).
+ *   - NORMAL      → OVERDUE if any overdue, else ON_TRACK.
+ *   - PROBLEM_DEADLINE → DEFAULT once today > deadline_start +
+ *                        instalment_days; else ON_TRACK.
+ *   - PROBLEM_MONTHLY  → BEHIND (we don't have payment-since-epoch on
+ *                        the row, so we can't precisely compute "paid
+ *                        enough this month yet". For now, all problem-
+ *                        monthly clients with debt > 0 read as BEHIND;
+ *                        a backend fix can refine this once we figure
+ *                        out the SQL crash).
+ *   - PROBLEM_UNDEFINED → UNKNOWN.
+ */
+function computeDealStatus(row: ClientsAgingRow): DealStatus {
+  if (row.client_group === 'CLOSED') return 'CLOSED'
+  if (row.qarz <= 0) return 'FULFILLED'
+  if (row.client_group === 'NORMAL') {
+    return row.overdue > 0 ? 'OVERDUE' : 'ON_TRACK'
+  }
+  if (row.client_group === 'PROBLEM_DEADLINE' && row.deal_deadline_start && row.term_days != null) {
+    const deadline = new Date(row.deal_deadline_start)
+    deadline.setDate(deadline.getDate() + row.term_days)
+    return new Date() > deadline ? 'DEFAULT' : 'ON_TRACK'
+  }
+  if (row.client_group === 'PROBLEM_MONTHLY' && row.deal_deadline_start && row.deal_monthly_amount != null && row.deal_monthly_amount > 0) {
+    return 'BEHIND'
+  }
+  return 'UNKNOWN'
+}
+
+/**
  * Mijoz qarzlari — Excel-`Data` sheet equivalent.
  *
  * One dense table per client with full aging breakdown:
@@ -419,7 +456,7 @@ function Row({ row }: { row: ClientsAgingRow }) {
         </Link>
       </td>
       <td className="px-3 py-2.5 border-b border-border/40 whitespace-nowrap">
-        <StatusBadge status={row.deal_status} />
+        <StatusBadge status={computeDealStatus(row)} />
       </td>
       <NumCell value={row.term_days ?? '—'} mono />
       <NumCell value={row.qarz} bold />

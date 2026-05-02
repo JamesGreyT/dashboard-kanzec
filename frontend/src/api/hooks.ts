@@ -267,9 +267,11 @@ export type ClientGroup =
   | 'PROBLEM_UNDEFINED'
   | 'CLOSED'
 
-/** Computed deal-status badge, derived per-row in compute_ledger from
- *  client_group + deal_deadline_start + instalment_days + the payment
- *  ledger. See backend/app/debt/service.py CASE expression. */
+/** Deal-status badge label. Computed on the frontend per-row from
+ *  client_group + deal_deadline_start + term_days + qarz + overdue
+ *  (see ClientsDebts.computeDealStatus). Originally a backend CASE
+ *  expression but we hit prod-only SQL errors we couldn't reproduce
+ *  locally and the frontend has all the inputs anyway. */
 export type DealStatus =
   | 'ON_TRACK'
   | 'OVERDUE'
@@ -287,7 +289,6 @@ export type ClientsAgingRow = {
   category: string | null
   direction: string | null
   client_group: ClientGroup | null
-  deal_status: DealStatus
   deal_deadline_start: string | null
   deal_monthly_amount: number | null
   term_days: number | null
