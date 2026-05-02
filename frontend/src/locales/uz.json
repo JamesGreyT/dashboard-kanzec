@@ -146,6 +146,123 @@
         "category": "Izoh"
       }
     },
+    "clientsIntelligence": {
+      "title": "Mijozlar",
+      "subtitle": "Kollektor uchun qaror yuzasi: hozir kimga e'tibor kerak, to'lov intizomi qanday, qarz riski qayerda to'planmoqda.",
+      "analystView": "Analitik ko'rinish",
+      "analystLine": "{{recover}} ta tez tiklash, {{dormant}} ta sust, {{grow}} ta o'sishga tayyor.",
+      "summary": {
+        "recoverNow": "Darhol undirish",
+        "dormant": "Sust",
+        "grow": "O'stirish",
+        "sales90d": "90 kunlik sotuv",
+        "payments90d": "90 kunlik to'lov",
+        "overdueDebt": "Muddati o'tgan qarz"
+      },
+      "views": {
+        "all": "Barchasi",
+        "problem": "Muammoli",
+        "normal": "Normal",
+        "closed": "Yopilgan"
+      },
+      "filters": {
+        "search": "Mijoz, INN, manager bo'yicha qidirish…",
+        "region": "Region",
+        "attention": "E'tibor",
+        "dealStatus": "Deal holati",
+        "group": "Guruh",
+        "rfm": "RFM",
+        "dormant": "Sustlik",
+        "daysDormant": "{{days}}+ kun"
+      },
+      "cols": {
+        "client": "Mijoz",
+        "attention": "E'tibor",
+        "dealStatus": "Deal holati",
+        "rfm": "RFM",
+        "lastPurchase": "Oxirgi xarid",
+        "lastPayment": "Oxirgi to'lov",
+        "sales90d": "Sotuv 90 kun",
+        "payments90d": "To'lov 90 kun",
+        "currentDebt": "Joriy qarz",
+        "debt90Plus": "90+ qarz"
+      },
+      "attention": {
+        "recover_now": "Darhol undirish",
+        "collect_fast": "Tez yig'ish",
+        "promise_watch": "Va'dani kuzatish",
+        "dormant": "Sust",
+        "monitor": "Kuzatish",
+        "grow": "O'stirish"
+      },
+      "reasons": {
+        "over90": "90+ kunlik qarz",
+        "default": "Deal buzilgan",
+        "behindPlan": "Oylik rejadan orqada",
+        "overdueDebt": "Muddati o'tgan qarz",
+        "promiseOverdue": "Va'da muddati o'tgan",
+        "noPurchase": "{{days}} kundan beri xarid yo'q",
+        "healthyRfm": "To'lovi sog'lom, RFM yuqori",
+        "noRecentPayment": "Yaqin to'lov yo'q",
+        "weakPayments": "Oxirgi to'lovlar sust",
+        "monitorAccount": "Hisobni kuzatish"
+      },
+      "micro": {
+        "promiseOverdue": "Va'da muddati o'tgan",
+        "noPayment": "Hali to'lov yo'q",
+        "lastPayment": "Oxirgi to'lov {{days}} kun"
+      },
+      "noRfm": "Segment yo'q",
+      "tableTitle": "Mijozlar intellekt jadvali",
+      "tableCaption": "{{from}}–{{to}} / {{total}} mijoz ko'rsatilmoqda.",
+      "sortLabel": "Asosiy tartib",
+      "sortValue": "e'tibor, qarz riski, sustlik",
+      "error": {
+        "title": "Mijozlar ko'rinishi yuklanmadi.",
+        "description": "Sahifani yangilang yoki filtrlarni toraytirib qayta urinib ko'ring."
+      },
+      "empty": {
+        "title": "Bu ko'rinishda mijoz topilmadi.",
+        "description": "Tanlangan scope ichida mos mijoz hozircha yo'q.",
+        "filtered": "Joriy filtrlarga mos mijoz topilmadi."
+      },
+      "chart": {
+        "sales": "Sotuv",
+        "payments": "To'lov"
+      },
+      "modal": {
+        "label": "Qaror varag'i",
+        "loadingTitle": "Mijoz yuklanmoqda…",
+        "errorTitle": "Mijoz tafsiloti ochilmadi.",
+        "errorDescription": "Mijoz sizning scope'ingizdan tashqarida bo'lishi mumkin yoki so'rov xatolikka uchradi.",
+        "rfmScore": "RFM balli",
+        "decisionSnapshot": "Tez qaror bloki",
+        "contactSignal": "Aloqa signali",
+        "collectionRatio": "Yig'im nisbati",
+        "behavior90d": "90 kunlik xulq",
+        "dealAndDebt": "Deal va qarz",
+        "overdueDebt": "Muddati o'tgan qarz",
+        "dealMonthly": "Oylik summa",
+        "instalmentDays": "Muddat kunlari",
+        "dealStart": "Deal boshi",
+        "grossInvoiced": "Jami sotuv",
+        "grossPaid": "Jami to'lov",
+        "lifetime": "Butun tarix",
+        "lifetimeSales": "Umumiy sotuv",
+        "lifetimePayments": "Umumiy to'lov",
+        "lifetimeOrders": "Buyurtmalar soni",
+        "firstOrder": "Birinchi buyurtma",
+        "lastOrder": "Oxirgi buyurtma",
+        "lastPayment": "Oxirgi to'lov",
+        "recentOrders": "So'nggi buyurtmalar",
+        "recentPayments": "So'nggi to'lovlar",
+        "promiseStatus": "Va'da holati",
+        "promiseClear": "Muddati o'tgan va'da yo'q",
+        "nextStep": "Keyingi qadam",
+        "nextStepCaption": "Aloqa tarixi, izohlar va to'liq mijoz fayli uchun to'liq dosyeni oching.",
+        "openDossier": "To'liq dosyeni ochish"
+      }
+    },
     "dealStatus": {
       "ON_TRACK": "Reja bo'yicha",
       "OVERDUE": "Muddati o'tgan",
@@ -574,6 +691,7 @@
       "dataPayments": "To'lovlar",
       "legalPersons": "Yuridik shaxslar",
       "worklist": "Qarz mijozlar",
+      "clients": "Mijozlar",
       "clientsDebts": "Mijoz qarzlari",
       "sales": "Sotuv",
       "payments": "To'lovlar",

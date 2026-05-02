@@ -14,6 +14,7 @@ import Dashboard from '@/pages/Dashboard'
 import OrdersPage from '@/pages/data/Orders'
 import PaymentsDataPage from '@/pages/data/Payments'
 import LegalPersonsPage from '@/pages/data/LegalPersons'
+import Clients from '@/pages/collection/Clients'
 import ClientsDebts from '@/pages/collection/ClientsDebts'
 import ClientDetail from '@/pages/collection/ClientDetail'
 
@@ -120,6 +121,7 @@ export default function App() {
                         redirect so old bookmarks and links from the
                         dashboard / client detail back-link still work. */}
                     <Route path="/collection/worklist" element={<Navigate to="/collection/clients-debts" replace />} />
+                    <Route path="/collection/clients" element={<Clients />} />
                     <Route path="/collection/clients-debts" element={<ClientsDebts />} />
                     <Route path="/collection/debt/client/:personId" element={<ClientDetail />} />
 

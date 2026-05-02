@@ -55,6 +55,7 @@ const NAV_GROUPS: NavGroup[] = [
     labelKey: 'collection',
     defaultOpen: true,
     items: [
+      { to: '/collection/clients', labelKey: 'clients', icon: ClipboardList },
       { to: '/collection/clients-debts', labelKey: 'clientsDebts', icon: ClipboardList },
     ],
   },

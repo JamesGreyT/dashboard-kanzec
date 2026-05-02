@@ -267,11 +267,8 @@ export type ClientGroup =
   | 'PROBLEM_UNDEFINED'
   | 'CLOSED'
 
-/** Deal-status badge label. Computed on the frontend per-row from
- *  client_group + deal_deadline_start + term_days + qarz + overdue
- *  (see ClientsDebts.computeDealStatus). Originally a backend CASE
- *  expression but we hit prod-only SQL errors we couldn't reproduce
- *  locally and the frontend has all the inputs anyway. */
+/** Deal-status badge label. Returned by the backend and shared across
+ *  the debt ledger and clients intelligence surfaces. */
 export type DealStatus =
   | 'ON_TRACK'
   | 'OVERDUE'
@@ -314,6 +311,7 @@ export type ClientsAgingRow = {
   last_payment_date: string | null
   primary_room_id: string | null
   manager: string | null
+  deal_status: DealStatus
 }
 
 export type ClientsAgingResponse = {
@@ -328,6 +326,189 @@ export function useDebtClientsAging(filters: WorklistFilters) {
     queryKey: ['debt', 'clients-aging', filters],
     queryFn: async () =>
       (await api.get<ClientsAgingResponse>('/debt/clients-aging', { params: paramsFor(filters) })).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export type AttentionState =
+  | 'recover_now'
+  | 'collect_fast'
+  | 'promise_watch'
+  | 'dormant'
+  | 'monitor'
+  | 'grow'
+
+export type ClientsIntelligenceFilters = {
+  limit?: number
+  offset?: number
+  search?: string
+  room_id?: string
+  direction?: string
+  region?: string
+  view?: 'all' | 'problem' | 'normal' | 'closed'
+  attention?: AttentionState | ''
+  deal_status?: DealStatus | ''
+  client_group?: ClientGroup | ''
+  rfm_segment?: string
+  last_purchase_bucket?: number
+  sort?: string
+}
+
+export type ClientsIntelligenceSummary = {
+  total_clients: number
+  attention_critical: number
+  attention_recovery: number
+  attention_dormant: number
+  attention_growth: number
+  sales_90d_total: number
+  payments_90d_total: number
+  current_debt_total: number
+  overdue_debt_total: number
+}
+
+export type ClientsIntelligenceRow = {
+  person_id: number
+  client_name: string | null
+  tin: string | null
+  manager: string | null
+  region_name: string | null
+  direction: string | null
+  client_group: ClientGroup | null
+  deal_status: DealStatus
+  rfm_segment: string | null
+  rfm_score: string | null
+  attention_state: AttentionState
+  attention_reason: string
+  attention_score: number
+  last_purchase_date: string | null
+  last_purchase_days: number | null
+  last_payment_date: string | null
+  last_payment_days: number | null
+  sales_90d: number
+  payments_90d: number
+  current_debt: number
+  overdue_debt: number
+  bucket_90_plus: number
+  collection_ratio_90d: number | null
+  has_overdue_promise: boolean
+}
+
+export type ClientsIntelligenceListResponse = {
+  summary: ClientsIntelligenceSummary
+  rows: ClientsIntelligenceRow[]
+  total: number
+}
+
+export type WeeklyAmountPoint = {
+  week: string | null
+  amount: number
+}
+
+export type ClientIntelligenceDetail = {
+  client: {
+    person_id: number
+    client_name: string | null
+    tin: string | null
+    manager: string | null
+    region_name: string | null
+    direction: string | null
+    client_group: ClientGroup | null
+    deal_status: DealStatus
+    rfm_segment: string | null
+    rfm_score: string | null
+    attention_state: AttentionState
+    attention_reason: string
+  }
+  deal_profile: {
+    deal_deadline_start: string | null
+    instalment_days: number | null
+    deal_monthly_amount: number | null
+    client_group: ClientGroup | null
+    deal_status: DealStatus
+  }
+  signals_90d: {
+    sales_90d: number
+    payments_90d: number
+    collection_ratio_90d: number | null
+    orders_90d: number
+    avg_order_90d: number
+    last_purchase_date: string | null
+    last_purchase_days: number | null
+    last_payment_date: string | null
+    last_payment_days: number | null
+    sales_weekly_12w: WeeklyAmountPoint[]
+    payments_weekly_12w: WeeklyAmountPoint[]
+  }
+  debt_all_time: {
+    current_debt: number
+    overdue_debt: number
+    bucket_1_30: number
+    bucket_31_60: number
+    bucket_61_90: number
+    bucket_90_plus: number
+    opening_debt: number
+    opening_credit: number
+    gross_invoiced: number
+    gross_paid: number
+  }
+  lifetime: {
+    first_order_date: string | null
+    last_order_date: string | null
+    last_payment_date: string | null
+    lifetime_sales: number
+    lifetime_payments: number
+    lifetime_orders: number
+  }
+  recent_orders: ClientOrder[]
+  recent_payments: ClientPayment[]
+  contact_summary: {
+    last_outcome: string | null
+    last_contact_at: string | null
+    has_overdue_promise: boolean
+    last_promised_amount: number | null
+    last_promised_by_date: string | null
+  }
+}
+
+function paramsForClientsIntelligence(
+  filters: ClientsIntelligenceFilters,
+): Record<string, string | number | undefined> {
+  return {
+    limit: filters.limit,
+    offset: filters.offset,
+    search: filters.search || undefined,
+    room_id: filters.room_id || undefined,
+    direction: filters.direction || undefined,
+    region: filters.region || undefined,
+    view: filters.view || undefined,
+    attention: filters.attention || undefined,
+    deal_status: filters.deal_status || undefined,
+    client_group: filters.client_group || undefined,
+    rfm_segment: filters.rfm_segment || undefined,
+    last_purchase_bucket: filters.last_purchase_bucket,
+    sort: filters.sort || undefined,
+  }
+}
+
+export function useClientsIntelligenceList(filters: ClientsIntelligenceFilters) {
+  return useQuery({
+    queryKey: ['clients', 'intelligence', 'list', filters],
+    queryFn: async () =>
+      (
+        await api.get<ClientsIntelligenceListResponse>('/clients', {
+          params: paramsForClientsIntelligence(filters),
+        })
+      ).data,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export function useClientIntelligenceDetail(personId: number | null) {
+  return useQuery({
+    queryKey: ['clients', 'intelligence', 'detail', personId],
+    queryFn: async () =>
+      (await api.get<ClientIntelligenceDetail>(`/clients/${personId}/intelligence`)).data,
+    enabled: personId !== null,
     placeholderData: (prev) => prev,
   })
 }

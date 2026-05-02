@@ -146,6 +146,123 @@
         "category": "Заметка"
       }
     },
+    "clientsIntelligence": {
+      "title": "Клиенты",
+      "subtitle": "Рабочая поверхность для коллектора: кому нужно внимание сейчас, как ведут себя платежи и где нарастает риск долга.",
+      "analystView": "Взгляд аналитика",
+      "analystLine": "{{recover}} нужно вернуть сейчас, {{dormant}} спящих, {{grow}} готовы к росту.",
+      "summary": {
+        "recoverNow": "Вернуть сейчас",
+        "dormant": "Спящие",
+        "grow": "Развивать",
+        "sales90d": "Продажи 90д",
+        "payments90d": "Платежи 90д",
+        "overdueDebt": "Просроченный долг"
+      },
+      "views": {
+        "all": "Все",
+        "problem": "Проблемные",
+        "normal": "Нормальные",
+        "closed": "Закрытые"
+      },
+      "filters": {
+        "search": "Поиск клиента, ИНН, менеджера…",
+        "region": "Регион",
+        "attention": "Внимание",
+        "dealStatus": "Статус deal",
+        "group": "Группа",
+        "rfm": "RFM",
+        "dormant": "Спящие",
+        "daysDormant": "{{days}}+ дн."
+      },
+      "cols": {
+        "client": "Клиент",
+        "attention": "Внимание",
+        "dealStatus": "Статус deal",
+        "rfm": "RFM",
+        "lastPurchase": "Последняя покупка",
+        "lastPayment": "Последний платёж",
+        "sales90d": "Продажи 90д",
+        "payments90d": "Платежи 90д",
+        "currentDebt": "Текущий долг",
+        "debt90Plus": "Долг 90+"
+      },
+      "attention": {
+        "recover_now": "Вернуть сейчас",
+        "collect_fast": "Собрать быстро",
+        "promise_watch": "Контроль обещания",
+        "dormant": "Спящий",
+        "monitor": "Наблюдать",
+        "grow": "Развивать"
+      },
+      "reasons": {
+        "over90": "Долг 90+ дней",
+        "default": "Срыв deal",
+        "behindPlan": "Отстаёт от месячного плана",
+        "overdueDebt": "Есть просроченный долг",
+        "promiseOverdue": "Обещание просрочено",
+        "noPurchase": "Нет покупок {{days}} дней",
+        "healthyRfm": "Здоровый плательщик, высокий RFM",
+        "noRecentPayment": "Давно не было платежа",
+        "weakPayments": "Последние платежи слабые",
+        "monitorAccount": "Наблюдать аккаунт"
+      },
+      "micro": {
+        "promiseOverdue": "Обещание просрочено",
+        "noPayment": "Платежей ещё не было",
+        "lastPayment": "Последний платёж {{days}}д"
+      },
+      "noRfm": "Нет сегмента",
+      "tableTitle": "Реестр клиентского интеллекта",
+      "tableCaption": "Показаны {{from}}–{{to}} из {{total}} клиентов.",
+      "sortLabel": "Базовая сортировка",
+      "sortValue": "внимание, риск долга, спящие",
+      "error": {
+        "title": "Вид клиентов не загрузился.",
+        "description": "Обновите страницу или сузьте набор фильтров."
+      },
+      "empty": {
+        "title": "В этом виде клиентов нет.",
+        "description": "В выбранном scope пока нет подходящих клиентов.",
+        "filtered": "По активным фильтрам клиентов не найдено."
+      },
+      "chart": {
+        "sales": "Продажи",
+        "payments": "Платежи"
+      },
+      "modal": {
+        "label": "Лист решения",
+        "loadingTitle": "Загрузка клиента…",
+        "errorTitle": "Детали клиента недоступны.",
+        "errorDescription": "Клиент может быть вне вашего scope или запрос завершился с ошибкой.",
+        "rfmScore": "Балл RFM",
+        "decisionSnapshot": "Снимок для решения",
+        "contactSignal": "Сигнал контакта",
+        "collectionRatio": "Коэффициент сбора",
+        "behavior90d": "Поведение за 90 дней",
+        "dealAndDebt": "Deal и долг",
+        "overdueDebt": "Просроченный долг",
+        "dealMonthly": "Месячная сумма",
+        "instalmentDays": "Дней отсрочки",
+        "dealStart": "Старт deal",
+        "grossInvoiced": "Общий отпуск",
+        "grossPaid": "Общая оплата",
+        "lifetime": "Вся история",
+        "lifetimeSales": "Продажи за всё время",
+        "lifetimePayments": "Платежи за всё время",
+        "lifetimeOrders": "Количество заказов",
+        "firstOrder": "Первый заказ",
+        "lastOrder": "Последний заказ",
+        "lastPayment": "Последний платёж",
+        "recentOrders": "Последние заказы",
+        "recentPayments": "Последние платежи",
+        "promiseStatus": "Статус обещания",
+        "promiseClear": "Просроченных обещаний нет",
+        "nextStep": "Следующий шаг",
+        "nextStepCaption": "Откройте полное досье для истории контактов, заметок и всего файла клиента.",
+        "openDossier": "Открыть полное досье"
+      }
+    },
     "dealStatus": {
       "ON_TRACK": "По плану",
       "OVERDUE": "Просрочено",
@@ -572,6 +689,7 @@
       "dataPayments": "Платежи",
       "legalPersons": "Юр. лица",
       "worklist": "Должники",
+      "clients": "Клиенты",
       "clientsDebts": "Долги клиентов",
       "sales": "Продажи",
       "payments": "Платежи",

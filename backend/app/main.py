@@ -15,6 +15,7 @@ from .annotations.router import router as annotations_router
 from .auth.router import router as auth_router
 from .comparison.router import router as comparison_router
 from .config import settings
+from .clients.router import router as clients_router
 from .dashboard.router import router as dashboard_router
 from .data.router import router as data_router
 from .dayslice.router import router as dayslice_router
@@ -120,6 +121,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(dashboard_router)
 app.include_router(data_router)
+app.include_router(clients_router)
 app.include_router(ops_router)
 app.include_router(users_router)
 app.include_router(audit_router)

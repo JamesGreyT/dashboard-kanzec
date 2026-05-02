@@ -146,6 +146,123 @@
         "category": "Note"
       }
     },
+    "clientsIntelligence": {
+      "title": "Clients",
+      "subtitle": "A decision surface for collectors: who needs attention now, what their payment posture looks like, and where debt risk is building.",
+      "analystView": "Analyst view",
+      "analystLine": "{{recover}} recovery now, {{dormant}} dormant, {{grow}} ready to grow.",
+      "summary": {
+        "recoverNow": "Recover now",
+        "dormant": "Dormant",
+        "grow": "Grow",
+        "sales90d": "Sales 90d",
+        "payments90d": "Payments 90d",
+        "overdueDebt": "Overdue debt"
+      },
+      "views": {
+        "all": "All",
+        "problem": "Problem",
+        "normal": "Normal",
+        "closed": "Closed"
+      },
+      "filters": {
+        "search": "Search client, TIN, manager…",
+        "region": "Region",
+        "attention": "Attention",
+        "dealStatus": "Deal status",
+        "group": "Group",
+        "rfm": "RFM",
+        "dormant": "Dormancy",
+        "daysDormant": "{{days}}+ days"
+      },
+      "cols": {
+        "client": "Client",
+        "attention": "Attention",
+        "dealStatus": "Deal status",
+        "rfm": "RFM",
+        "lastPurchase": "Last purchase",
+        "lastPayment": "Last payment",
+        "sales90d": "Sales 90d",
+        "payments90d": "Payments 90d",
+        "currentDebt": "Current debt",
+        "debt90Plus": "90+ debt"
+      },
+      "attention": {
+        "recover_now": "Recover now",
+        "collect_fast": "Collect fast",
+        "promise_watch": "Promise watch",
+        "dormant": "Dormant",
+        "monitor": "Monitor",
+        "grow": "Grow"
+      },
+      "reasons": {
+        "over90": "90+ overdue debt",
+        "default": "Deal in default",
+        "behindPlan": "Behind monthly plan",
+        "overdueDebt": "Overdue debt",
+        "promiseOverdue": "Promise overdue",
+        "noPurchase": "No purchase in {{days}} days",
+        "healthyRfm": "Healthy payer, high RFM",
+        "noRecentPayment": "No recent payment",
+        "weakPayments": "Weak payments recently",
+        "monitorAccount": "Monitor account"
+      },
+      "micro": {
+        "promiseOverdue": "Promise overdue",
+        "noPayment": "No payment yet",
+        "lastPayment": "Last payment {{days}}d"
+      },
+      "noRfm": "No segment",
+      "tableTitle": "Client intelligence ledger",
+      "tableCaption": "Showing {{from}}–{{to}} of {{total}} clients.",
+      "sortLabel": "Default sort",
+      "sortValue": "attention, debt risk, dormancy",
+      "error": {
+        "title": "The client view did not load.",
+        "description": "Refresh the page or try a narrower filter set."
+      },
+      "empty": {
+        "title": "No clients on this view.",
+        "description": "The selected scope has no matching clients yet.",
+        "filtered": "No clients match the current filters."
+      },
+      "chart": {
+        "sales": "Sales",
+        "payments": "Payments"
+      },
+      "modal": {
+        "label": "Decision sheet",
+        "loadingTitle": "Loading client…",
+        "errorTitle": "Client detail is unavailable.",
+        "errorDescription": "This client may be outside your scope, or the detail query failed.",
+        "rfmScore": "RFM score",
+        "decisionSnapshot": "Decision snapshot",
+        "contactSignal": "Contact signal",
+        "collectionRatio": "Collection ratio",
+        "behavior90d": "90-day behavior",
+        "dealAndDebt": "Deal and debt",
+        "overdueDebt": "Overdue debt",
+        "dealMonthly": "Monthly amount",
+        "instalmentDays": "Instalment days",
+        "dealStart": "Deal start",
+        "grossInvoiced": "Gross invoiced",
+        "grossPaid": "Gross paid",
+        "lifetime": "All-time history",
+        "lifetimeSales": "Lifetime sales",
+        "lifetimePayments": "Lifetime payments",
+        "lifetimeOrders": "Orders count",
+        "firstOrder": "First order",
+        "lastOrder": "Last order",
+        "lastPayment": "Last payment",
+        "recentOrders": "Recent orders",
+        "recentPayments": "Recent payments",
+        "promiseStatus": "Promise status",
+        "promiseClear": "No overdue promise",
+        "nextStep": "Next step",
+        "nextStepCaption": "Open the full dossier for contact history, notes, and the complete client file.",
+        "openDossier": "Open full dossier"
+      }
+    },
     "dealStatus": {
       "ON_TRACK": "On track",
       "OVERDUE": "Overdue",
@@ -572,6 +689,7 @@
       "dataPayments": "Payments",
       "legalPersons": "Legal persons",
       "worklist": "Worklist",
+      "clients": "Clients",
       "clientsDebts": "Client debts",
       "sales": "Sales",
       "payments": "Payments",
