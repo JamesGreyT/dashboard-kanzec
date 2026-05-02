@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Calendar, ChevronDown, X, SlidersHorizontal } from 'lucide-react'
+import { ChevronDown, X, SlidersHorizontal } from 'lucide-react'
+import MonthPicker from '@/components/MonthPicker'
+import { defaultDayPresets } from '@/components/datePresets'
 
 import {
   useDataDistinct,
@@ -208,179 +210,37 @@ function DateRangeFilter({
   filters: FilterTriple[]
   onApply: (fromIso: string | null, toIso: string | null) => void
 }) {
-  const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
+  // Delegate the dropdown UI entirely to MonthPicker so this filter chip
+  // matches the picker style used everywhere else on the SPA (Dayslice
+  // section header, analytics filter strip, etc.). The chip's job is just
+  // to translate between the >= / <= filter triple shape this component
+  // operates on and the union DateRangeValue the picker expects.
   const fromFilter = filters.find((f) => f.op === '>=')
   const toFilter = filters.find((f) => f.op === '<=')
   const from = fromFilter?.value ?? ''
   const to = toFilter?.value ?? ''
-
-  const isActive = !!(from || to)
-
-  useEffect(() => {
-    if (!open) return
-    function onClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('mousedown', onClick)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onClick)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open])
-
-  const todayIso = useMemo(() => {
-    const d = new Date()
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  }, [])
-
-  const presets: { labelKey: string; range: () => [string, string] }[] = useMemo(() => {
-    function iso(d: Date) {
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-    }
-    return [
-      {
-        labelKey: 'data.filters.presets.today',
-        range: () => [todayIso, todayIso],
-      },
-      {
-        labelKey: 'data.filters.presets.last7',
-        range: () => {
-          const from = new Date()
-          from.setDate(from.getDate() - 6)
-          return [iso(from), todayIso]
-        },
-      },
-      {
-        labelKey: 'data.filters.presets.thisMonth',
-        range: () => {
-          const now = new Date()
-          const from = new Date(now.getFullYear(), now.getMonth(), 1)
-          return [iso(from), todayIso]
-        },
-      },
-      {
-        labelKey: 'data.filters.presets.lastMonth',
-        range: () => {
-          const now = new Date()
-          const from = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-          const to = new Date(now.getFullYear(), now.getMonth(), 0)
-          return [iso(from), iso(to)]
-        },
-      },
-      {
-        labelKey: 'data.filters.presets.ytd',
-        range: () => {
-          const now = new Date()
-          const from = new Date(now.getFullYear(), 0, 1)
-          return [iso(from), todayIso]
-        },
-      },
-    ]
-  }, [todayIso])
-
-  function shortLabel() {
-    if (!from && !to) return col.label
-    if (from && to && from === to) return `${col.label} · ${from}`
-    if (from && to) return `${col.label} · ${from} → ${to}`
-    if (from) return `${col.label} · ≥ ${from}`
-    return `${col.label} · ≤ ${to}`
-  }
-
   return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className={cn(
-          'month-btn inline-flex items-center gap-1.5',
-          isActive && 'active',
-        )}
-      >
-        <Calendar size={11} aria-hidden />
-        <span>{shortLabel()}</span>
-        <ChevronDown
-          size={10}
-          className={cn('transition-transform', open && 'rotate-180', isActive ? 'opacity-100' : 'opacity-40')}
-        />
-      </button>
-      {open && (
-        <div
-          className="absolute left-0 z-30 mt-2 bg-card border border-border rounded-lg p-3 w-72"
-          style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}
-        >
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-2">
-            {t('data.filters.dateRange')}
-          </p>
-
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            <div>
-              <label className="block text-[9px] text-muted-foreground mb-0.5">
-                {t('data.filters.from')}
-              </label>
-              <input
-                type="date"
-                value={from}
-                onChange={(e) => onApply(e.target.value || null, to || null)}
-                className="w-full text-xs bg-input border border-border rounded-md px-2 py-1.5 focus:outline-none focus:border-[#9E7B2F]/40 focus:ring-2 focus:ring-[#9E7B2F]/10"
-              />
-            </div>
-            <div>
-              <label className="block text-[9px] text-muted-foreground mb-0.5">
-                {t('data.filters.to')}
-              </label>
-              <input
-                type="date"
-                value={to}
-                onChange={(e) => onApply(from || null, e.target.value || null)}
-                className="w-full text-xs bg-input border border-border rounded-md px-2 py-1.5 focus:outline-none focus:border-[#9E7B2F]/40 focus:ring-2 focus:ring-[#9E7B2F]/10"
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-1.5 pt-2 border-t border-border/60">
-            {presets.map((p) => (
-              <button
-                key={p.labelKey}
-                type="button"
-                onClick={() => {
-                  const [f, tt] = p.range()
-                  onApply(f, tt)
-                }}
-                className="month-btn"
-              >
-                {t(p.labelKey)}
-              </button>
-            ))}
-          </div>
-
-          {isActive && (
-            <div className="flex items-center justify-end gap-2 pt-3 mt-3 border-t border-border/60 text-[10px] uppercase tracking-[0.14em]">
-              <button
-                type="button"
-                onClick={() => onApply(null, null)}
-                className="text-red-500/80 hover:text-red-500 transition-colors normal-case font-medium"
-              >
-                {t('data.clearFilter')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors normal-case font-medium"
-              >
-                {t('common.close')}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+    <MonthPicker
+      value={
+        from || to
+          ? { kind: 'range', from: from || to, to: to || from }
+          : { kind: 'month', month: '' }
+      }
+      onChange={(v) => {
+        if (v.kind === 'range') onApply(v.from || null, v.to || null)
+        else if (v.month) {
+          const [y, m] = v.month.split('-').map(Number)
+          const f = `${y}-${String(m).padStart(2, '0')}-01`
+          const last = new Date(y, m, 0)
+          const tt = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}-${String(last.getDate()).padStart(2, '0')}`
+          onApply(f, tt)
+        } else {
+          onApply(null, null)
+        }
+      }}
+      label={col.label}
+      presets={defaultDayPresets()}
+    />
   )
 }
 
