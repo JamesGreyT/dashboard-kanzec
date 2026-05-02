@@ -9,7 +9,10 @@
     "loginFailed": "Sign-in failed. Please try again.",
     "footer": "Internal use only",
     "contactAdmin": "Forgot password?",
-    "contactAdminHelp": "Contact your administrator to reset the password"
+    "contactAdminHelp": "Contact your administrator to reset the password",
+    "subhead": "Ledger · 2026",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
   },
   "common": {
     "loading": "Loading…",

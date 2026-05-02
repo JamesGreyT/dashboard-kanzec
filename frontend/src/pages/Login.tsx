@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/context/AuthContext'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Eye, EyeOff } from 'lucide-react'
 
 const PLAYFAIR = "'Playfair Display', Georgia, serif"
 const DM_SANS = "'DM Sans', system-ui"
@@ -16,6 +16,7 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   if (isAuthenticated) {
     const dest = (location.state as { from?: string } | null)?.from ?? '/dashboard'
@@ -47,7 +48,11 @@ export default function Login() {
         {/* The mast and the card share one column with a hairline rule between
             them — feels composed rather than two stacked widgets. */}
 
-        {/* Mast */}
+        {/* Mast — printed-paper masthead. Wordmark, primary tagline (gold-rule
+            flanked), then a single italic subhead in Playfair giving the page
+            its editorial register. The subhead also includes a year so the
+            login screen feels like a dated edition rather than a faceless
+            form. */}
         <div className="text-center pb-6">
           <h1
             className="text-5xl font-bold text-foreground leading-none mb-3"
@@ -60,6 +65,12 @@ export default function Login() {
             <span>{t('auth.tagline')}</span>
             <span aria-hidden className="h-px w-8 bg-border" />
           </div>
+          <p
+            className="mt-3 italic text-xs text-muted-foreground/80"
+            style={{ fontFamily: PLAYFAIR }}
+          >
+            {t('auth.subhead')}
+          </p>
         </div>
 
         {/* Card with gold top rail (kpi-glow vocabulary) */}
@@ -102,18 +113,30 @@ export default function Login() {
             >
               {t('auth.password')}
             </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={submitting}
-              className="w-full px-3 py-2 text-sm bg-input border border-border rounded-lg text-foreground focus:outline-none focus:border-[#9E7B2F]/40 focus:ring-2 focus:ring-[#D4A843]/10 transition-colors"
-              style={{ fontFamily: DM_SANS }}
-            />
+            <div className="relative">
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={submitting}
+                className="w-full pl-3 pr-9 py-2 text-sm bg-input border border-border rounded-lg text-foreground focus:outline-none focus:border-[#9E7B2F]/40 focus:ring-2 focus:ring-[#D4A843]/10 transition-colors"
+                style={{ fontFamily: DM_SANS }}
+              />
+              <button
+                type="button"
+                tabIndex={-1}
+                onClick={() => setShowPassword((s) => !s)}
+                aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
+                title={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
+                className="absolute inset-y-0 right-0 px-2.5 flex items-center text-muted-foreground hover:text-[#9E7B2F] focus:outline-none focus:text-[#9E7B2F] transition-colors"
+              >
+                {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
           </div>
 
           {error && (
@@ -129,9 +152,16 @@ export default function Login() {
           <button
             type="submit"
             disabled={submitting || !username || !password}
-            className="w-full py-2.5 rounded-lg bg-[#D4A843] hover:bg-[#C49833] disabled:bg-[#D4A843]/40 disabled:cursor-not-allowed text-black text-sm font-semibold transition-colors"
+            className="group w-full py-2.5 rounded-lg bg-[#D4A843] hover:bg-[#C49833] disabled:bg-[#D4A843]/40 disabled:cursor-not-allowed text-black text-sm font-semibold transition-colors flex items-center justify-center gap-2"
           >
-            {submitting ? t('auth.signingIn') : t('auth.signIn')}
+            <span>{submitting ? t('auth.signingIn') : t('auth.signIn')}</span>
+            {!submitting && (
+              <ArrowRight
+                size={14}
+                aria-hidden
+                className="transition-transform duration-200 group-hover:translate-x-0.5"
+              />
+            )}
           </button>
 
           {/* Tagline + contact-admin moved INSIDE the card footer so they read

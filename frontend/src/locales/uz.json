@@ -9,7 +9,10 @@
     "loginFailed": "Kirish amalga oshmadi. Qayta urinib ko'ring.",
     "footer": "Faqat ichki foydalanish uchun",
     "contactAdmin": "Parolni unutdingizmi?",
-    "contactAdminHelp": "Parolni tiklash uchun administrator bilan bog'laning"
+    "contactAdminHelp": "Parolni tiklash uchun administrator bilan bog'laning",
+    "subhead": "Daftar · 2026",
+    "showPassword": "Parolni ko'rsatish",
+    "hidePassword": "Parolni yashirish"
   },
   "common": {
     "loading": "Yuklanmoqda…",

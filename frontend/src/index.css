@@ -837,3 +837,21 @@
 .perf-highlight-row:hover::before {
   opacity: 1;
 }
+
+/* ─── Browser autofill override ──────────────────────────────────────────
+ * Chrome / Edge paint a saturated cyan/blue background on autofilled inputs
+ * that overrides our warm-paper theme. The standard "fix" is to repaint
+ * the background with an inset shadow large enough to cover the input.
+ * Theme-aware via two color tokens: light surface and dark surface.
+ * Token values mirror --input from the Tailwind theme above. */
+@layer utilities {
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-text-fill-color: var(--foreground);
+    -webkit-box-shadow: 0 0 0 1000px var(--input) inset;
+    transition: background-color 5000s ease-in-out 0s;
+    caret-color: var(--foreground);
+  }
+}
