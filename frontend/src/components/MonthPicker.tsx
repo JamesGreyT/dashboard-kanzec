@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CalendarDays } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -50,9 +50,30 @@ export default function MonthPicker({ value, onChange, label, presets: customPre
   const [open, setOpen] = useState(false)
   const [showCustom, setShowCustom] = useState(value.kind === 'range')
   const [error, setError] = useState<string | null>(null)
+  // Measured at open-time: which edge of the trigger should the panel anchor
+  // to so it doesn't overflow the viewport. Picker can sit in the page-level
+  // filter strip (left half of viewport → anchor left, panel opens rightward)
+  // or in a section header (often right side → anchor right, panel opens
+  // leftward). We don't try to be smart about vertical placement; the panel
+  // always opens below the trigger, and that's been fine.
+  const [anchor, setAnchor] = useState<'left' | 'right'>('left')
+  const triggerRef = useRef<HTMLButtonElement | null>(null)
   const months = monthLabels(i18n.language)
 
   const close = useCallback(() => setOpen(false), [])
+
+  function toggle() {
+    if (!open && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect()
+      const PANEL_W = 288 // matches sm:w-72
+      const wouldOverflowRight = rect.left + PANEL_W > window.innerWidth - 8
+      const fitsLeftAligned = rect.right - PANEL_W >= 8
+      // Prefer left-anchoring (panel right of trigger). Switch to right-
+      // anchoring only when left would overflow AND right fits.
+      setAnchor(wouldOverflowRight && fitsLeftAligned ? 'right' : 'left')
+    }
+    setOpen((v) => !v)
+  }
 
   // Escape closes the dropdown.
   useEffect(() => {
@@ -128,8 +149,9 @@ export default function MonthPicker({ value, onChange, label, presets: customPre
   return (
     <div className="relative" style={{ fontFamily: DM_SANS }}>
       <button
+        ref={triggerRef}
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggle}
         aria-expanded={open}
         aria-haspopup="dialog"
         className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium bg-input border border-border text-foreground hover:border-[#D4A843] transition-colors shrink-0"
@@ -147,13 +169,18 @@ export default function MonthPicker({ value, onChange, label, presets: customPre
         <>
           <div className="fixed inset-0 z-40 bg-black/30 sm:bg-transparent" onClick={close} role="presentation" />
 
-          {/* Anchor to the trigger's left edge so the panel opens rightward.
-              On <sm we still pin to viewport edges so it doesn't fly off
-              the screen. */}
+          {/* Anchor side is measured at open-time from the trigger's
+              position — `left` (panel opens rightward) when there's room,
+              `right` (panel opens leftward) when the trigger sits near the
+              right edge of the viewport. On <sm we still pin to viewport
+              edges so it doesn't fly off the screen. */}
           <div
             role="dialog"
             aria-label={t('dateRange.pickMonth')}
-            className="fixed left-4 right-4 bottom-4 sm:absolute sm:left-0 sm:right-auto sm:bottom-auto sm:top-full sm:mt-2 sm:w-72 z-50 glass-card rounded-xl p-4 shadow-2xl border border-border animate-fade-up space-y-3"
+            className={cn(
+              'fixed left-4 right-4 bottom-4 sm:absolute sm:bottom-auto sm:top-full sm:mt-2 sm:w-72 z-50 glass-card rounded-xl p-4 shadow-2xl border border-border animate-fade-up space-y-3',
+              anchor === 'left' ? 'sm:left-0 sm:right-auto' : 'sm:right-0 sm:left-auto',
+            )}
           >
             {/* Presets */}
             <div>
