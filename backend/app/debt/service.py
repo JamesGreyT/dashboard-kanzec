@@ -939,28 +939,27 @@ async def compute_ledger(
          {person_f}
        GROUP BY person_id::text
     ),
-    -- Per-client list of (person_id, deadline_start) for clients that have
-    -- a deal_deadline_start. Used to filter the payment ledger by per-row
-    -- date threshold in monthly_paid.
-    deal_clients AS (
-      SELECT person_id::text AS person_id,
-             deal_deadline_start
-        FROM smartup_rep.legal_person
-       WHERE deal_deadline_start IS NOT NULL
-    ),
     -- Sum of payments since each problem-client's deal_deadline_start.
-    -- Used by the deal_status CASE below: for PROBLEM_MONTHLY clients we
-    -- compare this to (months_elapsed × deal_monthly_amount).
+    -- Used by the deal_status CASE below for PROBLEM_MONTHLY tracking.
+    --
+    -- Implemented as a single-table FROM with two correlated subqueries
+    -- (one for eligibility, one for the date threshold) to keep the
+    -- {person_f} scope filter unambiguous — JOINing two tables exposing
+    -- person_id makes the unqualified column ref in the scope filter
+    -- impossible to disambiguate.
     monthly_paid AS (
-      SELECT dc.person_id,
+      SELECT p.person_id::text AS person_id,
              SUM(p.amount) AS paid_since_epoch
-        FROM deal_clients dc
-        JOIN smartup_rep.payment p
-          ON p.person_id::text = dc.person_id
-         AND p.payment_date >= dc.deadline_start
+        FROM smartup_rep.payment p
        WHERE p.person_id IS NOT NULL
+         AND p.payment_date >= COALESCE(
+           (SELECT lp.deal_deadline_start
+              FROM smartup_rep.legal_person lp
+             WHERE lp.person_id::text = p.person_id::text),
+           '9999-12-31'::date
+         )
          {person_payment_f}
-       GROUP BY dc.person_id
+       GROUP BY p.person_id::text
     ),
     -- Universe of debtors: anyone with orders OR with an opening balance
     -- (even a client with only $X opening debt and no post-2022 activity
