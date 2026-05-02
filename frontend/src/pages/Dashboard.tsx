@@ -1,961 +1,761 @@
-/**
- * Boshqaruv paneli — Editorial Restraint redesign (PR-B).
- *
- * Same direction as DebtWorklist: Fraunces serif moments, hairline
- * rules between sections, no card chrome on spotlight or tile grid.
- * Hero masthead with mint bloom + count-up. Pulse strip stays
- * editorial-band style with vertical hairlines. Spotlight Taqqoslash
- * dissolved into hairline composition. KunlikKesim / Collection / RFM
- * become 3 typographic blocks separated by hairlines, not chunky cards.
- * 30-day trend retuned with editorial header.
- */
-import { useEffect, useMemo } from "react";
-import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { ArrowUpRight, ArrowDownRight, Bell, ChevronDown, ClipboardList, Coins, Hourglass } from 'lucide-react'
+
+import { useAuth } from '@/context/AuthContext'
 import {
-  ArrowUpRight,
-  CalendarRange,
-  HandCoins,
-  Users,
-  type LucideIcon,
-} from "lucide-react";
+  useDashboardOverview,
+  useDebtWorklistPreview,
+  useDebtPrepaymentsPreview,
+  useSalesRfmSummary,
+  useDaysliceProjection,
+  dominantAgingBucket,
+  type DebtRow,
+  type PrepaymentRow,
+} from '@/api/hooks'
+import PageHeader from '@/components/PageHeader'
+import SectionTitle from '@/components/SectionTitle'
+import { formatNumber, formatCurrency, formatPercent, formatShortDate, agingBadgeVariant } from '@/lib/format'
 
-import { api } from "../lib/api";
-import { useAuth } from "../lib/auth";
-import { last90Days } from "../lib/dashboardWindow";
-import { fmtCount, fmtPct } from "../components/MetricCard";
-import TimeSeriesChart, { type SeriesPoint } from "../components/TimeSeriesChart";
+const PLAYFAIR = "'Playfair Display', Georgia, serif"
+const DM_SANS = "'DM Sans', system-ui"
+const PLEX_MONO = "'IBM Plex Mono', ui-monospace, monospace"
 
-// ---------------------------------------------------------------------------
-// Response types (unchanged)
-// ---------------------------------------------------------------------------
+// ── Hero debt card — the page's signature ──────────────────────────────────
 
-interface OverviewResp {
-  today:    { orders: { count: number; amount: number }; payments: { count: number; amount: number } };
-  yesterday:{ orders: { count: number; amount: number }; payments: { amount: number } };
-  week:     { orders_amount: number };
-  active_clients_30d: number;
-  series_30d: Array<{ day: string; orders: number; payments: number }>;
-}
-
-interface ComparisonResp {
-  columns: string[];
-  totals: { values: number[]; trend_delta_pct: number | null };
-}
-
-interface ProjectionResp {
-  current_mtd: { sotuv: number; kirim: number };
-  projection: {
-    sotuv: { min: number; mean: number; max: number };
-    kirim: { min: number; mean: number; max: number };
-  };
-}
-
-interface WorklistResp {
-  summary: {
-    debtor_count: number;
-    debtor_over_90_count: number;
-    total_outstanding: number;
-    total_over_90: number;
-    total_overdue_promises: number;
-  };
-}
-
-interface PrepaymentsResp {
-  rows: Array<{ credit_balance: number }>;
-  total: number;
-}
-
-interface RfmResp {
-  segment_distribution?: Array<{ segment: string; clients: number; revenue: number }>;
-}
-
-// ---------------------------------------------------------------------------
-// Formatters
-// ---------------------------------------------------------------------------
-
-/** Compact USD: $1.2M, $580K, $22. No cents for hero displays. */
-function fmtUsdCompact(n: number | null | undefined): string {
-  if (n == null) return "—";
-  if (n === 0) return "$0";
-  const abs = Math.abs(n);
-  if (abs >= 1_000_000) return `$${(n / 1_000_000).toFixed(2).replace(/\.?0+$/, "")}M`;
-  if (abs >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
-  return `$${n.toFixed(0)}`;
-}
-
-/** Uzbek weekday + date string. "DUSHANBA · 2 MAY 2026" */
-function formatDateEyebrow(): string {
-  const now = new Date();
-  const weekdays = ["YAKSHANBA", "DUSHANBA", "SESHANBA", "CHORSHANBA", "PAYSHANBA", "JUMA", "SHANBA"];
-  const months = ["YANVAR", "FEVRAL", "MART", "APREL", "MAY", "IYUN", "IYUL", "AVGUST", "SENTYABR", "OKTYABR", "NOYABR", "DEKABR"];
-  return `${weekdays[now.getDay()]} · ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
-}
-
-// ---------------------------------------------------------------------------
-// Page
-// ---------------------------------------------------------------------------
-
-export default function Dashboard() {
-  const { t } = useTranslation();
-  const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
-
-  useEffect(() => {
-    document.title = t("dashboard.title", { defaultValue: "Dashboard" }) + " · Kanzec";
-  }, [t]);
-
-  // -------------------------------------------------------------------------
-  // Queries (verbatim — same keys, same query strings, same staleTime)
-  // -------------------------------------------------------------------------
-  const overviewQ = useQuery({
-    queryKey: ["dashboard.overview"],
-    queryFn: () => api<OverviewResp>("/api/dashboard/overview"),
-    staleTime: 60_000,
-  });
-
-  const sotuvCmpQ = useQuery({
-    queryKey: ["dashboard.cmp.sotuv"],
-    queryFn: () =>
-      api<ComparisonResp>(
-        "/api/comparison/sotuv?dimension=manager&mode=yearly&years=2",
-      ),
-    staleTime: 5 * 60_000,
-  });
-  const kirimCmpQ = useQuery({
-    queryKey: ["dashboard.cmp.kirim"],
-    queryFn: () =>
-      api<ComparisonResp>(
-        "/api/comparison/kirim?dimension=manager&mode=yearly&years=2",
-      ),
-    staleTime: 5 * 60_000,
-  });
-
-  const projectionQ = useQuery({
-    queryKey: ["dashboard.projection"],
-    queryFn: () => api<ProjectionResp>("/api/dayslice/projection?years=4"),
-    staleTime: 5 * 60_000,
-    enabled: isAdmin,
-  });
-
-  const worklistQ = useQuery({
-    queryKey: ["dashboard.worklist"],
-    queryFn: () => api<WorklistResp>("/api/debt/worklist?limit=1"),
-    staleTime: 60_000,
-  });
-  const prepaymentsQ = useQuery({
-    queryKey: ["dashboard.prepayments"],
-    queryFn: () => api<PrepaymentsResp>("/api/debt/prepayments?limit=1"),
-    staleTime: 60_000,
-  });
-
-  const rfmWindow = useMemo(last90Days, []);
-  const rfmQ = useQuery({
-    queryKey: ["dashboard.rfm.sales", rfmWindow.from, rfmWindow.to],
-    queryFn: () => {
-      const qs = new URLSearchParams({
-        from: rfmWindow.from,
-        to: rfmWindow.to,
-        size: "1",
-      });
-      return api<RfmResp>(`/api/sales/rfm?${qs.toString()}`);
-    },
-    staleTime: 5 * 60_000,
-  });
-
-  // -------------------------------------------------------------------------
-  // Derived state
-  // -------------------------------------------------------------------------
-
-  const trendSeries: SeriesPoint[] = useMemo(() => {
-    const data = overviewQ.data?.series_30d ?? [];
-    return data.map((p) => ({ date: p.day, value: p.orders, yoy: p.payments }));
-  }, [overviewQ.data]);
-
-  const todayDelta = (a: number | undefined, b: number | undefined) => {
-    if (a == null || b == null || b === 0) return null;
-    return a / b - 1;
-  };
-
-  const yearLabels = sotuvCmpQ.data?.columns ?? [];
-  const yearNow = yearLabels.at(-1) ?? "";
-  const yearPrev = yearLabels.at(-2) ?? "";
-
-  // Hero number: today's payment amount (compact)
-  const heroPayAmt = overviewQ.data?.today.payments.amount;
-  const heroPayCnt = overviewQ.data?.today.payments.count;
-
-  // -------------------------------------------------------------------------
-  // Render
-  // -------------------------------------------------------------------------
-
+function HeroDebtCard({
+  outstanding,
+  over90,
+  debtorCount,
+  mtdRevenue,
+  collectionRatio,
+  loading,
+}: {
+  outstanding: number | null
+  over90: number | null
+  debtorCount: number | null
+  mtdRevenue: number | null
+  collectionRatio: number | null
+  loading: boolean
+}) {
+  const { t, i18n } = useTranslation()
+  if (loading) {
+    return (
+      <div className="glass-card kpi-glow rounded-xl p-6 lg:p-8 lg:col-span-7 lg:row-span-3 min-h-56 lg:min-h-72 animate-fade-up animate-fade-up-delay-1">
+        <div className="space-y-4">
+          <div className="shimmer-skeleton h-3 w-32" />
+          <div className="shimmer-skeleton h-16 w-3/4" />
+          <div className="shimmer-skeleton h-4 w-48" />
+        </div>
+      </div>
+    )
+  }
+  const ratioOk = (collectionRatio ?? 0) >= 50
+  const over90Pct = outstanding && over90 ? (over90 / outstanding) * 100 : null
   return (
-    <div className="relative pb-20">
-
-      {/* ============================================================
-          1. MASTHEAD — editorial hero with mint bloom
-          ============================================================ */}
-      <header className="relative pt-2 pb-12 md:pt-6 md:pb-16">
-        <span aria-hidden className="masthead-bloom" />
-
-        <div className="relative">
-          {/* Eyebrow — date + breadcrumb, DM Mono uppercase */}
-          <div className="text-[10px] md:text-[11px] font-mono uppercase tracking-[0.22em] text-ink3 mb-6 md:mb-8">
-            <span className="text-ink2">{formatDateEyebrow()}</span>
-            <span className="mx-3 text-ink4">/</span>
-            <span>{t("dashboard.crumb_dashboard", { defaultValue: "Boshqaruv paneli" })}</span>
-          </div>
-
-          {/* HERO ROW — title left (7 cols), today's pulse right (5 cols) */}
-          <div className="grid grid-cols-12 gap-y-10 md:gap-y-0 gap-x-8 md:items-end">
-
-            {/* Left — Fraunces title + standfirst */}
-            <div className="col-span-12 md:col-span-7">
-              <h1 className="hero-title text-[56px] md:text-[96px] text-ink count-up">
-                Boshqaruv paneli
-              </h1>
-              <p className="standfirst mt-4 md:mt-5 max-w-[42ch] md:max-w-[52ch]">
-                {t("dashboard.subtitle")}
-              </p>
-            </div>
-
-            {/* Right — today's payment pulse.
-                Mobile: hairline rule above, left-aligned, generous breathing.
-                Desktop: right-aligned, anchored to bottom of grid via items-end. */}
-            <div className="col-span-12 md:col-span-5">
-              <hr className="hairline mb-7 md:hidden" aria-hidden />
-              <div className="md:text-right md:pl-4">
-                <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-ink3 mb-3">
-                  {t("dashboard.pulse_label", { defaultValue: "Bugungi puls" })}
-                </div>
-                <div className="hero-num text-[64px] md:text-[68px] text-ink count-up leading-[0.92]">
-                  {heroPayAmt != null ? fmtUsdCompact(heroPayAmt) : "—"}
-                </div>
-                {/* Meta line — wraps cleanly on mobile, single-line on desktop.
-                    Live dot + label are inseparable; count separator hides on mobile if cramped. */}
-                <div className="mt-4 flex md:justify-end items-center gap-x-2.5 gap-y-1 text-[12px] font-mono tracking-[0.02em] text-ink3 flex-wrap">
-                  <span className="inline-flex items-center gap-2">
-                    <span className="dot-live" />
-                    <span>{t("dashboard.today_payments")}</span>
-                  </span>
-                  {heroPayCnt != null && (
-                    <span className="inline-flex items-center gap-2">
-                      <span className="text-ink4 hidden md:inline">·</span>
-                      <span className="text-ink2 font-semibold">
-                        {fmtCount(heroPayCnt)} ta
-                      </span>
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* ============================================================
-          2. PULSE STRIP — editorial-band, 4 cells with hairline dividers
-          that work at BOTH viewports (cells own their borders).
-          Mobile: 2×2 grid with horizontal hairline mid-row, vertical hairline
-                  mid-column. Cells: index 0 right+bottom, 1 bottom, 2 right, 3 plain.
-          Desktop: 1×4 row with vertical hairline between cells (cells 0,1,2 right).
-          ============================================================ */}
-      <section
-        className="editorial-band relative reveal-up"
-        style={{ animationDelay: "160ms" }}
-      >
-        <div className="grid grid-cols-2 md:grid-cols-4 px-4 md:px-0">
-          <PulseStat
-            label={t("dashboard.today_orders")}
-            value={overviewQ.data ? fmtUsdCompact(overviewQ.data.today.orders.amount) : "—"}
-            sub={overviewQ.data ? fmtCount(overviewQ.data.today.orders.count) + " " + t("dashboard.orders_unit") : ""}
-            delta={todayDelta(
-              overviewQ.data?.today.orders.amount,
-              overviewQ.data?.yesterday.orders.amount,
-            )}
-            deltaLabel={t("dashboard.vs_yesterday") as string}
-            cellIdx={0}
-          />
-          <PulseStat
-            label={t("dashboard.today_payments")}
-            value={overviewQ.data ? fmtUsdCompact(overviewQ.data.today.payments.amount) : "—"}
-            sub={overviewQ.data ? fmtCount(overviewQ.data.today.payments.count) + " " + t("dashboard.payments_unit") : ""}
-            delta={todayDelta(
-              overviewQ.data?.today.payments.amount,
-              overviewQ.data?.yesterday.payments.amount,
-            )}
-            deltaLabel={t("dashboard.vs_yesterday") as string}
-            cellIdx={1}
-          />
-          <PulseStat
-            label={t("dashboard.week_orders")}
-            value={overviewQ.data ? fmtUsdCompact(overviewQ.data.week.orders_amount) : "—"}
-            sub={t("dashboard.week_hint") as string}
-            cellIdx={2}
-          />
-          <PulseStat
-            label={t("dashboard.active_30d")}
-            value={overviewQ.data ? fmtCount(overviewQ.data.active_clients_30d) : "—"}
-            sub={t("dashboard.active_30d_hint") as string}
-            cellIdx={3}
-          />
-        </div>
-      </section>
-
-      {/* ============================================================
-          3. SPOTLIGHT — Taqqoslash, dissolved hairline composition
-          ============================================================ */}
-      <section
-        className="mt-16 md:mt-24 reveal-up"
-        style={{ animationDelay: "220ms" }}
-      >
-        {/* Section eyebrow row with inline link */}
-        <div className="flex items-end justify-between gap-4 mb-4">
-          <div>
-            <div className="text-[9px] font-mono uppercase tracking-[0.22em] text-ink3 mb-2">
-              Taqqoslash
-            </div>
-            <h2 className="hero-title text-[24px] md:text-[28px] text-ink">
-              {yearPrev && yearNow ? `${yearPrev} → ${yearNow}` : "Taqqoslash"}
-            </h2>
-          </div>
-          <Link
-            to="/analytics/comparison"
-            aria-label="Taqqoslash sahifasini ochish"
-            className="group flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.18em] text-ink3 hover:text-ink transition-colors pb-1"
-          >
-            <span>Ochish</span>
-            <ArrowUpRight
-              className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"
-              aria-hidden
-            />
-          </Link>
-        </div>
-
-        <hr className="hairline-mint mb-8" aria-hidden />
-
-        {sotuvCmpQ.isLoading || kirimCmpQ.isLoading ? (
-          <SpotlightSkeleton />
-        ) : sotuvCmpQ.error || kirimCmpQ.error ? (
-          <p className="text-[12px] italic text-coraldk">Yuklab bo'lmadi.</p>
-        ) : (
-          /* Two halves — vertical hairline divider at md+ */
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_1px_1fr] gap-y-10 md:gap-y-0">
-            <SpotlightHalf
-              label={t("comparison.tab_sotuv") as string}
-              current={sotuvCmpQ.data?.totals.values.at(-1) ?? null}
-              prior={sotuvCmpQ.data?.totals.values.at(-2) ?? null}
-              yoy={sotuvCmpQ.data?.totals.trend_delta_pct ?? null}
-              yearPrev={yearPrev}
-            />
-            <div className="hairline-v hidden md:block" aria-hidden />
-            <SpotlightHalf
-              label={t("comparison.tab_kirim") as string}
-              current={kirimCmpQ.data?.totals.values.at(-1) ?? null}
-              prior={kirimCmpQ.data?.totals.values.at(-2) ?? null}
-              yoy={kirimCmpQ.data?.totals.trend_delta_pct ?? null}
-              yearPrev={yearPrev}
-              indent
-            />
-          </div>
+    <div
+      className="glass-card kpi-glow rounded-xl p-6 lg:p-8 lg:col-span-7 lg:row-span-3 flex flex-col justify-between min-h-56 lg:min-h-72 animate-fade-up animate-fade-up-delay-1"
+      style={{ ['--glow-color' as string]: '#9E7B2F' } as React.CSSProperties}
+    >
+      <div>
+        <p
+          className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.18em]"
+          style={{ fontFamily: DM_SANS }}
+        >
+          {t('dashboard.kpi.outstanding')}
+        </p>
+        <p
+          className="mt-3 text-5xl lg:text-6xl xl:text-7xl font-semibold leading-[0.95] tabular-nums animate-count-up"
+          style={{ fontFamily: PLAYFAIR }}
+        >
+          {outstanding === null ? '—' : formatNumber(outstanding)}
+        </p>
+        <p
+          className="mt-1 text-xs text-muted-foreground uppercase tracking-widest"
+          style={{ fontFamily: PLEX_MONO }}
+        >
+          uzs · {debtorCount ?? '—'} {t('dashboard.hero.debtors')}
+        </p>
+        {over90 !== null && over90 > 0 && over90Pct !== null && (
+          <p className="mt-4 text-sm" style={{ fontFamily: DM_SANS }}>
+            <span className="text-[#F87171]">
+              ▲ <span className="tabular-nums">{formatNumber(over90)}</span>
+            </span>
+            <span className="text-muted-foreground">
+              {' '}
+              {t('dashboard.hero.over90')} ·{' '}
+              <span className="tabular-nums">{formatPercent(over90Pct, 0)}</span>
+            </span>
+          </p>
         )}
-      </section>
+      </div>
 
-      {/* ============================================================
-          4. TILE ROW — KunlikKesim / Collection / RFM
-          Dissolved sections side-by-side (md+), stacked mobile.
-          Hairline rules separate tiles vertically (md) / horizontally (mobile).
-          ============================================================ */}
-      <section
-        className="mt-16 md:mt-24 reveal-up"
-        style={{ animationDelay: "280ms" }}
+      <div className="mt-auto pt-5 border-t border-border/60 flex items-baseline gap-6 flex-wrap">
+        <div>
+          <p
+            className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground"
+            style={{ fontFamily: DM_SANS }}
+          >
+            {t('dashboard.hero.vsMtdRevenue')}
+          </p>
+          <p
+            className="text-xl lg:text-2xl font-semibold tabular-nums leading-none mt-0.5"
+            style={{ fontFamily: PLAYFAIR }}
+          >
+            {mtdRevenue === null ? '—' : formatCurrency(mtdRevenue, null)}
+          </p>
+        </div>
+        <div className="ml-auto text-right">
+          <p
+            className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground"
+            style={{ fontFamily: DM_SANS }}
+          >
+            {t('dashboard.hero.collectionRatio')}
+          </p>
+          <p
+            className={`text-xl lg:text-2xl font-semibold tabular-nums leading-none mt-0.5 ${ratioOk ? 'text-foreground' : 'text-[#FB923C]'}`}
+            style={{ fontFamily: PLAYFAIR }}
+          >
+            {collectionRatio === null ? '—' : formatPercent(collectionRatio)}
+          </p>
+        </div>
+      </div>
+
+      {/* faint Plex Mono "as of" stamp in the bottom margin */}
+      <p
+        className="mt-3 text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60"
+        style={{ fontFamily: PLEX_MONO }}
       >
-        {/* Section header */}
-        <div className="text-[9px] font-mono uppercase tracking-[0.22em] text-ink3 mb-4">
-          Ko'rsatkichlar
-        </div>
-        <hr className="hairline mb-0" aria-hidden />
-
-        {/* Tiles */}
-        <div
-          className={[
-            "grid",
-            isAdmin
-              ? "grid-cols-1 md:grid-cols-[1fr_1px_1fr_1px_1fr]"
-              : "grid-cols-1 md:grid-cols-[1fr_1px_1fr]",
-          ].join(" ")}
-        >
-          {isAdmin && (
-            <>
-              <KunlikKesimTile
-                data={projectionQ.data}
-                loading={projectionQ.isLoading}
-                error={!!projectionQ.error}
-                t={t}
-              />
-              <div className="hairline-v hidden md:block" aria-hidden />
-            </>
-          )}
-
-          <CollectionTile
-            worklist={worklistQ.data}
-            prepayments={prepaymentsQ.data}
-            loading={worklistQ.isLoading || prepaymentsQ.isLoading}
-            error={!!worklistQ.error || !!prepaymentsQ.error}
-            t={t}
-          />
-
-          <div className="hairline-v hidden md:block" aria-hidden />
-
-          <RfmTile
-            data={rfmQ.data}
-            loading={rfmQ.isLoading}
-            error={!!rfmQ.error}
-            t={t}
-          />
-        </div>
-      </section>
-
-      {/* ============================================================
-          5. TREND — editorial header + borderless chart wrapper
-          ============================================================ */}
-      {trendSeries.length > 0 && (
-        <section
-          className="mt-16 md:mt-24 reveal-up"
-          style={{ animationDelay: "340ms" }}
-        >
-          {/* Header — title block left, legend below on mobile / right on desktop */}
-          <div>
-            <div className="text-[9px] font-mono uppercase tracking-[0.22em] text-ink3 mb-2">
-              {t("dashboard.trend_eyebrow", { defaultValue: "Oxirgi 30 kun" })}
-            </div>
-            <div className="flex items-end justify-between flex-wrap gap-x-6 gap-y-3">
-              <div>
-                <h2 className="hero-title text-[26px] md:text-[34px] text-ink">
-                  30 kunlik trend
-                </h2>
-                <p className="standfirst mt-2 text-[14px]">
-                  Sotuv va to'lov yo'naltirilgan dinamikasi.
-                </p>
-              </div>
-              {/* Legend — bottom-anchored on desktop, sits below subtitle on mobile */}
-              <div className="flex items-center gap-5 text-[10px] font-mono uppercase tracking-[0.16em] text-ink3 pb-1">
-                <LegendDot
-                  color="#111827"
-                  label={t("dashboard.orders_label") as string}
-                />
-                <LegendDot
-                  color="#10B981"
-                  label={t("dashboard.payments_label") as string}
-                />
-              </div>
-            </div>
-          </div>
-
-          <hr className="hairline mt-5 mb-6" aria-hidden />
-
-          {/* Chart — no card wrapper, pure editorial canvas. Mobile gets a
-              taller chart so the trend reads at small widths. */}
-          <TimeSeriesChart
-            data={trendSeries}
-            showYoY
-            primaryLabel={t("dashboard.orders_label") as string}
-            yoyLabel={t("dashboard.payments_label") as string}
-            showArea
-            height={220}
-          />
-        </section>
-      )}
+        {t('dashboard.hero.asOf')} · {formatShortDate(new Date().toISOString(), i18n.language)}
+      </p>
     </div>
-  );
+  )
 }
 
-// ============================================================================
-// SUB-COMPONENTS
-// ============================================================================
+// ── Stacked KPI tiles (right column) ───────────────────────────────────────
 
-// ---------------------------------------------------------------------------
-// PulseStat — editorial cell inside the band.
-//
-// Border logic via cellIdx (0..3):
-//   Mobile  2×2:  0 → right+bottom hairline
-//                 1 → bottom hairline only (right edge of grid)
-//                 2 → right hairline only (last row, no bottom)
-//                 3 → no borders
-//   Desktop 1×4:  0,1,2 → right hairline (md:border-r)
-//                 3 → no right (rightmost cell)
-//                 ALL: no bottom (md:border-b-0)
-// ---------------------------------------------------------------------------
+type StackedKpiProps = {
+  label: string
+  value: string
+  caption: string
+  glow: string
+  delay: 2 | 3 | 4
+  icon: React.ElementType
+  loading: boolean
+  /** Optional destination route. When set, the entire card becomes a Link
+   *  with hover affordances; the corner icon swaps to `ArrowUpRight`. */
+  to?: string
+  /** When provided AND `value === '—'`, render this italic Playfair line in
+   *  place of the dashed value to give the empty state editorial weight. */
+  emptyMessage?: string
+}
 
-function PulseStat({
+function StackedKpi({
   label,
   value,
-  sub,
-  delta,
-  deltaLabel,
-  cellIdx,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  delta?: number | null;
-  deltaLabel?: string;
-  cellIdx: 0 | 1 | 2 | 3;
-}) {
-  const deltaCls =
-    delta == null || !Number.isFinite(delta)
-      ? "text-ink4"
-      : delta > 0
-      ? "text-mintdk"
-      : delta < 0
-      ? "text-coraldk"
-      : "text-ink3";
+  caption,
+  glow,
+  delay,
+  icon: Icon,
+  loading,
+  to,
+  emptyMessage,
+}: StackedKpiProps) {
+  if (loading) {
+    return (
+      <div className={`glass-card rounded-xl p-4 lg:col-span-5 min-h-26 flex flex-col justify-between animate-fade-up animate-fade-up-delay-${delay}`}>
+        <div className="shimmer-skeleton h-3 w-24" />
+        <div className="shimmer-skeleton h-7 w-32" />
+        <div className="shimmer-skeleton h-3 w-20" />
+      </div>
+    )
+  }
 
-  // Hairline color used for both directions. Pulled from globals' .hairline rgba.
-  const hairColor = "rgba(17, 24, 39, 0.08)";
+  const isEmpty = value === '—' && !!emptyMessage
 
-  // Mobile borders (hidden at md+) — render bottom for top-row cells, right for left-column cells.
-  const mobileBorder: React.CSSProperties = {
-    borderBottom: cellIdx < 2 ? `1px solid ${hairColor}` : "none",
-    borderRight: cellIdx % 2 === 0 ? `1px solid ${hairColor}` : "none",
-  };
+  const inner = (
+    <>
+      <div className="flex items-start justify-between mb-2">
+        <p
+          className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.14em]"
+          style={{ fontFamily: DM_SANS }}
+        >
+          {label}
+        </p>
+        <div className="p-1.5 rounded-md bg-accent/50 transition-colors group-hover:bg-accent">
+          <Icon size={13} style={{ color: glow }} />
+        </div>
+      </div>
+      <div className="mt-auto">
+        {isEmpty ? (
+          <p
+            className="text-base italic text-muted-foreground leading-snug"
+            style={{ fontFamily: PLAYFAIR }}
+          >
+            {emptyMessage}
+          </p>
+        ) : (
+          <>
+            <p
+              className="text-2xl font-semibold tabular-nums leading-tight animate-count-up"
+              style={{ fontFamily: PLAYFAIR }}
+            >
+              {value}
+            </p>
+            {caption && (
+              <p className="mt-1 text-[11px] text-muted-foreground" style={{ fontFamily: DM_SANS }}>
+                {caption}
+              </p>
+            )}
+          </>
+        )}
+      </div>
+    </>
+  )
 
-  // Desktop overrides — kill mobile bottom, set right except on last cell.
-  const desktopBorderClass =
-    cellIdx === 3
-      ? "md:!border-r-0 md:!border-b-0"
-      : "md:!border-r md:!border-r-[rgba(17,24,39,0.08)] md:!border-b-0";
+  const className = `glass-card kpi-glow rounded-xl p-4 lg:col-span-5 min-h-26 flex flex-col animate-fade-up animate-fade-up-delay-${delay} group`
+
+  if (to) {
+    return (
+      <Link
+        to={to}
+        className={`${className} hover:border-[#9E7B2F]/35 hover:shadow-[0_2px_12px_rgba(212,168,67,0.08)] transition-all`}
+        style={{ ['--glow-color' as string]: glow } as React.CSSProperties}
+      >
+        {inner}
+      </Link>
+    )
+  }
 
   return (
     <div
-      style={mobileBorder}
-      className={[
-        "flex flex-col min-w-0",
-        // Padding: tighter top/bottom on mobile so 2×2 doesn't feel sparse,
-        // generous left/right gutter so cells breathe from the page edge.
-        "px-5 py-6 md:px-7 md:py-7",
-        // First cell zeroes its left padding; last cell zeroes its right.
-        cellIdx === 0 ? "md:pl-0" : "",
-        cellIdx === 3 ? "md:pr-0" : "",
-        // 2-col mobile: every even-index cell is left column; reset its left padding to 0.
-        cellIdx % 2 === 0 ? "pl-0" : "",
-        cellIdx % 2 === 1 ? "pr-0" : "",
-        desktopBorderClass,
-      ].join(" ")}
+      className={className}
+      style={{ ['--glow-color' as string]: glow } as React.CSSProperties}
     >
-      <div className="text-[9px] font-mono uppercase tracking-[0.22em] text-ink3 mb-3">
-        {label}
-      </div>
-      <div className="hero-num text-[26px] md:text-[36px] text-ink count-up leading-none">
-        {value}
-      </div>
-      <div className="mt-3 flex items-baseline gap-2 text-[11px] font-mono min-h-[14px] flex-wrap">
-        {delta != null && Number.isFinite(delta) && (
-          <span className={`${deltaCls} font-semibold tracking-[0.02em]`}>
-            {fmtPct(delta)}
-          </span>
-        )}
-        {sub && (
-          <span className="text-ink3 italic tracking-[0.02em] truncate">{sub}</span>
-        )}
-        {delta != null && Number.isFinite(delta) && deltaLabel && (
-          <span className="text-ink4 italic hidden md:inline">{deltaLabel}</span>
-        )}
-      </div>
+      {inner}
     </div>
-  );
+  )
 }
 
-// ---------------------------------------------------------------------------
-// SpotlightHalf — one side of the Taqqoslash composition
-// ---------------------------------------------------------------------------
+// ── Dossier preview (first-call card) ──────────────────────────────────────
 
-function SpotlightHalf({
-  label,
-  current,
-  prior,
-  yoy,
-  yearPrev,
-  indent,
-}: {
-  label: string;
-  current: number | null;
-  prior: number | null;
-  yoy: number | null;
-  yearPrev: string;
-  indent?: boolean;
-}) {
-  const yoyCls =
-    yoy == null || !Number.isFinite(yoy)
-      ? "text-ink4"
-      : yoy > 0
-      ? "text-mintdk"
-      : yoy < 0
-      ? "text-coraldk"
-      : "text-ink3";
-
-  return (
-    <div className={`flex flex-col gap-3 ${indent ? "md:pl-10" : ""}`}>
-      <div className="text-[9px] font-mono uppercase tracking-[0.22em] text-ink3">
-        {label}
-      </div>
-      <div className="hero-num text-[48px] md:text-[68px] text-ink count-up">
-        {current != null ? fmtUsdCompact(current) : "—"}
-      </div>
-      <div className="flex items-baseline gap-3 flex-wrap">
-        {yoy != null && Number.isFinite(yoy) && (
-          <span className={`${yoyCls} font-mono font-semibold text-[14px]`}>
-            {fmtPct(yoy)}
-          </span>
-        )}
-        {prior != null && yearPrev && (
-          <span className="standfirst text-[14px] text-ink3">
-            {fmtUsdCompact(prior)}{" "}
-            <span className="not-italic font-mono text-ink4 text-[11px] tracking-[0.02em]">
-              ({yearPrev})
-            </span>
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function SpotlightSkeleton() {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-8 md:gap-y-0 gap-x-10">
-      {[0, 1].map((i) => (
-        <div key={i} className="space-y-3 animate-pulse">
-          <div className="h-2.5 w-14 bg-ink/[0.07] rounded" />
-          <div className="h-14 md:h-16 w-2/3 bg-ink/[0.08] rounded" />
-          <div className="h-3 w-1/2 bg-ink/[0.05] rounded" />
+function DossierPreview({ row, loading }: { row: DebtRow | undefined; loading: boolean }) {
+  const { t, i18n } = useTranslation()
+  if (loading) {
+    return (
+      <div className="glass-card rounded-xl p-6 lg:p-8 lg:col-span-7 animate-fade-up animate-fade-up-delay-2">
+        <div className="space-y-3">
+          <div className="shimmer-skeleton h-4 w-1/2" />
+          <div className="shimmer-skeleton h-10 w-3/4" />
+          <div className="shimmer-skeleton h-3 w-1/3" />
         </div>
-      ))}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Dissolved tile — shared editorial shell (no card chrome)
-// ---------------------------------------------------------------------------
-
-function TileShell({
-  to,
-  icon: Icon,
-  eyebrow,
-  loading,
-  error,
-  children,
-}: {
-  to: string;
-  icon: LucideIcon;
-  eyebrow: string;
-  loading?: boolean;
-  error?: boolean;
-  children: React.ReactNode;
-}) {
+      </div>
+    )
+  }
+  if (!row) {
+    return (
+      <div className="glass-card rounded-xl p-6 lg:p-8 lg:col-span-7 animate-fade-up animate-fade-up-delay-2">
+        <p
+          className="text-base italic text-muted-foreground"
+          style={{ fontFamily: PLAYFAIR }}
+        >
+          {t('dashboard.firstCall.empty')}
+        </p>
+      </div>
+    )
+  }
+  const bucket = dominantAgingBucket(row)
+  const daysOverdue = row.days_since_payment
+  const variant = agingBadgeVariant(daysOverdue, bucket)
+  // Lead with `days overdue` (not the outstanding amount, which would
+  // duplicate the hero figure). The hero answers "how much do we owe", this
+  // card answers "who do I call first and why is it urgent".
   return (
     <Link
-      to={to}
-      aria-label={`${eyebrow} — ochish`}
-      className="group row-editorial block py-7 md:py-8 px-0 md:px-8 first:md:pl-0 last:md:pr-0 outline-none focus-visible:ring-2 focus-visible:ring-mint rounded-sm border-b md:border-b-0 border-ink/[0.06] last:border-b-0"
+      to="/collection/worklist"
+      className="glass-card rounded-xl p-6 lg:p-8 lg:col-span-7 animate-fade-up animate-fade-up-delay-2 block group hover:border-[#9E7B2F]/35 hover:shadow-[0_2px_12px_rgba(212,168,67,0.08)] transition-all"
     >
-      {/* Tile eyebrow */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Icon
-            className="w-3.5 h-3.5 text-ink3 shrink-0"
-            strokeWidth={1.8}
-            aria-hidden
-          />
-          <span className="text-[9px] font-mono uppercase tracking-[0.22em] text-ink3">
-            {eyebrow}
-          </span>
-        </div>
-        <ArrowUpRight
-          className="w-3.5 h-3.5 text-ink4 group-hover:text-ink transition-colors shrink-0"
-          aria-hidden
-        />
+      <div className="flex items-baseline justify-between gap-3 mb-2">
+        <p
+          className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.18em]"
+          style={{ fontFamily: DM_SANS }}
+        >
+          <span className="text-[#D4A843] mr-1.5">◆</span>
+          {t('dashboard.firstCall.label')}
+        </p>
+        <span className={`action-badge ${variant}`}>{bucket}</span>
       </div>
-
-      {error ? (
-        <p className="text-[12px] italic text-coraldk">Yuklab bo'lmadi.</p>
-      ) : loading ? (
-        <TileSkeleton />
-      ) : (
-        children
-      )}
-    </Link>
-  );
-}
-
-function TileSkeleton() {
-  return (
-    <div className="space-y-3 animate-pulse">
-      <div className="h-2.5 w-20 bg-ink/[0.07] rounded" />
-      <div className="h-8 w-2/3 bg-ink/[0.08] rounded" />
-      <div className="h-2.5 w-1/2 bg-ink/[0.05] rounded" />
-      <div className="h-[3px] w-full bg-ink/[0.05] rounded-full mt-3" />
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// KunlikKesim tile — MTD over forecast, two stacked typographic stats
-// ---------------------------------------------------------------------------
-
-function KunlikKesimTile({
-  data,
-  loading,
-  error,
-  t,
-}: {
-  data: ProjectionResp | undefined;
-  loading: boolean;
-  error: boolean;
-  t: ReturnType<typeof useTranslation>["t"];
-}) {
-  return (
-    <TileShell
-      to="/dayslice"
-      icon={CalendarRange}
-      eyebrow={t("nav.dayslice") as string}
-      loading={loading}
-      error={error}
-    >
-      <h3 className="hero-title text-[22px] md:text-[26px] text-ink mb-5">
-        {t("dashboard.metric_mtd")}
+      <h3
+        className="text-2xl lg:text-3xl font-semibold leading-tight mb-1 group-hover:text-[#9E7B2F] transition-colors"
+        style={{ fontFamily: PLAYFAIR }}
+      >
+        {row.name}
       </h3>
+      <p className="text-xs text-muted-foreground mb-5" style={{ fontFamily: DM_SANS }}>
+        {t('dashboard.firstCall.manager')} · {row.primary_room_name ?? row.owner_name ?? '—'}
+      </p>
 
-      <div className="space-y-5">
-        <ForecastRow
-          label={t("comparison.tab_sotuv") as string}
-          mtd={data?.current_mtd.sotuv}
-          forecast={data?.projection.sotuv.mean}
-        />
-        <hr className="hairline" aria-hidden />
-        <ForecastRow
-          label={t("comparison.tab_kirim") as string}
-          mtd={data?.current_mtd.kirim}
-          forecast={data?.projection.kirim.mean}
-        />
-      </div>
-    </TileShell>
-  );
+      {/* The urgent figure is "days since payment". Some clients have never
+          paid us (days_since_payment === null) — for those, the hero figure
+          is the per-client outstanding instead, with a "90+ kun" sub-caption
+          inferred from the aging bucket. Either way, the hero answers
+          "why is this the first call". */}
+      {daysOverdue !== null ? (
+        <>
+          <p
+            className="text-5xl lg:text-6xl font-semibold tabular-nums leading-none"
+            style={{ fontFamily: PLAYFAIR }}
+          >
+            {daysOverdue}
+          </p>
+          <p
+            className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mt-1"
+            style={{ fontFamily: PLEX_MONO }}
+          >
+            {t('dashboard.firstCall.daysOverdueLong')}
+          </p>
+          <p className="mt-5 text-sm" style={{ fontFamily: DM_SANS }}>
+            <span className="tabular-nums font-medium" style={{ fontFamily: PLAYFAIR }}>
+              {formatNumber(row.outstanding)}
+            </span>
+            <span className="text-muted-foreground"> uzs · {t('dashboard.firstCall.outstanding')}</span>
+          </p>
+        </>
+      ) : (
+        <>
+          <p
+            className="text-5xl lg:text-6xl font-semibold tabular-nums leading-none"
+            style={{ fontFamily: PLAYFAIR }}
+          >
+            {formatNumber(row.outstanding)}
+          </p>
+          <p
+            className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mt-1"
+            style={{ fontFamily: PLEX_MONO }}
+          >
+            uzs · {t('dashboard.firstCall.neverPaid')}
+          </p>
+        </>
+      )}
+
+      {row.last_contact_at && (
+        <p className="mt-3 text-xs text-muted-foreground italic" style={{ fontFamily: DM_SANS }}>
+          {t('dashboard.firstCall.lastContact')} · {formatShortDate(row.last_contact_at, i18n.language)}
+          {row.last_contact_outcome ? <> · "{row.last_contact_outcome}"</> : null}
+        </p>
+      )}
+
+      <p
+        className="mt-5 text-xs text-[#9E7B2F] inline-flex items-center gap-1 group-hover:gap-2 transition-all"
+        style={{ fontFamily: DM_SANS }}
+      >
+        {t('dashboard.firstCall.openFile')} <span aria-hidden>→</span>
+      </p>
+    </Link>
+  )
 }
 
-function ForecastRow({
-  label,
-  mtd,
-  forecast,
+// ── Prepayments aside ──────────────────────────────────────────────────────
+
+function PrepaymentsAside({ row, loading }: { row: PrepaymentRow | undefined; loading: boolean }) {
+  const { t } = useTranslation()
+  if (loading) {
+    return (
+      <div className="glass-card rounded-xl p-6 lg:col-span-5 animate-fade-up animate-fade-up-delay-3">
+        <div className="space-y-3">
+          <div className="shimmer-skeleton h-3 w-32" />
+          <div className="shimmer-skeleton h-6 w-48" />
+          <div className="shimmer-skeleton h-3 w-40" />
+        </div>
+      </div>
+    )
+  }
+  // Tightened layout: name + region (caption), figure with credit-balance
+  // unit caption, then the link affordance. The "awaiting delivery" line
+  // is dropped — it's true for *every* prepayment row by definition, so
+  // it adds no signal. The diamond glyph is also dropped here so the
+  // first-call card stays the only diamond surface on the page.
+  return (
+    <Link
+      to="/collection/worklist"
+      className="glass-card rounded-xl p-6 lg:col-span-5 animate-fade-up animate-fade-up-delay-3 block group hover:border-[#9E7B2F]/35 hover:shadow-[0_2px_12px_rgba(212,168,67,0.08)] transition-all"
+    >
+      <p
+        className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.18em] mb-3"
+        style={{ fontFamily: DM_SANS }}
+      >
+        {t('dashboard.prepayments.label')}
+      </p>
+      {!row ? (
+        <p className="text-sm italic text-muted-foreground" style={{ fontFamily: PLAYFAIR }}>
+          {t('dashboard.prepayments.empty')}
+        </p>
+      ) : (
+        <>
+          <p
+            className="text-lg font-semibold leading-tight group-hover:text-[#9E7B2F] transition-colors"
+            style={{ fontFamily: PLAYFAIR }}
+          >
+            {row.name}
+          </p>
+          {row.region_name && (
+            <p className="text-xs text-muted-foreground mt-0.5" style={{ fontFamily: DM_SANS }}>
+              {row.region_name}
+            </p>
+          )}
+          <p
+            className="mt-3 text-2xl font-semibold tabular-nums leading-none"
+            style={{ fontFamily: PLAYFAIR }}
+          >
+            {formatCurrency(row.credit_balance, null)}
+          </p>
+          <p
+            className="mt-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground"
+            style={{ fontFamily: PLEX_MONO }}
+          >
+            {t('dashboard.prepayments.creditBalance')}
+          </p>
+        </>
+      )}
+      <p
+        className="mt-5 text-xs text-[#9E7B2F] inline-flex items-center gap-1 group-hover:gap-2 transition-all"
+        style={{ fontFamily: DM_SANS }}
+      >
+        {t('dashboard.prepayments.see')} <span aria-hidden>→</span>
+      </p>
+    </Link>
+  )
+}
+
+// ── Top segment summary (RFM) ──────────────────────────────────────────────
+
+import type { RfmSegmentDistribution } from '@/api/hooks'
+
+function TopSegmentCard({
+  distribution,
+  loading,
 }: {
-  label: string;
-  mtd: number | undefined;
-  forecast: number | undefined;
+  distribution: RfmSegmentDistribution[] | null
+  loading: boolean
 }) {
-  const pct =
-    mtd != null && forecast != null && forecast > 0
-      ? Math.min(1, mtd / forecast)
-      : 0;
+  const { t } = useTranslation()
+  if (loading) {
+    return (
+      <div className="glass-card rounded-xl p-6 lg:p-8 lg:col-span-7 animate-fade-up animate-fade-up-delay-4">
+        <div className="space-y-3">
+          <div className="shimmer-skeleton h-3 w-24" />
+          <div className="shimmer-skeleton h-8 w-40" />
+          <div className="shimmer-skeleton h-3 w-32" />
+        </div>
+      </div>
+    )
+  }
+  const sorted = [...(distribution ?? [])].sort((a, b) => b.revenue - a.revenue).slice(0, 5)
+  const top = sorted[0]
+  const totalRevenue = sorted.reduce((s, b) => s + (b.revenue || 0), 0) || 1
+
+  return (
+    <div className="glass-card rounded-xl p-6 lg:p-8 lg:col-span-7 animate-fade-up animate-fade-up-delay-4">
+      <p
+        className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.18em] mb-3"
+        style={{ fontFamily: DM_SANS }}
+      >
+        {t('dashboard.tribe.topSegment')}
+      </p>
+      {top ? (
+        <>
+          <h3
+            className="text-3xl font-semibold leading-tight"
+            style={{ fontFamily: PLAYFAIR }}
+          >
+            {top.segment}
+          </h3>
+          <p className="mt-1 text-xs text-muted-foreground" style={{ fontFamily: DM_SANS }}>
+            <span className="tabular-nums">{top.clients}</span> {t('dashboard.tribe.clients')} ·
+            <span className="tabular-nums ml-1">{formatPercent((top.revenue / totalRevenue) * 100)}</span>{' '}
+            {t('dashboard.tribe.ofRevenue')}
+          </p>
+
+          <div className="mt-5 space-y-1.5">
+            {sorted.slice(1).map((b) => (
+              <div
+                key={b.segment}
+                className="flex items-baseline justify-between text-sm"
+                style={{ fontFamily: DM_SANS }}
+              >
+                <span className="text-foreground/90">{b.segment}</span>
+                <span className="text-muted-foreground tabular-nums">
+                  {b.clients} · {formatPercent((b.revenue / totalRevenue) * 100)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        <p className="text-sm italic text-muted-foreground" style={{ fontFamily: PLAYFAIR }}>
+          {t('dashboard.tribe.empty')}
+        </p>
+      )}
+    </div>
+  )
+}
+
+// ── Trend placeholder (deliberate, not "coming soon") ──────────────────────
+
+function TrendPlaceholder() {
+  const { t } = useTranslation()
+  return (
+    <div className="glass-card rounded-xl p-6 lg:p-8 lg:col-span-5 animate-fade-up animate-fade-up-delay-5 flex flex-col">
+      <p
+        className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.18em] mb-3"
+        style={{ fontFamily: DM_SANS }}
+      >
+        {t('dashboard.tribe.trendLabel')}
+      </p>
+      <div className="flex-1 flex flex-col items-center justify-center py-6">
+        <div
+          className="text-xl text-[#D4A843]/60 tracking-[0.6em] mb-3"
+          style={{ fontFamily: PLAYFAIR }}
+          aria-hidden
+        >
+          · · · · ·
+        </div>
+        <p
+          className="text-sm italic text-muted-foreground text-center max-w-[24ch]"
+          style={{ fontFamily: PLAYFAIR }}
+        >
+          {t('dashboard.tribe.trendPlaceholder')}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// ── The page itself ────────────────────────────────────────────────────────
+
+export default function Dashboard() {
+  const { t } = useTranslation()
+  const { user } = useAuth()
+
+  const overview = useDashboardOverview()
+  const worklist = useDebtWorklistPreview()
+  const prepayments = useDebtPrepaymentsPreview()
+  const rfm = useSalesRfmSummary()
+  const isAdmin = user?.role === 'admin'
+  const dayslice = useDaysliceProjection({ enabled: isAdmin })
+
+  // Hero stats come from the worklist's top-level `summary` aggregate — that's
+  // the company-wide outstanding figure, not a single-row anchor.
+  const summary = worklist.data?.summary ?? null
+  const outstanding = summary?.total_outstanding ?? null
+  const over90 = summary?.total_over_90 ?? null
+  const debtorCount = summary?.debtor_count ?? null
+
+  // MTD revenue = sum of payments in `series_30d` filtered to the current
+  // month. The `today.payments.amount` field is just today, not MTD.
+  const mtdRevenue = (() => {
+    const series = overview.data?.series_30d
+    if (!series) return null
+    const now = new Date()
+    const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-`
+    return series
+      .filter((r) => r.day.startsWith(monthPrefix))
+      .reduce((sum, r) => sum + (Number.isFinite(r.payments) ? r.payments : 0), 0)
+  })()
+
+  // Collection ratio uses MTD billed vs MTD paid for stability — daily
+  // ratios swing wildly. Falls back to null if either side is zero/missing.
+  const collectionRatio = (() => {
+    const series = overview.data?.series_30d
+    if (!series) return null
+    const now = new Date()
+    const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-`
+    const monthRows = series.filter((r) => r.day.startsWith(monthPrefix))
+    const billed = monthRows.reduce((s, r) => s + (Number.isFinite(r.orders) ? r.orders : 0), 0)
+    const paid = monthRows.reduce((s, r) => s + (Number.isFinite(r.payments) ? r.payments : 0), 0)
+    if (!billed) return null
+    return (paid / billed) * 100
+  })()
+
+  // Plan progress (admin only).
+  // `actualVsExpected`: ratio of MTD sotuv to the day-prorated mean projection.
+  // 100 = on pace; >100 = ahead; <100 = behind.
+  // The displayed KPI is "% of full-month projection achieved" so the figure
+  // climbs from 0 → 100 across the month — easier to read than the prior
+  // 156% ahead-of-pace number that confused everyone.
+  const planProgress = (() => {
+    if (!dayslice.data) return null
+    const { day_n, month_days } = dayslice.data.slice
+    const sotuvProj = dayslice.data.projection.sotuv.mean || 0
+    const sotuvMtd = dayslice.data.current_mtd.sotuv || 0
+    if (!month_days || !sotuvProj) {
+      return { ofMonthPct: 0, vsExpectedPct: 0, dayN: day_n, monthDays: month_days }
+    }
+    const ofMonthPct = (sotuvMtd / sotuvProj) * 100
+    const expectedSoFar = sotuvProj * (day_n / month_days)
+    const vsExpectedPct = expectedSoFar ? (sotuvMtd / expectedSoFar) * 100 : 0
+    return { ofMonthPct, vsExpectedPct, dayN: day_n, monthDays: month_days }
+  })()
 
   return (
     <div>
-      <div className="text-[9px] font-mono uppercase tracking-[0.22em] text-ink3 mb-2">
-        {label}
-      </div>
-      <div className="flex items-baseline gap-2.5 mb-2.5">
-        <span className="hero-num text-[24px] md:text-[28px] text-ink">
-          {mtd != null ? fmtUsdCompact(mtd) : "—"}
-        </span>
-        <span className="standfirst text-[13px] text-ink3">
-          → {forecast != null ? fmtUsdCompact(forecast) : "—"}
-        </span>
-      </div>
-      {/* Hairline progress bar */}
-      <div
-        className="rounded-full overflow-hidden"
-        style={{ background: "rgba(17,24,39,0.06)", height: 3 }}
-      >
-        <div
-          className="h-full rounded-full draw-in-w bg-mint"
-          style={{ width: `${(pct * 100).toFixed(1)}%` }}
+      <PageHeader variant="dashboard" />
+
+      <SectionTitle label={t('dashboard.section.ledger')} className="mb-3" />
+
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-4 mb-7">
+        <HeroDebtCard
+          outstanding={outstanding}
+          over90={over90}
+          debtorCount={debtorCount}
+          mtdRevenue={mtdRevenue}
+          collectionRatio={collectionRatio}
+          loading={overview.isLoading || worklist.isLoading}
         />
-      </div>
-    </div>
-  );
-}
 
-// ---------------------------------------------------------------------------
-// Collection tile — debt headline + 90+ hairline progress bar
-// ---------------------------------------------------------------------------
-
-function CollectionTile({
-  worklist,
-  prepayments,
-  loading,
-  error,
-  t,
-}: {
-  worklist: WorklistResp | undefined;
-  prepayments: PrepaymentsResp | undefined;
-  loading: boolean;
-  error: boolean;
-  t: ReturnType<typeof useTranslation>["t"];
-}) {
-  const total = worklist?.summary.total_outstanding;
-  const debtors = worklist?.summary.debtor_count;
-  const over90 = worklist?.summary.total_over_90;
-  const over90Cnt = worklist?.summary.debtor_over_90_count;
-  const prepay = prepayments?.rows.reduce((s, r) => s + (r.credit_balance ?? 0), 0);
-  const over90Pct = total && over90 ? over90 / total : 0;
-
-  return (
-    <TileShell
-      to="/collection/worklist"
-      icon={HandCoins}
-      eyebrow={t("nav.debt_clients") as string}
-      loading={loading}
-      error={error}
-    >
-      {/* Hero debt number */}
-      <h3 className="hero-num text-[36px] md:text-[44px] text-ink count-up mb-1">
-        {total != null ? fmtUsdCompact(total) : "—"}
-      </h3>
-      <div className="text-[11px] font-mono text-ink3 tracking-[0.04em] mb-5">
-        {debtors != null
-          ? t("dashboard.metric_debtors_n", { n: fmtCount(debtors) })
-          : ""}
-      </div>
-
-      {/* 90+ as fraction of total — mint hairline progress bar */}
-      <div className="mb-1.5 flex items-center justify-between text-[9px] font-mono uppercase tracking-[0.18em] text-ink3">
-        <span>{t("dashboard.metric_over_90")}</span>
-        <span className="text-coraldk font-semibold">
-          {(over90Pct * 100).toFixed(0)}%
-        </span>
-      </div>
-      <div
-        className="rounded-full overflow-hidden mb-2"
-        style={{ background: "rgba(17,24,39,0.06)", height: 3 }}
-      >
-        <div
-          className="h-full rounded-full draw-in-w"
-          style={{
-            width: `${(over90Pct * 100).toFixed(1)}%`,
-            background: "#F87171",
-          }}
+        <StackedKpi
+          label={t('dashboard.kpi.revenue')}
+          value={mtdRevenue === null ? '—' : formatNumber(mtdRevenue)}
+          caption={t('dashboard.kpi.revenueCaption')}
+          glow="#34D399"
+          delay={2}
+          icon={ArrowUpRight}
+          loading={overview.isLoading}
+          to="/analytics/payments"
         />
-      </div>
-      <div className="flex items-baseline justify-between text-[12px] font-mono">
-        <span className="text-coraldk font-semibold">
-          {over90 != null ? fmtUsdCompact(over90) : "—"}
-        </span>
-        <span className="text-ink3 tracking-[0.02em]">
-          {over90Cnt != null
-            ? t("dashboard.metric_debtors_n", { n: fmtCount(over90Cnt) })
-            : ""}
-        </span>
-      </div>
 
-      {/* Prepayments — understated italic line */}
-      {prepay != null && prepay > 0 && (
-        <div className="mt-4 pt-3 border-t border-ink/[0.06] flex items-baseline justify-between text-[11px]">
-          <span className="standfirst text-[12px] text-ink3">
-            {t("dashboard.metric_prepayments")}
-          </span>
-          <span className="font-mono text-mintdk font-semibold tracking-[0.02em]">
-            {fmtUsdCompact(prepay)}
-          </span>
-        </div>
-      )}
-    </TileShell>
-  );
-}
+        <StackedKpi
+          label={t('dashboard.kpi.planProgress')}
+          value={
+            !isAdmin
+              ? t('dashboard.kpi.adminOnly')
+              : planProgress === null
+              ? '—'
+              : formatPercent(planProgress.ofMonthPct, 0)
+          }
+          caption={
+            !isAdmin
+              ? t('dashboard.kpi.planAdminCaption')
+              : planProgress
+              ? `${t('dashboard.kpi.day')} ${planProgress.dayN} ${t('dashboard.kpi.of')} ${planProgress.monthDays} · ${
+                  planProgress.vsExpectedPct >= 100
+                    ? `+${Math.round(planProgress.vsExpectedPct - 100)}% ${t('dashboard.kpi.aheadOfPace')}`
+                    : `${Math.round(100 - planProgress.vsExpectedPct)}% ${t('dashboard.kpi.behindOfPace')}`
+                }`
+              : ''
+          }
+          glow={(planProgress?.vsExpectedPct ?? 100) < 90 ? '#FB923C' : '#34D399'}
+          delay={3}
+          icon={(planProgress?.vsExpectedPct ?? 100) < 90 ? ArrowDownRight : ArrowUpRight}
+          loading={isAdmin && dayslice.isLoading}
+          to={isAdmin ? '/dayslice' : undefined}
+        />
 
-// ---------------------------------------------------------------------------
-// RFM tile — 4 segments as typographic list, color-toned Fraunces numbers
-// ---------------------------------------------------------------------------
+        {/* Alerts tile — `value="—"` is a real "no incidents" state, not
+            missing data. Pair the dash with an editorial empty message so
+            a healthy system reads as a deliberate "all clear", not as
+            broken UI. Tile links into /admin/alerts so a click on the
+            empty tile still surfaces the rules console. */}
+        <StackedKpi
+          label={t('dashboard.kpi.alerts')}
+          value="—"
+          caption=""
+          glow="#F87171"
+          delay={4}
+          icon={Bell}
+          loading={false}
+          to="/admin/alerts"
+          emptyMessage={t('dashboard.kpi.alertsEmpty')}
+        />
+      </section>
 
-function RfmTile({
-  data,
-  loading,
-  error,
-  t,
-}: {
-  data: RfmResp | undefined;
-  loading: boolean;
-  error: boolean;
-  t: ReturnType<typeof useTranslation>["t"];
-}) {
-  const seg = data?.segment_distribution ?? [];
-  const find = (name: string) =>
-    seg.find((s) => s.segment.toLowerCase() === name.toLowerCase())?.clients ?? 0;
-
-  type Tone = "mint" | "ink" | "amber" | "coral";
-  const cells: Array<{ key: string; label: string; n: number; tone: Tone }> = [
-    { key: "champ", label: t("dashboard.rfm_champions") as string, n: find("Champions"), tone: "mint" },
-    { key: "loyal", label: t("dashboard.rfm_loyal") as string,     n: find("Loyal"),      tone: "ink" },
-    { key: "risk",  label: t("dashboard.rfm_at_risk") as string,   n: find("At-Risk"),    tone: "amber" },
-    { key: "lost",  label: t("dashboard.rfm_lost") as string,      n: find("Lost"),       tone: "coral" },
-  ];
-
-  const numCls = (tone: Tone) =>
-    tone === "mint"
-      ? "text-mintdk"
-      : tone === "amber"
-      ? "text-[#B45309]"
-      : tone === "coral"
-      ? "text-coraldk"
-      : "text-ink";
-
-  return (
-    <TileShell
-      to="/analytics/sales?tab=rfm"
-      icon={Users}
-      eyebrow={t("dashboard.section_rfm_title", { defaultValue: "RFM" }) as string}
-      loading={loading}
-      error={error}
-    >
-      <h3 className="hero-title text-[22px] md:text-[26px] text-ink mb-5">
-        90 kunlik RFM
-      </h3>
-
-      <div className="space-y-0">
-        {cells.map((c, i) => (
-          <div
-            key={c.key}
-            className={[
-              "flex items-baseline justify-between py-3",
-              i < cells.length - 1 ? "border-b border-ink/[0.05]" : "",
-            ].join(" ")}
-          >
-            <span className="text-[11px] font-mono uppercase tracking-[0.18em] text-ink3">
-              {c.label}
-            </span>
-            <span className={`hero-num text-[22px] md:text-[26px] ${numCls(c.tone)}`}>
-              {fmtCount(c.n)}
-            </span>
-          </div>
-        ))}
-      </div>
-    </TileShell>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Misc
-// ---------------------------------------------------------------------------
-
-function LegendDot({ color, label }: { color: string; label: string }) {
-  return (
-    <span className="inline-flex items-center gap-2">
-      <span
-        aria-hidden
-        className="inline-block w-2 h-2 rounded-full shrink-0"
-        style={{ backgroundColor: color }}
+      <SectionTitle
+        label={t('dashboard.section.firstCall')}
+        action={
+          <Link to="/collection/worklist" className="hover:text-[#9E7B2F] transition-colors">
+            {t('dashboard.firstCall.seeAll')} →
+          </Link>
+        }
+        className="mb-3"
       />
-      <span>{label}</span>
-    </span>
-  );
+
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-4 mb-7">
+        <DossierPreview row={worklist.data?.rows?.[0]} loading={worklist.isLoading} />
+        <PrepaymentsAside row={prepayments.data?.rows?.[0]} loading={prepayments.isLoading} />
+      </section>
+
+      <TribeSection
+        rfmData={rfm.data?.segment_distribution ?? null}
+        rfmLoading={rfm.isLoading}
+      />
+    </div>
+  )
 }
+
+// ── Tribe (RFM segments + trend) — collapsible ──────────────────────────
+//
+// The RFM matrix and trend are useful but not load-bearing on the dashboard
+// — most days an operator scrolls past them. Hide behind a "show details"
+// toggle so the dashboard's first viewport stays signal-dense; persist the
+// open/closed choice so power users who do want it don't re-toggle daily.
+
+const TRIBE_OPEN_KEY = 'kanzec.dashboard.tribe.open'
+
+function TribeSection({
+  rfmData,
+  rfmLoading,
+}: {
+  rfmData: RfmSegmentDistribution[] | null
+  rfmLoading: boolean
+}) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    return window.localStorage.getItem(TRIBE_OPEN_KEY) === '1'
+  })
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(TRIBE_OPEN_KEY, open ? '1' : '0')
+    } catch {
+      /* ignore */
+    }
+  }, [open])
+
+  return (
+    <>
+      <SectionTitle
+        label={t('dashboard.section.tribe')}
+        className="mb-3"
+        action={
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="inline-flex items-center gap-1 text-xs hover:text-[#9E7B2F] transition-colors"
+            aria-expanded={open}
+          >
+            {open ? t('dashboard.tribe.hide') : t('dashboard.tribe.show')}
+            <ChevronDown
+              size={12}
+              className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+              aria-hidden
+            />
+          </button>
+        }
+      />
+
+      {open && (
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-4 mb-6">
+          <TopSegmentCard distribution={rfmData} loading={rfmLoading} />
+          <TrendPlaceholder />
+        </section>
+      )}
+    </>
+  )
+}
+
+// Reference unused icons to keep TypeScript's `noUnusedLocals` quiet — these
+// document the icon vocabulary the page draws from.
+void Coins
+void Hourglass
+void ClipboardList

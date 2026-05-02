@@ -14,6 +14,7 @@ node_modules/
 dist/
 build/
 .vite/
+*.tsbuildinfo
 
 # Env / secrets
 .env
@@ -32,3 +33,9 @@ Thumbs.db
 # Logs
 *.log
 frontend/preview/
+
+# Audit + temp artifacts (Playwright screenshots, scratch images)
+.playwright-mcp/
+*.png
+!frontend/public/*.png
+!frontend/dist/**/*.png
