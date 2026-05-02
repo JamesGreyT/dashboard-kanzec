@@ -4,7 +4,8 @@ import { X } from 'lucide-react'
 
 import PageHeader from '@/components/PageHeader'
 import MatrixTable from '@/components/analytics/MatrixTable'
-import MonthPicker, { type DateRangeValue } from '@/components/MonthPicker'
+import MonthPicker from '@/components/MonthPicker'
+import { type DateRangeValue, defaultDayPresets } from '@/components/datePresets'
 import {
   useDaysliceScoreboard,
   useDaysliceRegionPivot,
@@ -72,18 +73,43 @@ export default function Dayslice() {
   const { t } = useTranslation()
   const [direction, setDirection] = useState('')
   const [years, setYears] = useState(4)
+
+  // Page-level picker drives the cross-year scoreboard + projection. The
+  // backend replays the slice across every year, so a "month" value here
+  // means May 1-31 for *every* year on the page (May 2024, May 2025…).
   const [pickerValue, setPickerValue] = useState<DateRangeValue>(() => ({
     kind: 'month',
     month: currentMonthValue(),
   }))
+
+  // Region pivot has its own picker because it's CURRENT-PERIOD ONLY (single
+  // year), unlike the cross-year scoreboard. Day-grain presets (Today,
+  // Yesterday, Last 7 days, This month…) make more sense here than the
+  // month-grain ones the page-level picker uses. Defaults to the current
+  // month range so the section boots with a useful window.
+  const [regionRange, setRegionRange] = useState<DateRangeValue>(() => {
+    const now = new Date()
+    const y = now.getFullYear()
+    const m = now.getMonth() + 1
+    const firstIso = `${y}-${String(m).padStart(2, '0')}-01`
+    const last = new Date(y, m, 0)
+    const lastIso = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}-${String(last.getDate()).padStart(2, '0')}`
+    return { kind: 'range', from: firstIso, to: lastIso }
+  })
+
   const [drill, setDrill] = useState<{ measure: 'sotuv' | 'kirim'; manager: string; year: number } | null>(null)
 
   const directionsQ = useSnapshotsDirections()
   const dateFilters = filtersFromPicker(pickerValue)
   const filters = { direction, years, ...dateFilters }
 
+  // Region pivot's own filters: direction shared with the rest of the page,
+  // but the date window is the region picker's.
+  const regionDateFilters = filtersFromPicker(regionRange)
+  const regionFilters = { direction, years, ...regionDateFilters }
+
   const scoreboardQ = useDaysliceScoreboard(filters)
-  const regionQ = useDaysliceRegionPivot(filters)
+  const regionQ = useDaysliceRegionPivot(regionFilters)
 
   const slice = scoreboardQ.data?.slice
   const sotuvRows = scoreboardQ.data?.sotuv?.rows ?? []
@@ -151,7 +177,10 @@ export default function Dayslice() {
       </header>
 
       {/* Scoreboard — sotuv */}
-      <Section title={`${t('admin.dayslice.scoreboard')} · ${t('analytics.comparison.sotuv')}`}>
+      <Section
+        title={`${t('admin.dayslice.scoreboard')} · ${t('analytics.comparison.sotuv')}`}
+        caption={t('admin.dayslice.scoreboardCaption')}
+      >
         <ScoreboardMatrix
           rows={sotuvRows}
           yearCols={yearCols}
@@ -162,7 +191,10 @@ export default function Dayslice() {
       </Section>
 
       {/* Scoreboard — kirim */}
-      <Section title={`${t('admin.dayslice.scoreboard')} · ${t('analytics.comparison.kirim')}`}>
+      <Section
+        title={`${t('admin.dayslice.scoreboard')} · ${t('analytics.comparison.kirim')}`}
+        caption={t('admin.dayslice.scoreboardCaption')}
+      >
         <ScoreboardMatrix
           rows={kirimRows}
           yearCols={yearCols}
@@ -172,8 +204,22 @@ export default function Dayslice() {
         />
       </Section>
 
-      {/* Region pivot */}
-      <Section title={t('admin.dayslice.regionPivot')}>
+      {/* Region pivot — single-period (current year only). Has its own
+          day-grain picker so an admin can scope the view to today /
+          yesterday / a custom range without touching the cross-year
+          scoreboard above. Defaults to the current month. */}
+      <Section
+        title={t('admin.dayslice.regionPivot')}
+        caption={t('admin.dayslice.regionPivotCaption')}
+        action={
+          <MonthPicker
+            value={regionRange}
+            onChange={setRegionRange}
+            label={t('admin.dayslice.period')}
+            presets={defaultDayPresets()}
+          />
+        }
+      >
         {regionQ.data && regionQ.data.row_labels.length > 0 ? (
           <MatrixTable
             rowLabels={regionQ.data.row_labels}
@@ -203,10 +249,33 @@ export default function Dayslice() {
   )
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  caption,
+  action,
+  children,
+}: {
+  title: string
+  /** Optional one-liner sitting between title and content — useful for
+   *  noting cross-year vs single-period semantics. */
+  caption?: string
+  /** Optional right-side slot, e.g. a per-section picker. */
+  action?: React.ReactNode
+  children: React.ReactNode
+}) {
   return (
     <section className="animate-fade-up animate-fade-up-delay-3 mt-8">
-      <h2 className="section-title mb-4" style={{ fontFamily: DM_SANS }}>{title}</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+        <div>
+          <h2 className="section-title" style={{ fontFamily: DM_SANS }}>{title}</h2>
+          {caption && (
+            <p className="text-[11px] text-muted-foreground italic mt-1" style={{ fontFamily: PLAYFAIR }}>
+              {caption}
+            </p>
+          )}
+        </div>
+        {action && <div className="shrink-0">{action}</div>}
+      </div>
       {children}
     </section>
   )

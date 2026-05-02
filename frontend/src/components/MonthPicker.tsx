@@ -2,7 +2,11 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CalendarDays } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { currentMonthValue } from '@/lib/format'
+import {
+  defaultMonthPresets,
+  type DateRangePreset,
+  type DateRangeValue,
+} from '@/components/datePresets'
 
 const DM_SANS = "'DM Sans', system-ui"
 
@@ -16,27 +20,19 @@ function monthLabels(lang: string): string[] {
   return MONTH_ABBRS_EN
 }
 
-function shiftMonth(value: string, delta: number): string {
-  const [y, m] = value.split('-').map(Number)
-  const d = new Date(y, m - 1 + delta, 1)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-}
-
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10)
 }
-
-/** Picker value: either an entire month ("YYYY-MM") or a custom date
- *  range (`{ from: 'YYYY-MM-DD', to: 'YYYY-MM-DD' }`). */
-export type DateRangeValue =
-  | { kind: 'month'; month: string }
-  | { kind: 'range'; from: string; to: string }
 
 interface Props {
   value: DateRangeValue
   onChange: (v: DateRangeValue) => void
   /** Optional kicker label rendered inside the trigger button. */
   label?: string
+  /** Override the default ("thisMonth" / "lastMonth") preset list. Pass
+   *  `defaultDayPresets()` for day-grain windows like Today / Yesterday /
+   *  Last 7 days. */
+  presets?: DateRangePreset[]
 }
 
 /**
@@ -49,7 +45,7 @@ interface Props {
  * `kind` to decide whether to send the backend an `as_of` anchor (month
  * mode) or `slice_start` + `slice_end` (range mode).
  */
-export default function MonthPicker({ value, onChange, label }: Props) {
+export default function MonthPicker({ value, onChange, label, presets: customPresets }: Props) {
   const { t, i18n } = useTranslation()
   const [open, setOpen] = useState(false)
   const [showCustom, setShowCustom] = useState(value.kind === 'range')
@@ -88,12 +84,21 @@ export default function MonthPicker({ value, onChange, label }: Props) {
     value.kind === 'range' ? value.to : '',
   )
 
-  const presets: { labelKey: string; value: DateRangeValue }[] = [
-    { labelKey: 'thisMonth', value: { kind: 'month', month: currentMonthValue() } },
-    { labelKey: 'lastMonth', value: { kind: 'month', month: shiftMonth(currentMonthValue(), -1) } },
-  ]
+  const presets = customPresets ?? defaultMonthPresets()
+
+  const sameValue = (a: DateRangeValue, b: DateRangeValue) => {
+    if (a.kind !== b.kind) return false
+    if (a.kind === 'month' && b.kind === 'month') return a.month === b.month
+    if (a.kind === 'range' && b.kind === 'range') return a.from === b.from && a.to === b.to
+    return false
+  }
 
   const triggerLabel = (() => {
+    // Prefer a matching preset's localized label — that way
+    // "Today" / "Last 7 days" etc. read as words, not date strings.
+    const matchedPreset = presets.find((p) => sameValue(p.value, value))
+    if (matchedPreset) return t(`dateRange.${matchedPreset.labelKey}`)
+
     if (value.kind === 'range') {
       // "Apr 15 → May 10" — month-day register, year is implied
       const formatRangePart = (iso: string) => {
@@ -102,18 +107,9 @@ export default function MonthPicker({ value, onChange, label }: Props) {
       }
       return `${formatRangePart(value.from)} → ${formatRangePart(value.to)}`
     }
-    if (value.month === currentMonthValue()) return t('dateRange.thisMonth')
-    if (value.month === shiftMonth(currentMonthValue(), -1)) return t('dateRange.lastMonth')
     if (!valueY || !valueM) return t('dateRange.pickMonth')
     return `${months[valueM - 1]} ${valueY}`
   })()
-
-  const sameValue = (a: DateRangeValue, b: DateRangeValue) => {
-    if (a.kind !== b.kind) return false
-    if (a.kind === 'month' && b.kind === 'month') return a.month === b.month
-    if (a.kind === 'range' && b.kind === 'range') return a.from === b.from && a.to === b.to
-    return false
-  }
 
   function applyCustom() {
     if (!draftFrom || !draftTo) {
