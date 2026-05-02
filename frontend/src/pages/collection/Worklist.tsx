@@ -16,7 +16,7 @@ import {
 } from '@/api/hooks'
 import PageHeader from '@/components/PageHeader'
 import SectionTitle from '@/components/SectionTitle'
-import { formatNumber, formatCurrency, formatPercent, formatShortDate, agingBadgeVariant, toRomanLower } from '@/lib/format'
+import { formatNumber, formatCurrency, formatPercent, formatShortDate, agingBadgeVariant } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 const PLAYFAIR = "'Playfair Display', Georgia, serif"
@@ -299,9 +299,9 @@ export default function Worklist() {
         >
           <div className="flex items-baseline gap-3 flex-wrap">
             <span className="font-medium text-foreground tabular-nums" style={{ fontFamily: PLAYFAIR }}>
-              {toRomanLower(currentPage)}
+              {formatNumber(currentPage)}
               <span className="text-muted-foreground"> {t('data.of')} </span>
-              {toRomanLower(totalPages)}
+              {formatNumber(totalPages)}
             </span>
             <span className="text-muted-foreground italic">
               · {t('data.showing')} {showingFrom.toLocaleString()}–{showingTo.toLocaleString()} {t('data.of')}{' '}

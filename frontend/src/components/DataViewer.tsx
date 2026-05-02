@@ -20,7 +20,7 @@ import { useAuth } from '@/context/AuthContext'
 import {
   formatCell,
   encodePk,
-  toRomanLower,
+  formatNumber,
   isIdLike,
   shouldRenderAsFigure,
   pickHeadlineColumn,
@@ -365,9 +365,9 @@ export default function DataViewer({ tableKey, title, editable = false }: Props)
               style={{ fontFamily: PLAYFAIR }}
               aria-label={`${currentPage} of ${totalPages}`}
             >
-              {toRomanLower(currentPage)}
+              {formatNumber(currentPage)}
               <span className="text-muted-foreground"> {t('data.of')} </span>
-              {toRomanLower(totalPages)}
+              {formatNumber(totalPages)}
             </span>
             <span className="text-muted-foreground italic">
               · {t('data.showing')} {showingFrom.toLocaleString()}–{showingTo.toLocaleString()}{' '}

@@ -5,7 +5,7 @@ import { ChevronDown, X } from 'lucide-react'
 
 import PageHeader from '@/components/PageHeader'
 import { useAdminAudit, useAdminUsers, type AuditRow } from '@/api/hooks'
-import { formatLongDate, formatShortDate, toRomanLower } from '@/lib/format'
+import { formatLongDate, formatShortDate, formatNumber } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 const PLAYFAIR = "'Playfair Display', Georgia, serif"
@@ -174,9 +174,9 @@ export default function Audit() {
         >
           <div className="flex items-baseline gap-3 flex-wrap">
             <span className="font-medium text-foreground tabular-nums" style={{ fontFamily: PLAYFAIR }}>
-              {toRomanLower(currentPage)}
+              {formatNumber(currentPage)}
               <span className="text-muted-foreground"> {t('data.of')} </span>
-              {toRomanLower(totalPages)}
+              {formatNumber(totalPages)}
             </span>
             <span className="text-muted-foreground italic">
               · {t('data.showing')} {(offset + 1).toLocaleString()}–{Math.min(offset + PAGE_SIZE, total).toLocaleString()} {t('data.of')} {total.toLocaleString()}
