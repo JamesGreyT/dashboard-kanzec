@@ -1,6 +1,6 @@
 import { ReactNode, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronUp, ChevronDown, Search, ArrowLeft, ArrowRight, Download } from "lucide-react";
+import { ChevronUp, ChevronDown, Search, Loader2, ArrowLeft, ArrowRight, Download } from "lucide-react";
 import Sparkline from "./Sparkline";
 import { cn } from "@/lib/utils";
 import { getAccessToken } from "../lib/api";
@@ -200,16 +200,12 @@ export default function RankedTable<R extends Record<string, any>>({
       {/* Mobile: card list. Renders at <lg (1024px). */}
       <div className="lg:hidden space-y-2">
         {loading && (!data || data.rows.length === 0) ? (
-          <div className="py-10 flex flex-col items-center gap-2 text-center text-ink3 italic text-sm border border-line rounded-2xl">
-            <span className="flex gap-1" aria-hidden>
-              {[0, 200, 400].map((d) => (
-                <span key={d} className="block w-2 h-2 rounded-full bg-mint animate-pulsemint" style={{ animationDelay: `${d}ms` }} />
-              ))}
-            </span>
+          <div className="py-10 text-center text-muted-foreground italic text-sm border border-line rounded-2xl">
+            <Loader2 className="inline h-4 w-4 animate-spin mr-2" />
             {t("ranked.loading")}
           </div>
         ) : data && data.rows.length === 0 ? (
-          <div className="py-10 text-center text-ink3 italic text-sm border border-line rounded-2xl">
+          <div className="py-10 text-center text-muted-foreground italic text-sm border border-line rounded-2xl">
             {empty ?? t("ranked.empty")}
           </div>
         ) : (
@@ -354,18 +350,14 @@ export default function RankedTable<R extends Record<string, any>>({
           <tbody>
             {loading && (!data || data.rows.length === 0) ? (
               <tr>
-                <td colSpan={columns.length} className="py-10 text-center text-ink3">
-                  <span className="inline-flex gap-1 mr-2 align-middle" aria-hidden>
-                    {[0, 200, 400].map((d) => (
-                      <span key={d} className="block w-1.5 h-1.5 rounded-full bg-mint animate-pulsemint" style={{ animationDelay: `${d}ms` }} />
-                    ))}
-                  </span>
+                <td colSpan={columns.length} className="py-10 text-center text-muted-foreground">
+                  <Loader2 className="inline h-4 w-4 animate-spin mr-2" />
                   {t("ranked.loading")}
                 </td>
               </tr>
             ) : data && data.rows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="py-10 text-center text-ink3 italic">
+                <td colSpan={columns.length} className="py-10 text-center text-muted-foreground italic">
                   {empty ?? t("ranked.empty")}
                 </td>
               </tr>
