@@ -142,27 +142,6 @@ export function pickHeadlineColumn(columns: Column[]): Column | undefined {
   return columns.find((c) => c.visible && c.type === 'text' && !isIdLike(c))
 }
 
-// ── Roman numerals (lower-case for the folio footer) ──────────────────────
-
-const ROMAN_PAIRS: [number, string][] = [
-  [1000, 'm'], [900, 'cm'], [500, 'd'], [400, 'cd'],
-  [100, 'c'], [90, 'xc'], [50, 'l'], [40, 'xl'],
-  [10, 'x'], [9, 'ix'], [5, 'v'], [4, 'iv'], [1, 'i'],
-]
-
-export function toRomanLower(n: number): string {
-  if (n <= 0) return '—'
-  let out = ''
-  let rem = Math.floor(n)
-  for (const [v, s] of ROMAN_PAIRS) {
-    while (rem >= v) {
-      out += s
-      rem -= v
-    }
-  }
-  return out
-}
-
 // ── Composite primary key encoding for /api/data/{key}/row/{pk} ───────────
 
 export function encodePk(row: Record<string, unknown>, pkColumns: string[]): string {

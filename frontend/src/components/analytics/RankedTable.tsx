@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { ChevronUp, ChevronDown } from 'lucide-react'
 import { formatNumber } from '@/lib/format'
 import { cn } from '@/lib/utils'
-import { toRomanLower } from '@/lib/format'
 
 const PLAYFAIR = "'Playfair Display', Georgia, serif"
 const DM_SANS = "'DM Sans', system-ui"
@@ -137,9 +136,9 @@ export default function RankedTable<T extends { person_id?: number | string }>({
         >
           <div className="flex items-baseline gap-3 flex-wrap">
             <span className="font-medium text-foreground tabular-nums" style={{ fontFamily: PLAYFAIR }}>
-              {toRomanLower(currentPage)}
+              {formatNumber(currentPage)}
               <span className="text-muted-foreground"> {t('data.of')} </span>
-              {toRomanLower(totalPages)}
+              {formatNumber(totalPages)}
             </span>
             <span className="text-muted-foreground italic">
               · {t('data.showing')} {showingFrom.toLocaleString()}–{showingTo.toLocaleString()} {t('data.of')}{' '}
