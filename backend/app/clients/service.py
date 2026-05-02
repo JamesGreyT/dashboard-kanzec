@@ -291,17 +291,17 @@ async def _fetch_base_rows(
              ELSE FALSE
            END AS has_overdue_promise
       FROM universe u
-      LEFT JOIN opening ob USING (person_id)
-      LEFT JOIN sales_all sa USING (person_id)
-      LEFT JOIN sales_90 sa90 USING (person_id)
-      LEFT JOIN pay_all pa USING (person_id)
-      LEFT JOIN pay_90 p90 USING (person_id)
-      LEFT JOIN aging ag USING (person_id)
+      LEFT JOIN opening ob ON ob.person_id = u.person_id
+      LEFT JOIN sales_all sa ON sa.person_id = u.person_id
+      LEFT JOIN sales_90 sa90 ON sa90.person_id = u.person_id
+      LEFT JOIN pay_all pa ON pa.person_id = u.person_id
+      LEFT JOIN pay_90 p90 ON p90.person_id = u.person_id
+      LEFT JOIN aging ag ON ag.person_id = u.person_id
       LEFT JOIN smartup_rep.legal_person lp ON lp.person_id::text = u.person_id
-      LEFT JOIN dominant_room dr USING (person_id)
+      LEFT JOIN dominant_room dr ON dr.person_id = u.person_id
       LEFT JOIN app.room rr ON rr.room_id = dr.room_id
-      LEFT JOIN contact_last cl USING (person_id)
-      LEFT JOIN payments_since_start ps USING (person_id)
+      LEFT JOIN contact_last cl ON cl.person_id = u.person_id
+      LEFT JOIN payments_since_start ps ON ps.person_id = u.person_id
       {person_where}
      ORDER BY lp.name
     """
