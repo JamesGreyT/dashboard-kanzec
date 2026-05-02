@@ -15,6 +15,7 @@ import OrdersPage from '@/pages/data/Orders'
 import PaymentsDataPage from '@/pages/data/Payments'
 import LegalPersonsPage from '@/pages/data/LegalPersons'
 import Worklist from '@/pages/collection/Worklist'
+import ClientsDebts from '@/pages/collection/ClientsDebts'
 import ClientDetail from '@/pages/collection/ClientDetail'
 
 // Analytics pages are heavy (~1.5 MB gzipped because Plotly). Lazy-load
@@ -116,6 +117,7 @@ export default function App() {
                     <Route path="/data/legal-persons" element={<LegalPersonsPage />} />
 
                     <Route path="/collection/worklist" element={<Worklist />} />
+                    <Route path="/collection/clients-debts" element={<ClientsDebts />} />
                     <Route path="/collection/debt/client/:personId" element={<ClientDetail />} />
 
                     <Route path="/analytics/sales" element={<Suspense fallback={<ChartFallback />}><SalesAnalytics /></Suspense>} />

@@ -129,6 +129,23 @@
     "worklist": {
       "title": "Qarz mijozlar"
     },
+    "clientsDebts": {
+      "title": "Mijoz qarzlari",
+      "subtitle": "Har bir mijoz bo'yicha qarz, muddati va aging tahlili.",
+      "overdueOnly": "Faqat muddati o'tganlar",
+      "overdueTotal": "Jami muddati o'tgan",
+      "cols": {
+        "termDays": "Necha kun?",
+        "qarz": "Qarz",
+        "notDue": "Muddati tugamagan",
+        "overdue": "Muddati o'tgan",
+        "region": "Region",
+        "direction": "Yo'nalish",
+        "group": "Guruh",
+        "category": "Izoh"
+      }
+    },
+    "searchPlaceholder": "Mijoz nomi bo'yicha qidirish…",
     "stats": {
       "totalDebt": "Umumiy qarz",
       "over90": "90+ kun kechikkan",
@@ -138,7 +155,9 @@
     },
     "filters": {
       "room": "Manager",
+      "manager": "Manager",
       "direction": "Yo'nalish",
+      "group": "Guruh",
       "aging": "Aging guruhi",
       "outcome": "Natija",
       "overduePromisesOnly": "Faqat muddati o'tgan va'dalar"
@@ -538,6 +557,7 @@
       "dataPayments": "To'lovlar",
       "legalPersons": "Yuridik shaxslar",
       "worklist": "Qarz mijozlar",
+      "clientsDebts": "Mijoz qarzlari",
       "sales": "Sotuv",
       "payments": "To'lovlar",
       "returns": "Qaytarishlar",
