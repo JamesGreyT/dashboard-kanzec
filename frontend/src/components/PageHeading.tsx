@@ -39,14 +39,8 @@ export default function PageHeading({
           })}
         </BreadcrumbList>
       </Breadcrumb>
-      <h1 className="font-display text-4xl md:text-5xl font-medium leading-[1.04] tracking-[-0.015em] text-foreground">
+      <h1 className="font-display text-4xl md:text-5xl font-medium leading-[1.04] tracking-[-0.02em] text-foreground">
         {title}
-        <span
-          aria-hidden
-          className="font-display-italic text-primary ml-[2px]"
-        >
-          .
-        </span>
       </h1>
       {subtitle && (
         <div className="mt-3 text-sm text-muted-foreground max-w-[62ch] leading-relaxed">

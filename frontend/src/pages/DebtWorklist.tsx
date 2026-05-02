@@ -136,6 +136,7 @@ export default function Debt() {
   const [outcome, setOutcome] = useState<string>("");
   void setOutcome; // reserved for future outcome-filter chip
   const [overdueOnly, setOverdueOnly] = useState(false);
+  void setOverdueOnly; // UI removed; state kept for API query param
   const [offset, setOffset] = useState(0);
   const limit = 25;
 
@@ -290,80 +291,80 @@ export default function Debt() {
         <>
           {/* ----------------------------------------------------------
               3. KPI Strip — 4 cards horizontal desktop / 2x2 mobile
+              Each card: eyebrow → value → sub-detail (8-12px gap each)
               ---------------------------------------------------------- */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             {/* (a) Jami qarz — total outstanding */}
-            <div className="bg-white rounded-2xl shadow-card p-4">
+            <div className="bg-white rounded-2xl shadow-card p-4 flex flex-col gap-0">
               <div className="eyebrow text-ink3">Jami qarz</div>
-              <div className="flex items-baseline gap-1 mt-2">
-                <span className="kpi-num text-[28px] md:text-[34px] text-ink">
+              <div className="mt-2">
+                <span className="kpi-num text-[28px] md:text-[36px] text-ink">
                   {formatUsd(summary?.total_outstanding ?? 0)}
                 </span>
               </div>
-              <div className="mt-1.5 text-[10px] text-ink3 font-mono">USD</div>
+              <div className="mt-2 text-[10px] text-ink3 font-mono tracking-wide uppercase">
+                USD · umumiy
+              </div>
             </div>
 
             {/* (b) Qarzdorlar — debtor_count */}
-            <div className="bg-white rounded-2xl shadow-card p-4">
+            <div className="bg-white rounded-2xl shadow-card p-4 flex flex-col gap-0">
               <div className="eyebrow text-ink3">Qarzdorlar</div>
-              <div className="flex items-baseline gap-1 mt-2">
-                <span className="kpi-num text-[28px] md:text-[34px] text-ink">
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="kpi-num text-[28px] md:text-[36px] text-ink">
                   {(summary?.debtor_count ?? 0).toLocaleString()}
                 </span>
-                <span className="text-ink3 text-[11px] font-mono ml-1">mijoz</span>
+                <span className="text-ink3 text-[11px] font-mono">mijoz</span>
               </div>
-              <div className="mt-1.5 text-[10px] text-ink3 font-mono">
+              <div className="mt-2 text-[10px] text-ink3 font-mono tracking-wide uppercase">
                 {t("debt.kpi.debtors")}
               </div>
             </div>
 
             {/* (c) 90+ kun — debtor_over_90_count / total_over_90 */}
-            <div className="bg-white rounded-2xl shadow-card p-4">
-              <div className="eyebrow" style={{ color: "#B91C1C" }}>90+ kun</div>
-              <div className="flex items-baseline gap-1 mt-2">
-                <span className="kpi-num text-[28px] md:text-[34px] text-coral">
+            <div className="bg-white rounded-2xl shadow-card p-4 flex flex-col gap-0">
+              <div className="eyebrow" style={{ color: "#B91C1C" }}>90+ kun · xavf</div>
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="kpi-num text-[28px] md:text-[36px] text-coral">
                   {(summary?.debtor_over_90_count ?? 0).toLocaleString()}
                 </span>
-                <span className="text-ink3 text-[11px] font-mono ml-1">
-                  / {(summary?.debtor_count ?? 0)} mijoz
+                <span className="text-ink3 text-[11px] font-mono">
+                  / {(summary?.debtor_count ?? 0)} ta
                 </span>
               </div>
-              <div className="age-bar mt-2">
-                {summary && summary.total_outstanding > 0 ? (
-                  <>
-                    <span
-                      className="age-0"
-                      style={{
-                        flex: Math.max(
-                          0,
-                          summary.total_outstanding -
-                            summary.total_over_90 -
-                            0 /* approx 30-90 split unknown at summary level */
-                        ),
-                      }}
-                    />
-                    <span className="age-90" style={{ flex: summary.total_over_90 }} />
-                  </>
-                ) : (
-                  <span className="age-0" style={{ flex: 1 }} />
-                )}
+              <div className="mt-2 w-full">
+                <div className="age-bar">
+                  {summary && summary.total_outstanding > 0 ? (
+                    <>
+                      <span
+                        className="age-0"
+                        style={{
+                          flex: Math.max(0, summary.total_outstanding - summary.total_over_90),
+                        }}
+                      />
+                      <span className="age-90" style={{ flex: summary.total_over_90 }} />
+                    </>
+                  ) : (
+                    <span className="age-0" style={{ flex: 1 }} />
+                  )}
+                </div>
               </div>
             </div>
 
             {/* (d) Muddati o'tgan va'dalar — total_overdue_promises */}
             <div
-              className="rounded-2xl shadow-card p-4"
+              className="rounded-2xl shadow-card p-4 flex flex-col gap-0"
               style={{ background: "linear-gradient(180deg,#FFFFFF 0%, #F0FDF4 100%)" }}
             >
               <div className="eyebrow" style={{ color: "#059669" }}>
                 Muddati o'tgan va'dalar
               </div>
-              <div className="flex items-baseline gap-1 mt-2">
-                <span className="kpi-num text-[28px] md:text-[34px] text-mintdk">
+              <div className="mt-2">
+                <span className="kpi-num text-[28px] md:text-[36px] text-mintdk">
                   {formatUsd(summary?.total_overdue_promises ?? 0)}
                 </span>
               </div>
-              <div className="mt-1.5 text-[10px] text-mintdk font-mono">
+              <div className="mt-2 text-[10px] text-mintdk font-mono tracking-wide uppercase">
                 {t("debt.kpi.overdue_promises")}
               </div>
             </div>
@@ -420,14 +421,30 @@ export default function Debt() {
           )}
 
           {/* ----------------------------------------------------------
-              5. Filter bar — full-width card
+              5. Filter bar — search row + chip row
+              Three controls: scope chip · aging buckets · search.
+              HOLAT placeholder chips and visual-only sort removed.
               ---------------------------------------------------------- */}
-          <div className="bg-white rounded-2xl shadow-card p-3 mb-3">
-            <div className="flex items-center gap-3 flex-wrap">
+          <div className="bg-white rounded-2xl shadow-card p-3 mb-3 flex flex-col gap-2">
+            {/* Row 1: search input — full width, single line */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-[13px] h-[13px] text-ink3" />
+              <Input
+                placeholder={t("debt.filter.search_placeholder")}
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setOffset(0);
+                }}
+                className="pl-8 h-9 text-[13px] w-full"
+              />
+            </div>
 
+            {/* Row 2: scope chip + aging bucket segmented control */}
+            <div className="flex items-center gap-3 flex-wrap">
               {/* Scope chip — salesRoomId filter */}
               {userIsTeamLeadOrAdmin && rooms.data && (
-                <div className="relative">
+                <div className="relative shrink-0">
                   <button
                     className={[
                       "inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-[12px] font-semibold transition-colors",
@@ -459,23 +476,6 @@ export default function Debt() {
                 </div>
               )}
 
-              {/* Status chips — visual placeholders (no API mapping) */}
-              <div className="flex items-center gap-1">
-                <span className="eyebrow text-ink3 mr-1">Holat</span>
-                {(["Hammasi", "Faol", "Sud", "Qaytdi"] as const).map((s) => (
-                  <button
-                    key={s}
-                    title="Tez orada"
-                    disabled
-                    className="h-8 px-3 rounded-full text-[12px] font-semibold text-ink3 bg-white shadow-[inset_0_0_0_1px_#E5E7EB] opacity-60 cursor-not-allowed"
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-
-              <div className="h-6 w-px bg-line hidden md:block" />
-
               {/* Aging bucket segmented control */}
               <div
                 className="flex items-center gap-1 bg-paper rounded-xl p-1"
@@ -506,71 +506,6 @@ export default function Debt() {
                   </button>
                 ))}
               </div>
-
-              {/* Sort segmented control — visual-only, TODO: wire when API exposes sort param */}
-              {/* TODO(backend): expose sort param to wire this control */}
-              <div
-                className="hidden md:flex items-center gap-1 bg-paper rounded-xl p-1"
-                style={{ boxShadow: "inset 0 0 0 1px #E5E7EB" }}
-              >
-                {(["Ustuvorlik", "Summa", "Yosh"] as const).map((s, i) => (
-                  <button
-                    key={s}
-                    className={[
-                      "h-9 px-3 rounded-[10px] text-[12px] font-semibold transition-colors",
-                      i === 0
-                        ? "bg-white text-ink shadow-sm border border-line"
-                        : "text-ink3 bg-transparent border border-transparent",
-                    ].join(" ")}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-
-              {/* Search — push right on desktop */}
-              <div className="md:ml-auto w-full md:w-auto">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-[13px] h-[13px] text-ink3" />
-                  <Input
-                    placeholder="Mijoz qidirish"
-                    value={search}
-                    onChange={(e) => {
-                      setSearch(e.target.value);
-                      setOffset(0);
-                    }}
-                    className="pl-8 h-9 text-[13px] min-w-[220px]"
-                  />
-                </div>
-              </div>
-
-              {/* Overdue only toggle */}
-              <label
-                className={[
-                  "inline-flex items-center gap-2 h-9 px-3 rounded-full border transition-colors cursor-pointer select-none text-[12px] font-semibold",
-                  overdueOnly
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-line bg-white text-ink2 hover:border-line",
-                ].join(" ")}
-              >
-                <input
-                  type="checkbox"
-                  className="sr-only"
-                  checked={overdueOnly}
-                  onChange={(e) => {
-                    setOverdueOnly(e.target.checked);
-                    setOffset(0);
-                  }}
-                />
-                <span
-                  aria-hidden
-                  className={[
-                    "inline-block h-3 w-3 rounded-sm transition-colors",
-                    overdueOnly ? "bg-primary" : "border border-ink3/50",
-                  ].join(" ")}
-                />
-                {t("debt.filter.overdue_only")}
-              </label>
             </div>
           </div>
 
@@ -745,13 +680,14 @@ export default function Debt() {
               </div>
               <div className="h-px my-2" style={{ background: "linear-gradient(90deg,transparent,#E5E7EB 20%,#E5E7EB 80%,transparent)" }} />
 
-              {/* Collector rows */}
+              {/* Collector rows — top 3 bars: mint, next 3: amber, rest: gray */}
               {worklist.data?.by_collector.map((r, i) => {
                 const maxOut = Math.max(
                   ...( worklist.data?.by_collector.map((x) => x.outstanding) ?? [1] ),
                   1,
                 );
-                const barPct = (r.outstanding / maxOut) * 100;
+                const barPct = Math.max(8, (r.outstanding / maxOut) * 100);
+                const barColor = i < 3 ? "#10B981" : i < 6 ? "#F59E0B" : "#9CA3AF";
                 const active = salesRoomId === r.room_id;
                 return (
                   <div
@@ -789,8 +725,8 @@ export default function Debt() {
                       <div className="font-semibold text-ink text-[13px]">{r.room_name}</div>
                       <div className="mt-1.5 h-[3px] bg-line rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-mint rounded-full"
-                          style={{ width: `${barPct}%` }}
+                          className="h-full rounded-full"
+                          style={{ width: `${barPct}%`, background: barColor }}
                         />
                       </div>
                     </div>

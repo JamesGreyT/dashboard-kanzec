@@ -68,7 +68,11 @@ export default function DebtorRow({
   row: WorklistRow;
   onClick: () => void;
 }) {
-  const isUrgent = row.aging_90_plus > 0 && row.aging_90_plus >= (row.outstanding * 0.5);
+  // Urgent stripe only for P1/P2 — P3 is low-priority by definition, no stripe even if 90+
+  const isUrgent =
+    row.priority <= 2 &&
+    row.aging_90_plus > 0 &&
+    row.aging_90_plus >= row.outstanding * 0.5;
   const agingTotal =
     row.aging_0_30 + row.aging_30_60 + row.aging_60_90 + row.aging_90_plus;
 
@@ -88,7 +92,7 @@ export default function DebtorRow({
   return (
     <div
       onClick={onClick}
-      className="grid grid-cols-12 items-center px-4 py-3 border-b border-line cursor-pointer hover:bg-paper transition-colors relative"
+      className="grid grid-cols-12 items-center px-4 py-4 border-b border-line cursor-pointer hover:bg-paper transition-colors relative"
       role="row"
     >
       {/* Urgent left edge stripe */}
@@ -131,29 +135,31 @@ export default function DebtorRow({
         <div className="text-[10px] text-ink3 font-mono">USD</div>
       </div>
 
-      {/* Yosh — aging bar + days */}
-      <div className="col-span-2">
-        {agingTotal > 0 ? (
-          <div className="age-bar">
-            {row.aging_0_30 > 0 && (
-              <span className="age-0" style={{ flex: row.aging_0_30 }} />
-            )}
-            {row.aging_30_60 > 0 && (
-              <span className="age-30" style={{ flex: row.aging_30_60 }} />
-            )}
-            {row.aging_60_90 > 0 && (
-              <span className="age-60" style={{ flex: row.aging_60_90 }} />
-            )}
-            {row.aging_90_plus > 0 && (
-              <span className="age-90" style={{ flex: row.aging_90_plus }} />
-            )}
-          </div>
-        ) : (
-          <div className="age-bar" />
-        )}
+      {/* Yosh — aging bar + days. min-w-0 prevents the flex child from overflowing its grid column. */}
+      <div className="col-span-2 min-w-0">
+        <div className="w-full">
+          {agingTotal > 0 ? (
+            <div className="age-bar">
+              {row.aging_0_30 > 0 && (
+                <span className="age-0" style={{ flex: row.aging_0_30 }} />
+              )}
+              {row.aging_30_60 > 0 && (
+                <span className="age-30" style={{ flex: row.aging_30_60 }} />
+              )}
+              {row.aging_60_90 > 0 && (
+                <span className="age-60" style={{ flex: row.aging_60_90 }} />
+              )}
+              {row.aging_90_plus > 0 && (
+                <span className="age-90" style={{ flex: row.aging_90_plus }} />
+              )}
+            </div>
+          ) : (
+            <div className="age-bar" />
+          )}
+        </div>
         {daysSince != null && (
           <div
-            className={`text-[11px] mt-1 font-mono ${daysColor}`}
+            className={`text-[11px] mt-1.5 font-mono ${daysColor}`}
             style={isAmber ? { color: "#B45309" } : undefined}
           >
             {daysSince} kun
@@ -161,7 +167,7 @@ export default function DebtorRow({
         )}
       </div>
 
-      {/* Oxirgi aloqa */}
+      {/* Oxirgi aloqa — null renders as compact dash on desktop (no coral noise) */}
       <div className="col-span-2 text-[12px]">
         {row.last_contact_at ? (
           <>
@@ -171,10 +177,7 @@ export default function DebtorRow({
             </div>
           </>
         ) : (
-          <>
-            <div className="text-coral font-semibold">Hech qachon</div>
-            <div className="text-[10px] text-ink3">aloqa yo'q</div>
-          </>
+          <div className="text-ink3 text-[13px]">—</div>
         )}
       </div>
 
