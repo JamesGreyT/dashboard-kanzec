@@ -1122,7 +1122,10 @@ async def compute_ledger(
                   AND lp.deal_deadline_start IS NOT NULL
                   AND lp.instalment_days IS NOT NULL THEN
                CASE
-                 WHEN CURRENT_DATE > (lp.deal_deadline_start + (lp.instalment_days || ' days')::interval)::date
+                 -- `instalment_days * INTERVAL '1 day'` avoids the
+                 -- text-concat cast that fails in stricter modes:
+                 -- `(N || ' days')::interval` requires N::text first.
+                 WHEN CURRENT_DATE > (lp.deal_deadline_start + (lp.instalment_days * INTERVAL '1 day'))::date
                       THEN 'DEFAULT'
                  ELSE 'ON_TRACK'
                END
