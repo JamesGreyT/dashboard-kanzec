@@ -937,19 +937,27 @@ async def compute_ledger(
     ),
     -- Sum of payments since each problem-client's deal_deadline_start.
     -- Used by the deal_status CASE below: for PROBLEM_MONTHLY clients we
-    -- compare this to (months_elapsed × deal_monthly_amount). The JOIN
-    -- against legal_person is on text-keys to match the rest of the file.
+    -- compare this to (months_elapsed × deal_monthly_amount).
+    --
+    -- We can't JOIN payment + legal_person here because {person_f} uses
+    -- unqualified `person_id`, which becomes ambiguous when both tables
+    -- expose that column. Instead, drive the filter by an IN subquery
+    -- against the legal_person eligibility set.
     monthly_paid AS (
-      SELECT p.person_id::text AS person_id,
-             SUM(p.amount) AS paid_since_epoch
-        FROM smartup_rep.payment p
-        JOIN smartup_rep.legal_person lp
-          ON lp.person_id::text = p.person_id::text
-       WHERE p.person_id IS NOT NULL
-         AND lp.deal_deadline_start IS NOT NULL
-         AND p.payment_date >= lp.deal_deadline_start
+      SELECT person_id::text AS person_id,
+             SUM(amount) AS paid_since_epoch
+        FROM smartup_rep.payment
+       WHERE person_id IS NOT NULL
+         AND person_id::text IN (
+           SELECT person_id::text FROM smartup_rep.legal_person
+            WHERE deal_deadline_start IS NOT NULL
+         )
+         AND payment_date >= (
+           SELECT deal_deadline_start FROM smartup_rep.legal_person lp
+            WHERE lp.person_id::text = smartup_rep.payment.person_id::text
+         )
          {person_f}
-       GROUP BY p.person_id::text
+       GROUP BY person_id::text
     ),
     -- Universe of debtors: anyone with orders OR with an opening balance
     -- (even a client with only $X opening debt and no post-2022 activity
