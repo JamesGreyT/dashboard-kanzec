@@ -1,35 +1,27 @@
-import { lazy, Suspense, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 
 import PageHeader from '@/components/PageHeader'
 import MatrixTable from '@/components/analytics/MatrixTable'
+import MonthPicker from '@/components/MonthPicker'
 import {
   useDaysliceScoreboard,
-  useDaysliceProjection,
   useDaysliceRegionPivot,
   useDaysliceDrill,
   useSnapshotsDirections,
   type DaysliceScoreboard,
 } from '@/api/hooks'
-import { formatNumber, formatPercent } from '@/lib/format'
+import { formatNumber, currentMonthValue } from '@/lib/format'
 import { cn } from '@/lib/utils'
-
-// Plotly is heavy; lazy-load via the analytics chunk so the dashboard /
-// data-viewer routes don't pull it in.
-const PlotlyChart = lazy(() => import('@/charts/PlotlyChart').then((m) => ({ default: m.default })))
 
 const PLAYFAIR = "'Playfair Display', Georgia, serif"
 const DM_SANS = "'DM Sans', system-ui"
 const PLEX_MONO = "'IBM Plex Mono', ui-monospace, monospace"
 
-// Month picker helpers — the `<input type="month">` value is "YYYY-MM";
-// translate to a query-friendly `as_of` ISO date (YYYY-MM-DD).
-function currentMonthValue(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-}
-
+// Translate a "YYYY-MM" picker value to a backend-friendly `as_of`
+// ISO date. Current month → today (so day_n / month_days reads as a
+// real MTD progression). Past month → last day of that month.
 function asOfFromMonth(monthValue: string): string | undefined {
   // Empty month value → no filter, backend defaults to today.
   if (!monthValue) return undefined
@@ -62,10 +54,9 @@ export default function Dayslice() {
   const filters = { direction, years, as_of }
 
   const scoreboardQ = useDaysliceScoreboard(filters)
-  const projectionQ = useDaysliceProjection({ enabled: true, as_of, years, direction })
   const regionQ = useDaysliceRegionPivot(filters)
 
-  const slice = scoreboardQ.data?.slice ?? projectionQ.data?.slice
+  const slice = scoreboardQ.data?.slice
   const sotuvRows = scoreboardQ.data?.sotuv?.rows ?? []
   const kirimRows = scoreboardQ.data?.kirim?.rows ?? []
   const yearCols = scoreboardQ.data?.year_columns ?? []
@@ -94,27 +85,10 @@ export default function Dayslice() {
           <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70 mr-1" style={{ fontFamily: PLEX_MONO }}>
             {t('data.filters.label')}
           </span>
-          {/* Month picker — defaults to current month so the page boots with
-              the live slice. Selecting a past month anchors `as_of` on the
-              last day of that month (so the slice fills the whole month);
-              the current month stays anchored on today, so day_n/month_days
-              still reads as a real MTD progression. */}
-          <input
-            type="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-            max={currentMonthValue()}
-            className={cn('month-btn font-medium normal-case', month !== currentMonthValue() && 'active')}
-            aria-label={t('admin.dayslice.month')}
-          />
-          <button
-            type="button"
-            onClick={() => setMonth(currentMonthValue())}
-            disabled={month === currentMonthValue()}
-            className="month-btn normal-case disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {t('admin.dayslice.thisMonth')}
-          </button>
+          {/* Month picker — calendar-icon trigger + dropdown with presets and
+              a 12-month grid. Defaults to current month so the page boots
+              with the live slice. */}
+          <MonthPicker value={month} onChange={setMonth} label={t('admin.dayslice.month')} />
           <select
             value={direction}
             onChange={(e) => setDirection(e.target.value)}
@@ -138,11 +112,6 @@ export default function Dayslice() {
           </div>
         </div>
       </header>
-
-      {/* Projection card */}
-      {projectionQ.data && (
-        <ProjectionPanel data={projectionQ.data} />
-      )}
 
       {/* Scoreboard — sotuv */}
       <Section title={`${t('admin.dayslice.scoreboard')} · ${t('analytics.comparison.sotuv')}`}>
@@ -202,148 +171,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <h2 className="section-title mb-4" style={{ fontFamily: DM_SANS }}>{title}</h2>
       {children}
     </section>
-  )
-}
-
-// ── Projection panel: Plotly chart with min/mean/max bands ──────────────
-
-function ProjectionPanel({ data }: { data: NonNullable<ReturnType<typeof useDaysliceProjection>['data']> }) {
-  const { t } = useTranslation()
-  const sotuv = data.projection.sotuv
-  const kirim = data.projection.kirim
-  const currentSotuv = data.current_mtd.sotuv
-  const currentKirim = data.current_mtd.kirim
-  const dayN = data.slice.day_n
-  const monthDays = data.slice.month_days
-
-  // Build a small bar chart per measure: min/mean/max projection + actual MTD
-  const sotuvProgress = sotuv.mean ? (currentSotuv / sotuv.mean) * 100 : 0
-  const kirimProgress = kirim.mean ? (currentKirim / kirim.mean) * 100 : 0
-  const sotuvOnPace = (currentSotuv / sotuv.mean) * (monthDays / Math.max(dayN, 1))
-  const kirimOnPace = (currentKirim / kirim.mean) * (monthDays / Math.max(dayN, 1))
-
-  return (
-    <Section title={t('admin.dayslice.projection')}>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ProjectionCard
-          label={t('analytics.comparison.sotuv')}
-          current={currentSotuv}
-          projection={sotuv}
-          progressPct={sotuvProgress}
-          onPaceRatio={sotuvOnPace}
-          dayN={dayN}
-          monthDays={monthDays}
-        />
-        <ProjectionCard
-          label={t('analytics.comparison.kirim')}
-          current={currentKirim}
-          projection={kirim}
-          progressPct={kirimProgress}
-          onPaceRatio={kirimOnPace}
-          dayN={dayN}
-          monthDays={monthDays}
-        />
-      </div>
-      <div className="glass-card rounded-xl p-3 h-72 mt-4">
-        <Suspense fallback={<div className="shimmer-skeleton h-full w-full rounded-md" />}>
-          <PlotlyChart
-            data={[
-              {
-                type: 'bar',
-                name: t('admin.dayslice.minProj'),
-                x: ['Sotuv', 'Kirim'],
-                y: [sotuv.min, kirim.min],
-                marker: { color: '#FBBF24', opacity: 0.5 },
-                hovertemplate: '%{x}<br>min: %{y:,.0f}<extra></extra>',
-              },
-              {
-                type: 'bar',
-                name: t('admin.dayslice.meanProj'),
-                x: ['Sotuv', 'Kirim'],
-                y: [sotuv.mean - sotuv.min, kirim.mean - kirim.min],
-                marker: { color: '#9E7B2F', opacity: 0.7 },
-                hovertemplate: '%{x}<br>mean delta: %{y:,.0f}<extra></extra>',
-              },
-              {
-                type: 'bar',
-                name: t('admin.dayslice.maxProj'),
-                x: ['Sotuv', 'Kirim'],
-                y: [sotuv.max - sotuv.mean, kirim.max - kirim.mean],
-                marker: { color: '#34D399', opacity: 0.5 },
-                hovertemplate: '%{x}<br>max delta: %{y:,.0f}<extra></extra>',
-              },
-              {
-                type: 'scatter',
-                mode: 'markers',
-                name: t('admin.dayslice.currentMtd'),
-                x: ['Sotuv', 'Kirim'],
-                y: [currentSotuv, currentKirim],
-                marker: { color: '#D4A843', size: 18, symbol: 'diamond', line: { color: '#7A5E20', width: 2 } },
-              },
-            ]}
-            layout={{ barmode: 'stack', showlegend: true, margin: { t: 10, r: 10, b: 30, l: 60 } }}
-          />
-        </Suspense>
-      </div>
-    </Section>
-  )
-}
-
-function ProjectionCard({
-  label,
-  current,
-  projection,
-  progressPct,
-  onPaceRatio,
-  dayN,
-  monthDays,
-}: {
-  label: string
-  current: number
-  projection: { min: number; mean: number; max: number }
-  progressPct: number
-  onPaceRatio: number
-  dayN: number
-  monthDays: number
-}) {
-  const { t } = useTranslation()
-  const onPacePct = onPaceRatio * 100
-  const aheadOfPace = onPacePct >= 100
-  return (
-    <div className="glass-card kpi-glow rounded-xl p-5">
-      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.14em]" style={{ fontFamily: DM_SANS }}>
-        {label} · {t('admin.dayslice.projection')}
-      </p>
-      <p className="mt-2 text-3xl font-semibold tabular-nums leading-tight" style={{ fontFamily: PLAYFAIR }}>
-        {formatNumber(current)}
-      </p>
-      <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground" style={{ fontFamily: PLEX_MONO }}>
-        USD · {t('admin.dayslice.mtdAt')} {dayN}/{monthDays}
-      </p>
-      <div className="mt-4 flex items-baseline gap-3 text-xs" style={{ fontFamily: DM_SANS }}>
-        <span className={cn('tabular-nums font-medium', aheadOfPace ? 'text-[#34D399]' : 'text-[#FB923C]')}>
-          {aheadOfPace ? '▲' : '▼'} {Math.abs(onPacePct - 100).toFixed(0)}% {aheadOfPace ? t('dashboard.kpi.aheadOfPace') : t('dashboard.kpi.behindOfPace')}
-        </span>
-        <span className="text-muted-foreground/60">·</span>
-        <span className="text-muted-foreground tabular-nums">
-          {formatPercent(progressPct, 0)} {t('admin.dayslice.ofMonthMean')}
-        </span>
-      </div>
-      <div className="mt-3 grid grid-cols-3 gap-2 text-xs" style={{ fontFamily: DM_SANS }}>
-        <ProjStat label={t('admin.dayslice.min')} value={projection.min} />
-        <ProjStat label={t('admin.dayslice.mean')} value={projection.mean} />
-        <ProjStat label={t('admin.dayslice.max')} value={projection.max} />
-      </div>
-    </div>
-  )
-}
-
-function ProjStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div>
-      <p className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground/70" style={{ fontFamily: PLEX_MONO }}>{label}</p>
-      <p className="text-base tabular-nums font-medium" style={{ fontFamily: PLAYFAIR }}>{formatNumber(value)}</p>
-    </div>
   )
 }
 

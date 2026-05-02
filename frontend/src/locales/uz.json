@@ -1,4 +1,12 @@
 {
+  "dateRange": {
+    "presets": "Tanlovlar",
+    "thisMonth": "Joriy oy",
+    "lastMonth": "O'tgan oy",
+    "pickMonth": "Oy tanlash",
+    "prevYear": "Oldingi yil",
+    "nextYear": "Keyingi yil"
+  },
   "auth": {
     "tagline": "Operatsion boshqaruv",
     "username": "Foydalanuvchi",
