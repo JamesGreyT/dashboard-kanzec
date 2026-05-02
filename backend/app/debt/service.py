@@ -935,6 +935,22 @@ async def compute_ledger(
          {person_f}
        GROUP BY person_id::text
     ),
+    -- Sum of payments since each problem-client's deal_deadline_start.
+    -- Used by the deal_status CASE below: for PROBLEM_MONTHLY clients we
+    -- compare this to (months_elapsed × deal_monthly_amount). The JOIN
+    -- against legal_person is on text-keys to match the rest of the file.
+    monthly_paid AS (
+      SELECT p.person_id::text AS person_id,
+             SUM(p.amount) AS paid_since_epoch
+        FROM smartup_rep.payment p
+        JOIN smartup_rep.legal_person lp
+          ON lp.person_id::text = p.person_id::text
+       WHERE p.person_id IS NOT NULL
+         AND lp.deal_deadline_start IS NOT NULL
+         AND p.payment_date >= lp.deal_deadline_start
+         {person_f}
+       GROUP BY p.person_id::text
+    ),
     -- Universe of debtors: anyone with orders OR with an opening balance
     -- (even a client with only $X opening debt and no post-2022 activity
     -- should appear — they still owe us).
@@ -1038,6 +1054,8 @@ async def compute_ledger(
            lp.group_name2                         AS category,
            lp.direction                           AS direction,
            lp.client_group                        AS client_group,
+           lp.deal_deadline_start                 AS deal_deadline_start,
+           lp.deal_monthly_amount                 AS deal_monthly_amount,
            COALESCE(lp.instalment_days, :default_term) AS term_days,
            COALESCE(ob.opening_debt, 0)           AS opening_debt,
            COALESCE(ob.opening_credit, 0)         AS opening_credit,
@@ -1070,7 +1088,52 @@ async def compute_ledger(
            cg.last_order_date,
            rp.last_payment_date,
            dr.room_id                             AS primary_room_id,
-           rr.room_name                           AS manager
+           rr.room_name                           AS manager,
+           -- Deal status: computed live from client_group +
+           -- deal_deadline_start + instalment_days + the payment ledger.
+           --
+           -- PROBLEM_MONTHLY math: months_elapsed since deal_deadline_start
+           -- × deal_monthly_amount = expected_paid; if the actual payment
+           -- sum since that date is below the threshold the client is
+           -- BEHIND, otherwise ON_TRACK.
+           --
+           -- See plan in
+           -- C:/Users/Ilhom/.claude/plans/based-on-backend-and-witty-puzzle.md
+           CASE
+             WHEN lp.client_group = 'CLOSED' THEN 'CLOSED'
+             WHEN (COALESCE(cg.sotuv, 0)
+                    + COALESCE(ob.opening_debt, 0)
+                    - COALESCE(cg.vozrat, 0)
+                    - COALESCE(rp.tolov, 0)
+                    - COALESCE(ob.opening_credit, 0)) <= 0 THEN 'FULFILLED'
+             WHEN lp.client_group = 'NORMAL' THEN
+               CASE WHEN COALESCE(ag.overdue, 0) > 0 THEN 'OVERDUE' ELSE 'ON_TRACK' END
+             WHEN lp.client_group = 'PROBLEM_DEADLINE'
+                  AND lp.deal_deadline_start IS NOT NULL
+                  AND lp.instalment_days IS NOT NULL THEN
+               CASE
+                 WHEN CURRENT_DATE > (lp.deal_deadline_start + (lp.instalment_days || ' days')::interval)::date
+                      THEN 'DEFAULT'
+                 ELSE 'ON_TRACK'
+               END
+             WHEN lp.client_group = 'PROBLEM_MONTHLY'
+                  AND lp.deal_deadline_start IS NOT NULL
+                  AND lp.deal_monthly_amount IS NOT NULL
+                  AND lp.deal_monthly_amount > 0 THEN
+               CASE
+                 WHEN COALESCE(mp.paid_since_epoch, 0)
+                      >= (
+                        GREATEST(
+                          0,
+                          (DATE_PART('year',  age(CURRENT_DATE, lp.deal_deadline_start)) * 12
+                           + DATE_PART('month', age(CURRENT_DATE, lp.deal_deadline_start)))
+                        ) * lp.deal_monthly_amount
+                      )
+                   THEN 'ON_TRACK'
+                 ELSE 'BEHIND'
+               END
+             ELSE 'UNKNOWN'
+           END                                    AS deal_status
       FROM universe u
       LEFT JOIN client_gross cg USING (person_id)
       LEFT JOIN real_pay     rp USING (person_id)
@@ -1079,6 +1142,7 @@ async def compute_ledger(
       LEFT JOIN dominant_room dr USING (person_id)
       LEFT JOIN app.room rr ON rr.room_id = dr.room_id
       LEFT JOIN smartup_rep.legal_person lp ON lp.person_id::text = u.person_id
+      LEFT JOIN monthly_paid mp USING (person_id)
     """
 
     where_tail = f"qarz > :min_owed {filter_sql}"

@@ -258,6 +258,27 @@ export function useDebtPrepayments(filters: { limit?: number; offset?: number; s
 
 // ── Clients aging (the third worklist tab) ────────────────────────────────
 
+/** 5-token deal-status enum, mirrors the backend's CHECK constraint on
+ *  smartup_rep.legal_person.client_group. */
+export type ClientGroup =
+  | 'NORMAL'
+  | 'PROBLEM_DEADLINE'
+  | 'PROBLEM_MONTHLY'
+  | 'PROBLEM_UNDEFINED'
+  | 'CLOSED'
+
+/** Computed deal-status badge, derived per-row in compute_ledger from
+ *  client_group + deal_deadline_start + instalment_days + the payment
+ *  ledger. See backend/app/debt/service.py CASE expression. */
+export type DealStatus =
+  | 'ON_TRACK'
+  | 'OVERDUE'
+  | 'DEFAULT'
+  | 'BEHIND'
+  | 'FULFILLED'
+  | 'CLOSED'
+  | 'UNKNOWN'
+
 export type ClientsAgingRow = {
   person_id: number
   client_name: string
@@ -265,7 +286,10 @@ export type ClientsAgingRow = {
   region_name: string | null
   category: string | null
   direction: string | null
-  client_group: string | null
+  client_group: ClientGroup | null
+  deal_status: DealStatus
+  deal_deadline_start: string | null
+  deal_monthly_amount: number | null
   term_days: number | null
   opening_debt: number
   opening_credit: number

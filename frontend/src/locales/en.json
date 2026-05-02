@@ -135,6 +135,7 @@
       "overdueOnly": "Overdue only",
       "overdueTotal": "Overdue total",
       "cols": {
+        "status": "Status",
         "termDays": "Term (days)",
         "qarz": "Debt",
         "notDue": "Not due",
@@ -144,6 +145,22 @@
         "group": "Group",
         "category": "Note"
       }
+    },
+    "dealStatus": {
+      "ON_TRACK": "On track",
+      "OVERDUE": "Overdue",
+      "DEFAULT": "Default",
+      "BEHIND": "Behind",
+      "FULFILLED": "Fulfilled",
+      "CLOSED": "Closed",
+      "UNKNOWN": "Unknown"
+    },
+    "clientGroups": {
+      "NORMAL": "Normal",
+      "PROBLEM_DEADLINE": "Problem (deadline)",
+      "PROBLEM_MONTHLY": "Problem (monthly)",
+      "PROBLEM_UNDEFINED": "Problem (undefined)",
+      "CLOSED": "Closed"
     },
     "searchPlaceholder": "Search by client name…",
     "stats": {

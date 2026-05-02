@@ -135,6 +135,7 @@
       "overdueOnly": "Только просроченные",
       "overdueTotal": "Всего просрочено",
       "cols": {
+        "status": "Статус",
         "termDays": "Срок (дн.)",
         "qarz": "Долг",
         "notDue": "Не просрочено",
@@ -144,6 +145,22 @@
         "group": "Группа",
         "category": "Заметка"
       }
+    },
+    "dealStatus": {
+      "ON_TRACK": "По плану",
+      "OVERDUE": "Просрочено",
+      "DEFAULT": "Дефолт",
+      "BEHIND": "Отстаёт",
+      "FULFILLED": "Закрыто",
+      "CLOSED": "Закрыт",
+      "UNKNOWN": "Не ясно"
+    },
+    "clientGroups": {
+      "NORMAL": "Обычный",
+      "PROBLEM_DEADLINE": "Проблемный (срок)",
+      "PROBLEM_MONTHLY": "Проблемный (помесячно)",
+      "PROBLEM_UNDEFINED": "Проблемный (не ясно)",
+      "CLOSED": "Закрыт"
     },
     "searchPlaceholder": "Поиск по имени клиента…",
     "stats": {
