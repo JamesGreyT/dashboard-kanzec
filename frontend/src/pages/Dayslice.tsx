@@ -22,13 +22,23 @@ const PLEX_MONO = "'IBM Plex Mono', ui-monospace, monospace"
 // Translate the picker value into the dayslice filter shape the backend
 // expects. Two modes:
 //
-//   month  → emit `as_of` only (backend builds a "1 → as_of.day" slice
-//            and replays it across every year). Current month anchors
-//            on today; past months anchor on the last day of that month.
-//   range  → emit `slice_start` + `slice_end`; backend takes their
-//            (month, day) tuple and replays the same window across every
-//            year. `as_of` becomes the range end (so day_n / month_days
-//            still reflects a "where in the slice are we" reading).
+//   month  → emit `slice_start = 1st` + `slice_end = last-of-month`
+//            ALWAYS (even for the current month). The backend takes the
+//            (month, day) tuple of each and replays the SAME window
+//            across every year. So "May" means May 1-31 for every year
+//            on the page — past years get the full month sums, the
+//            current year gets sums up to today (future dates have no
+//            data, so they don't add anything). This is the right model
+//            for year-over-year comparison: "what did we do this May vs.
+//            last May, full-month basis."
+//
+//            `as_of` is sent alongside (set to today for current month,
+//            last-day for past) so the backend can populate the
+//            month_start / day_n / month_days fields in the response
+//            for the slice header label.
+//
+//   range  → emit `slice_start` + `slice_end` directly. Same semantics:
+//            backend replays the (month, day) tuple across every year.
 function filtersFromPicker(v: DateRangeValue): {
   as_of?: string
   slice_start?: string
@@ -42,15 +52,19 @@ function filtersFromPicker(v: DateRangeValue): {
   const m = Number(mStr)
   if (!Number.isFinite(y) || !Number.isFinite(m)) return {}
 
+  // First and last calendar day of the picked month.
+  const firstIso = `${y}-${String(m).padStart(2, '0')}-01`
+  const last = new Date(y, m, 0)
+  const lastIso = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}-${String(last.getDate()).padStart(2, '0')}`
+
   const now = new Date()
   const isCurrent = y === now.getFullYear() && m === now.getMonth() + 1
-  if (isCurrent) {
-    return { as_of: now.toISOString().slice(0, 10) }
-  }
-  // Past month: anchor on the last calendar day of that month.
-  const last = new Date(y, m, 0)
+  const as_of = isCurrent ? now.toISOString().slice(0, 10) : lastIso
+
   return {
-    as_of: `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}-${String(last.getDate()).padStart(2, '0')}`,
+    as_of,
+    slice_start: firstIso,
+    slice_end: lastIso,
   }
 }
 
@@ -90,17 +104,16 @@ export default function Dayslice() {
             {t('admin.dayslice.title')}
           </h1>
           {slice && (
-            // The slice window (month_start → as_of) is replayed across every
-            // year on the page — so prefix with an "all years" hint that
-            // disambiguates from "this month, current year only". For custom
-            // ranges, drop the day_n / month_days caption (it doesn't carry
-            // the same MTD-progression meaning).
+            // Slice window (month_start → as_of) replayed across every year
+            // on the page. Prefix with `↻` and trail with "across each year"
+            // so the cross-year semantics are explicit. We deliberately drop
+            // the day_n / month_days caption — when the slice is a full
+            // month, "Kun 31/31" is meaningless; for partial windows
+            // (custom ranges, MTD), the slice range itself already tells
+            // you everything.
             <p className="text-xs text-muted-foreground" style={{ fontFamily: PLEX_MONO }}>
               <span className="text-muted-foreground/60 mr-1.5">↻</span>
               {slice.month_start} → {slice.as_of}
-              {pickerValue.kind === 'month' && (
-                <> · {t('admin.dayslice.day')} {slice.day_n}/{slice.month_days}</>
-              )}
               <span className="text-muted-foreground/60 ml-1.5">· {t('admin.dayslice.acrossYears')}</span>
             </p>
           )}
