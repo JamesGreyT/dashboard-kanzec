@@ -5,9 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 const trendToneClass: Record<"good" | "risk" | "quiet", string> = {
-  good: "bg-mintbg text-mintdk border-transparent hover:bg-mintbg",
-  risk: "bg-coralbg text-coraldk border-transparent hover:bg-coralbg",
-  quiet: "bg-line text-ink3 border-transparent hover:bg-line",
+  good: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border-transparent",
+  risk: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300 border-transparent",
+  quiet: "bg-muted text-muted-foreground border-transparent",
 };
 
 export default function StatCard({
@@ -24,11 +24,13 @@ export default function StatCard({
   children?: ReactNode;
 }) {
   return (
-    <Card className="min-h-[168px] flex flex-col bg-card border-line rounded-2xl shadow-card">
+    <Card className="min-h-[168px] flex flex-col">
       <CardContent className="flex-1 flex flex-col pt-6">
-        <div className="eyebrow">{label}</div>
+        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          {label}
+        </div>
         <div className="flex-1 flex flex-col justify-end items-end mt-4">
-          <div className="kpi-num text-[40px] text-ink">
+          <div className="text-4xl font-semibold text-foreground leading-none tabular-nums">
             <AnimatePresence mode="wait" initial={false}>
               <motion.span
                 key={String(value)}
@@ -42,9 +44,9 @@ export default function StatCard({
               </motion.span>
             </AnimatePresence>
           </div>
-          {unit && <div className="text-sm text-ink3 mt-1">{unit}</div>}
+          {unit && <div className="text-sm text-muted-foreground mt-1">{unit}</div>}
           {trend && (
-            <Badge className={cn("mt-3 gap-1 font-mono tabular-nums rounded-full", trendToneClass[trend.tone])}>
+            <Badge className={cn("mt-3 gap-1 tabular-nums", trendToneClass[trend.tone])}>
               {trend.arrow && <span>{trend.arrow}</span>}
               <span>{trend.text}</span>
             </Badge>

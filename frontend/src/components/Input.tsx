@@ -29,28 +29,21 @@ export default function Input({
   const field = (
     <div className="relative flex items-center">
       {leading && (
-        <span className="absolute left-3 text-ink3 pointer-events-none">
+        <span className="absolute left-3 text-muted-foreground pointer-events-none">
           {leading}
         </span>
       )}
       <ShadInput
         id={inputId}
         type={effectiveType}
-        className={cn(
-          "h-11 rounded-xl border-line bg-muted px-4 text-sm",
-          "focus-visible:bg-card focus-visible:border-mint focus-visible:ring-4 focus-visible:ring-mint/15 focus-visible:ring-offset-0",
-          "placeholder:text-ink4",
-          leading && "pl-9",
-          isPassword && "pr-10",
-          className,
-        )}
+        className={cn(leading && "pl-9", isPassword && "pr-10", className)}
         {...rest}
       />
       {isPassword && (
         <button
           type="button"
           onClick={() => setRevealed((r) => !r)}
-          className="absolute right-2 p-1 text-ink3 hover:text-ink transition-colors"
+          className="absolute right-2 p-1 text-muted-foreground hover:text-foreground transition-colors"
           aria-label={revealed ? t("common.hide_password") : t("common.show_password")}
           title={revealed ? t("common.hide_password") : t("common.show_password")}
         >
@@ -63,7 +56,7 @@ export default function Input({
   if (layout === "inline" && label) {
     return (
       <div className="grid grid-cols-[100px_1fr] items-center gap-x-4">
-        <Label htmlFor={inputId} className="text-right eyebrow">
+        <Label htmlFor={inputId} className="text-right text-xs text-muted-foreground uppercase tracking-wider">
           {label}
         </Label>
         {field}
@@ -74,7 +67,7 @@ export default function Input({
   return (
     <div className="flex flex-col gap-2">
       {label && (
-        <Label htmlFor={inputId} className="eyebrow">
+        <Label htmlFor={inputId} className="text-xs text-muted-foreground uppercase tracking-wider">
           {label}
         </Label>
       )}
