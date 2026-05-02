@@ -327,7 +327,7 @@
      .age-bar > .age-0 / .age-30 / .age-60 / .age-90   ---- */
   .age-bar {
     display: flex;
-    height: 6px;
+    height: 4px;
     border-radius: 999px;
     overflow: hidden;
     background: #f3f4f6;
@@ -340,7 +340,7 @@
   .age-0  { background: #10b981; } /* 0-30 kun — mint  */
   .age-30 { background: #34d399; } /* 31-60 kun — mint-light */
   .age-60 { background: #f59e0b; } /* 61-90 kun — amber */
-  .age-90 { background: #f87171; } /* 90+ kun   — coral */
+  .age-90 { background: #fb923c; } /* 90+ kun   — warm amber-orange (was coral) */
 
   /* ---- Pulsing live status dot ---- */
   .dot-live {
@@ -386,8 +386,8 @@
 
   /* ---- Desktop inline action icon button ---- */
   .btn-ic {
-    width: 30px;
-    height: 30px;
+    width: 36px;
+    height: 36px;
     border-radius: 9px;
     display: inline-flex;
     align-items: center;
@@ -405,6 +405,19 @@
     background: #10b981;
     color: #ffffff;
     box-shadow: 0 6px 14px -6px rgba(16, 185, 129, 0.55);
+  }
+}
+
+/* ============================================================
+   No-scrollbar utility — hide scrollbar while keeping scroll.
+   ============================================================ */
+@layer utilities {
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }
 

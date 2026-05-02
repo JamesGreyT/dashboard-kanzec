@@ -7,7 +7,7 @@
  *   onClick — navigate to client detail
  *   index   — for stagger animation delay
  */
-import { Phone, MessageSquare, MapPin } from "lucide-react";
+import { Phone, MessageSquare } from "lucide-react";
 
 // ---- Types (mirrored from DebtWorklist.tsx — keep in sync) -----------------
 
@@ -255,35 +255,28 @@ export default function DebtorCard({
         )}
       </div>
 
-      {/* ACTION PILLS ROW — stopPropagation so they don't trigger card click */}
-      <div className="flex gap-2 mt-3">
+      {/* ACTION PILLS ROW — compact right-aligned so the green bar doesn't dominate mobile */}
+      <div className="flex justify-end gap-2 mt-3">
         <a
           href={row.main_phone ? `tel:${row.main_phone.replace(/[^+\d]/g, "")}` : "#"}
           onClick={(e) => e.stopPropagation()}
-          className="pill-call flex-1 justify-center min-h-[44px]"
+          className="pill-call"
+          style={{ padding: "6px 12px", fontSize: 12 }}
           aria-label="Qo'ng'iroq"
         >
-          <Phone className="w-4 h-4" />
+          <Phone className="w-3.5 h-3.5" />
           Qo'ng'iroq
         </a>
         <a
           href={row.main_phone ? `sms:${row.main_phone.replace(/[^+\d]/g, "")}` : "#"}
           onClick={(e) => e.stopPropagation()}
-          className="pill-sms flex-1 justify-center min-h-[44px]"
+          className="pill-sms"
+          style={{ padding: "6px 12px", fontSize: 12 }}
           aria-label="SMS"
         >
-          <MessageSquare className="w-4 h-4" />
+          <MessageSquare className="w-3.5 h-3.5" />
           SMS
         </a>
-        <button
-          type="button"
-          onClick={(e) => e.stopPropagation()}
-          aria-label="Yo'l"
-          className="w-11 h-11 rounded-full bg-white flex items-center justify-center shrink-0"
-          style={{ boxShadow: "inset 0 0 0 1px #E5E7EB" }}
-        >
-          <MapPin className="w-[18px] h-[18px] text-ink" />
-        </button>
       </div>
     </div>
   );
