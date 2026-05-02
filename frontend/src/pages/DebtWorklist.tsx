@@ -1,37 +1,28 @@
 /**
- * Qarzlar / Debt collection worklist — Mobile Card Stream rebuild (PR-A).
+ * Qarzlar / Debt Collection Worklist — Editorial Restraint redesign.
  *
- * Phone  (<md): vertical DebtorCard stack — avatar, Fraunces amount, aging bar,
- *               tap-to-call/SMS pills.
- * Desktop (md+): card-wrapped 12-col grid of DebtorRow components.
+ * Aesthetic: editorial restraint with dramatic serif moments. The page
+ * reads like a magazine — a hero masthead with one Fraunces title and
+ * two anchored numbers, a hairline-bordered band of secondary stats,
+ * a typographic filter strip, and a long magazine-table list of
+ * debtors separated by hairline rules (no card chrome).
  *
- * Single-column page flow (no right-rail split):
- *   PageHeading → tabs → KPI strip → quick-win banner → filter bar →
- *   live indicator → debtor list → pagination →
- *   by-collector rollup (admin) → aging buckets section
+ * Single-column flow (no right-rail split):
+ *   Masthead → secondary band → filter strip →
+ *   debtor list → pagination → by-collector → aging buckets
  */
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import {
-  Search,
-  ChevronDown,
-  X,
-  CheckCircle2,
-} from "lucide-react";
+import { Search, ChevronDown, X } from "lucide-react";
 import { api } from "../lib/api";
 import { formatIsoDate } from "../lib/format";
 import { useAuth } from "../lib/auth";
 import Card from "../components/Card";
 import Input from "../components/Input";
 import Pagination from "../components/Pagination";
-import PageHeading from "../components/PageHeading";
 import DebtorCard from "../components/DebtorCard";
 import DebtorRow from "../components/DebtorRow";
 import { WorklistRow } from "../components/DebtorCard";
@@ -75,8 +66,7 @@ interface Room {
   room_name: string;
 }
 
-
-// ---- Formatting helpers -----------------------------------------------------
+// ---- Formatters -------------------------------------------------------------
 
 function formatUsd(n: number | null | undefined): string {
   if (n == null) return "—";
@@ -87,12 +77,37 @@ function formatUsd(n: number | null | undefined): string {
   });
 }
 
-function renderDate(iso: string | null | undefined, _locale: string): string {
+/** Compact USD: $1.2M, $580K. For hero displays where space is precious. */
+function formatUsdCompact(n: number | null | undefined): string {
+  if (n == null) return "—";
+  if (n === 0) return "$0";
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000) {
+    return `$${(n / 1_000_000).toFixed(2).replace(/\.?0+$/, "")}M`;
+  }
+  if (abs >= 1_000) {
+    return `$${(n / 1_000).toFixed(0)}K`;
+  }
+  return `$${n.toFixed(0)}`;
+}
+
+function renderDate(iso: string | null | undefined): string {
   return formatIsoDate(iso);
 }
 
+function formatTodayUz(): string {
+  const now = new Date();
+  const months = [
+    "yanvar", "fevral", "mart", "aprel", "may", "iyun",
+    "iyul", "avgust", "sentyabr", "oktyabr", "noyabr", "dekabr",
+  ];
+  const day = now.getDate();
+  const month = months[now.getMonth()];
+  const year = now.getFullYear();
+  return `${day} ${month} ${year}`;
+}
 
-// ---- AgingBucket helper for page-level aggregation -------------------------
+// ---- Aging aggregation ------------------------------------------------------
 
 function agingBucketPcts(rows: WorklistRow[]) {
   const totals = rows.reduce(
@@ -115,7 +130,9 @@ function agingBucketPcts(rows: WorklistRow[]) {
   };
 }
 
-// ---- Main page --------------------------------------------------------------
+// ============================================================================
+// MAIN PAGE
+// ============================================================================
 
 export default function Debt() {
   const { t, i18n } = useTranslation();
@@ -128,19 +145,16 @@ export default function Debt() {
   // ---- Filter state ---------------------------------------------------------
   const [search, setSearch] = useState("");
   const [salesRoomId, setSalesRoomId] = useState<string>("");
-  // direction + outcome kept in state for API query; setters exposed but not
-  // yet wired to UI controls in this PR — will be added in a follow-up.
   const [direction, setDirection] = useState<string>("");
-  void setDirection; // reserved for future direction-filter chip
+  void setDirection;
   const [agingBucket, setAgingBucket] = useState<string>("");
   const [outcome, setOutcome] = useState<string>("");
-  void setOutcome; // reserved for future outcome-filter chip
+  void setOutcome;
   const [overdueOnly, setOverdueOnly] = useState(false);
-  void setOverdueOnly; // UI removed; state kept for API query param
+  void setOverdueOnly;
   const [offset, setOffset] = useState(0);
   const limit = 25;
 
-  // Quick-win banner dismiss (persisted in localStorage)
   const QUICKWIN_KEY = "debt.quickwin.dismissed";
   const [quickwinDismissed, setQuickwinDismissed] = useState(() => {
     try {
@@ -209,17 +223,21 @@ export default function Debt() {
   const worklistRows = worklist.data?.rows ?? [];
   const summary = worklist.data?.summary;
 
-  // Quick-win: debtors with outstanding < 1,000,000 (in USD that's < 1M — treat as raw < 1_000_000)
-  const quickWinCount = worklistRows.filter((r) => r.outstanding > 0 && r.outstanding < 1_000_000).length;
+  const quickWinCount = worklistRows.filter(
+    (r) => r.outstanding > 0 && r.outstanding < 1_000_000,
+  ).length;
   const showQuickWin = quickWinCount > 0 && !quickwinDismissed;
 
-  // Aging bucket percentages for the "Yosh taqsimoti" section
   const agingPcts = agingBucketPcts(worklistRows);
 
   // ---- Handlers ------------------------------------------------------------
   const handleDismissQuickWin = () => {
     setQuickwinDismissed(true);
-    try { localStorage.setItem(QUICKWIN_KEY, "1"); } catch { /* ignore */ }
+    try {
+      localStorage.setItem(QUICKWIN_KEY, "1");
+    } catch {
+      /* ignore */
+    }
   };
 
   const handleTabChange = (k: "worklist" | "prepayments") => {
@@ -227,646 +245,382 @@ export default function Debt() {
     setOffset(0);
   };
 
-  // ---- Render --------------------------------------------------------------
+  // ============================================================================
+  // RENDER
+  // ============================================================================
   return (
-    <div>
+    <div className="relative pb-20">
       {/* ============================================================
-          1. Page Heading
+          1. MASTHEAD — editorial hero
           ============================================================ */}
-      <PageHeading
-        crumb={[
-          t("dashboard.crumb_dashboard"),
-          t("nav.collection"),
-          t("nav.debt"),
-        ]}
-        title={t("debt.title")}
-        subtitle={t("debt.blurb")}
-      />
+      <header className="relative pt-2 pb-12 md:pt-6 md:pb-16">
+        <span aria-hidden className="masthead-bloom" />
 
-      {/* ============================================================
-          2. Tabs row — worklist | prepayments
-          ============================================================ */}
-      <div className="flex items-end justify-between gap-6 mb-6">
-        <div className="flex items-center gap-8">
-          {(["worklist", "prepayments"] as const).map((k) => (
-            <button
-              key={k}
-              onClick={() => handleTabChange(k)}
-              className={[
-                "pb-2 relative transition-colors",
-                tab === k
-                  ? "text-primary"
-                  : "text-foreground/80 hover:text-foreground",
-              ].join(" ")}
-            >
-              <span className="font-semibold italic text-xl leading-none">
-                {t(`debt.tab.${k}`)}
-              </span>
-              {tab === k && (
-                <motion.span
-                  layoutId="debt-tab-underline"
-                  className="absolute left-0 right-0 -bottom-px h-[2px] bg-primary"
-                />
-              )}
-            </button>
-          ))}
-        </div>
-        {tab === "worklist" && summary && (
-          <div className="flex items-center gap-2 text-[12px] text-ink3 font-mono">
-            <span className="dot-live" />
-            <span>
-              {summary.debtor_count} qarzdor &middot;{" "}
-              <span className="text-coral font-semibold">
-                {summary.debtor_over_90_count} ta 90+
-              </span>
-            </span>
+        <div className="relative">
+          {/* Eyebrow — date as art, oversized DM Mono uppercase */}
+          <div className="flex items-center justify-between gap-6 mb-6 md:mb-8">
+            <div className="text-[10px] md:text-[11px] font-mono uppercase tracking-[0.22em] text-ink3">
+              <span className="text-ink2">{formatTodayUz()}</span>
+              <span className="mx-3 text-ink4">/</span>
+              <span>Qarzlar bo'limi</span>
+              <span className="mx-3 text-ink4">/</span>
+              <span className="text-ink3">{t("nav.debt")}</span>
+            </div>
+
+            {/* Tabs — inline, refined */}
+            <nav className="flex items-center gap-7" aria-label="Bo'limlar">
+              {(["worklist", "prepayments"] as const).map((k) => (
+                <button
+                  key={k}
+                  onClick={() => handleTabChange(k)}
+                  className={[
+                    "relative pb-2 transition-colors duration-200",
+                    tab === k
+                      ? "text-ink"
+                      : "text-ink3 hover:text-ink",
+                  ].join(" ")}
+                >
+                  <span className="font-sans text-[13px] font-medium tracking-[-0.005em]">
+                    {t(`debt.tab.${k}`)}
+                  </span>
+                  {tab === k && (
+                    <motion.span
+                      layoutId="debt-tab-underline"
+                      className="absolute left-0 right-0 -bottom-px h-[2px] bg-mint rounded-full"
+                      transition={{ duration: 0.28, ease: [0.2, 0.85, 0.25, 1] }}
+                    />
+                  )}
+                </button>
+              ))}
+            </nav>
           </div>
-        )}
-      </div>
 
-      {/* ============================================================
-          WORKLIST TAB
-          ============================================================ */}
-      {tab === "worklist" ? (
-        <>
-          {/* ----------------------------------------------------------
-              3. KPI Strip — 4 cards horizontal desktop / 2x2 mobile
-              Each card: eyebrow → value → sub-detail (8-12px gap each)
-              ---------------------------------------------------------- */}
-          {/* KPI strip: horizontal snap-scroll on mobile so large numbers fit cleanly;
-              regular 4-col grid on desktop */}
-          <div className="flex overflow-x-auto snap-x snap-mandatory gap-3 pb-2 -mx-4 px-4 no-scrollbar md:overflow-visible md:grid md:grid-cols-4 md:mx-0 md:px-0 mb-4">
-            {/* (a) Jami qarz — total outstanding */}
-            <div className="bg-white rounded-2xl shadow-card p-4 flex flex-col gap-0 snap-center w-[78%] shrink-0 md:w-auto md:shrink">
-              <div className="eyebrow text-ink3">Jami qarz</div>
-              <div className="mt-2">
-                <span className="kpi-num text-[22px] md:text-[36px] text-ink">
-                  {formatUsd(summary?.total_outstanding ?? 0)}
-                </span>
-              </div>
-              <div className="mt-2 text-[10px] text-ink3 font-mono tracking-wide uppercase">
-                USD · umumiy
-              </div>
+          {/* HERO ROW — title left, anchored numbers right */}
+          <div className="grid grid-cols-12 gap-8 items-end">
+            {/* Title + standfirst */}
+            <div className="col-span-12 md:col-span-7">
+              <h1 className="hero-title text-[64px] md:text-[96px] text-ink count-up">
+                Qarzlar
+              </h1>
+              <p className="standfirst mt-4 md:mt-5">
+                Barcha qarzdorlar bir ro'yxatda — ustuvorligi, yoshi, oxirgi
+                aloqasi va to'lov tarixi bilan.
+              </p>
             </div>
 
-            {/* (b) Qarzdorlar — debtor_count */}
-            <div className="bg-white rounded-2xl shadow-card p-4 flex flex-col gap-0 snap-center w-[78%] shrink-0 md:w-auto md:shrink">
-              <div className="eyebrow text-ink3">Qarzdorlar</div>
-              <div className="mt-2 flex items-baseline gap-1.5">
-                <span className="kpi-num text-[22px] md:text-[36px] text-ink">
-                  {(summary?.debtor_count ?? 0).toLocaleString()}
-                </span>
-                <span className="text-ink3 text-[11px] font-mono">mijoz</span>
-              </div>
-              <div className="mt-2 text-[10px] text-ink3 font-mono tracking-wide uppercase">
-                {t("debt.kpi.debtors")}
-              </div>
-            </div>
-
-            {/* (c) 90+ kun — debtor_over_90_count / total_over_90 */}
-            <div className="bg-white rounded-2xl shadow-card p-4 flex flex-col gap-0 snap-center w-[78%] shrink-0 md:w-auto md:shrink">
-              <div className="eyebrow" style={{ color: "#B91C1C" }}>90+ kun · xavf</div>
-              <div className="mt-2 flex items-baseline gap-1.5">
-                <span className="kpi-num text-[22px] md:text-[36px] text-coral">
-                  {(summary?.debtor_over_90_count ?? 0).toLocaleString()}
-                </span>
-                <span className="text-ink3 text-[11px] font-mono">
-                  / {(summary?.debtor_count ?? 0)} ta
-                </span>
-              </div>
-              <div className="mt-2 w-full">
-                <div className="age-bar">
-                  {summary && summary.total_outstanding > 0 ? (
+            {/* Right anchor — total + over-90 numbers */}
+            <div className="col-span-12 md:col-span-5">
+              <div className="md:text-right md:pl-4">
+                <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-ink3 mb-3">
+                  Bugungi holat
+                </div>
+                <div className="hero-num text-[48px] md:text-[68px] text-ink count-up leading-none">
+                  {summary
+                    ? formatUsdCompact(summary.total_outstanding)
+                    : "—"}
+                </div>
+                <div className="mt-3 flex md:justify-end items-center gap-2.5 text-[12px] font-mono tracking-[0.02em] text-ink3">
+                  <span className="dot-live" />
+                  <span>jami qarz</span>
+                  {summary && summary.debtor_over_90_count > 0 && (
                     <>
-                      <span
-                        className="age-0"
-                        style={{
-                          flex: Math.max(0, summary.total_outstanding - summary.total_over_90),
-                        }}
-                      />
-                      <span className="age-90" style={{ flex: summary.total_over_90 }} />
+                      <span className="text-ink4">·</span>
+                      <span className="text-coraldk font-semibold">
+                        {summary.debtor_over_90_count} ta xavf ostida
+                      </span>
                     </>
-                  ) : (
-                    <span className="age-0" style={{ flex: 1 }} />
                   )}
                 </div>
               </div>
             </div>
-
-            {/* (d) Muddati o'tgan va'dalar — total_overdue_promises */}
-            <div
-              className="rounded-2xl shadow-card p-4 flex flex-col gap-0 snap-center w-[78%] shrink-0 md:w-auto md:shrink"
-              style={{ background: "linear-gradient(180deg,#FFFFFF 0%, #F0FDF4 100%)" }}
-            >
-              <div className="eyebrow" style={{ color: "#059669" }}>
-                Muddati o'tgan va'dalar
-              </div>
-              <div className="mt-2">
-                <span className="kpi-num text-[22px] md:text-[36px] text-mintdk">
-                  {formatUsd(summary?.total_overdue_promises ?? 0)}
-                </span>
-              </div>
-              <div className="mt-2 text-[10px] text-mintdk font-mono tracking-wide uppercase">
-                {t("debt.kpi.overdue_promises")}
-              </div>
-            </div>
           </div>
+        </div>
+      </header>
 
-          {/* ----------------------------------------------------------
-              4. Quick-win banner (only when there are small debtors)
-              ---------------------------------------------------------- */}
-          {showQuickWin && (
+      {/* ============================================================
+          2. SECONDARY BAND — hairline-bordered, four small numbers
+          ============================================================ */}
+      {tab === "worklist" && summary && (
+        <section className="editorial-band relative reveal-up" style={{ animationDelay: "180ms" }}>
+          <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-ink/[0.06]">
+            <BandStat
+              label="Qarzdorlar"
+              value={summary.debtor_count.toLocaleString()}
+              suffix="mijoz"
+            />
+            <BandStat
+              label="90+ kun"
+              value={summary.debtor_over_90_count.toLocaleString()}
+              suffix={`/ ${summary.debtor_count} ta`}
+              tone="coral"
+            />
+            <BandStat
+              label="90+ summa"
+              value={formatUsdCompact(summary.total_over_90)}
+              suffix="USD"
+              tone="coral"
+            />
+            <BandStat
+              label="Va'dalar"
+              value={formatUsdCompact(summary.total_overdue_promises)}
+              suffix="muddati o'tgan"
+              tone={summary.total_overdue_promises > 0 ? "amber" : "neutral"}
+            />
+          </div>
+        </section>
+      )}
+
+      {/* ============================================================
+          3. QUICK-WIN CALLOUT — italic Fraunces sentence, no box
+          ============================================================ */}
+      {tab === "worklist" && showQuickWin && (
+        <aside className="relative mt-10 md:mt-14 reveal-up" style={{ animationDelay: "260ms" }}>
+          <hr className="hairline-mint mb-5" aria-hidden />
+          <div className="flex items-start gap-5 pr-10">
             <div
-              className="relative rounded-2xl p-[14px] mb-4 overflow-hidden"
-              style={{
-                background: "linear-gradient(135deg,#ECFDF5 0%,#FFFFFF 60%)",
-                boxShadow: "inset 0 0 0 1px #A7F3D0",
-              }}
+              className="text-[10px] font-mono uppercase tracking-[0.22em] text-mintdk shrink-0 pt-1"
+              style={{ width: 92 }}
             >
-              {/* decorative radial glow */}
-              <span
-                aria-hidden
-                className="absolute right-[-30px] bottom-[-30px] w-[140px] h-[140px] rounded-full pointer-events-none"
-                style={{
-                  background:
-                    "radial-gradient(circle,rgba(16,185,129,.18),transparent 60%)",
-                }}
-              />
-              <div className="flex items-start gap-2">
-                <div className="w-7 h-7 rounded-xl bg-mint text-white flex items-center justify-center shrink-0">
-                  <CheckCircle2 className="w-[14px] h-[14px]" />
-                </div>
-                <div className="flex-1">
-                  <div className="font-semibold text-ink text-[13px]">
-                    Tezda yopish mumkin
-                  </div>
-                  <div className="text-[12px] text-ink2 mt-1 leading-snug">
-                    {quickWinCount} ta mijoz 1M dan kam — bugun yopilsa, ro'yxatdan
-                    chiqadi.
-                  </div>
-                  <button
-                    onClick={() => setAgingBucket("")}
-                    className="mt-2 btn-mint-soft text-[12px] px-3 py-1.5 inline-flex items-center gap-1"
-                  >
-                    Ko'rib chiqish
-                  </button>
-                </div>
-                <button
-                  onClick={handleDismissQuickWin}
-                  aria-label="Yopish"
-                  className="text-ink3 hover:text-ink shrink-0 p-1"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+              Tezkor yutuq
             </div>
-          )}
+            <p className="standfirst text-ink2 flex-1">
+              <span className="font-display italic">{quickWinCount} ta mijoz</span>{" "}
+              1M dan kam qarz bilan — bugun yopilsa, ro'yxatdan chiqadi.{" "}
+              <button
+                onClick={() => setAgingBucket("")}
+                className="font-display italic text-mintdk underline decoration-mint/40 underline-offset-4 hover:decoration-mint/70 transition-colors"
+              >
+                Ko'rib chiqish →
+              </button>
+            </p>
+            <button
+              onClick={handleDismissQuickWin}
+              aria-label="Yopish"
+              className="absolute top-5 right-0 text-ink4 hover:text-ink2 transition-colors p-1"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </aside>
+      )}
 
-          {/* ----------------------------------------------------------
-              5. Filter bar — search row + chip row
-              Three controls: scope chip · aging buckets · search.
-              HOLAT placeholder chips and visual-only sort removed.
-              ---------------------------------------------------------- */}
-          <div className="bg-white rounded-2xl shadow-card p-3 mb-3 flex flex-col gap-2">
-            {/* Row 1: search input — full width, single line */}
+      {tab === "worklist" ? (
+        <>
+          {/* ============================================================
+              4. FILTER STRIP — typographic, hairline-only
+              ============================================================ */}
+          <section
+            className="mt-12 md:mt-16 reveal-up"
+            style={{ animationDelay: "320ms" }}
+          >
+            {/* Search — typographic underline */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-[13px] h-[13px] text-ink3" />
-              <Input
-                placeholder={t("debt.filter.search_placeholder")}
+              <Search
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-ink3 pointer-events-none"
+                strokeWidth={1.6}
+              />
+              <input
+                type="text"
+                placeholder="Mijozni qidirish — nom, TIN, telefon"
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
                   setOffset(0);
                 }}
-                className="pl-8 h-9 text-[13px] w-full"
+                className="editorial-search"
               />
             </div>
 
-            {/* Row 2: scope chip + aging bucket segmented control */}
-            <div className="flex items-center gap-3 flex-wrap">
-              {/* Scope chip — salesRoomId filter */}
-              {userIsTeamLeadOrAdmin && rooms.data && (
-                <div className="relative shrink-0">
-                  <button
-                    className={[
-                      "inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-[12px] font-semibold transition-colors",
-                      salesRoomId
-                        ? "bg-ink text-white"
-                        : "bg-white text-ink2 shadow-[inset_0_0_0_1px_#E5E7EB]",
-                    ].join(" ")}
-                  >
-                    Mening sotuvchilarim
-                    {salesRoomId && (
-                      <span className="text-[10px] font-mono opacity-70">
-                        ({rooms.data.rooms.find((r) => r.room_id === salesRoomId)?.room_name ?? ""})
-                      </span>
-                    )}
-                    <ChevronDown className="w-3 h-3" />
-                    <select
-                      value={salesRoomId}
-                      onChange={(e) => { setSalesRoomId(e.target.value); setOffset(0); }}
-                      className="absolute inset-0 opacity-0 cursor-pointer w-full"
-                    >
-                      <option value="">Hammasi</option>
-                      {rooms.data.rooms.map((r) => (
-                        <option key={r.room_id} value={r.room_id}>
-                          {r.room_name}
-                        </option>
-                      ))}
-                    </select>
-                  </button>
-                </div>
-              )}
+            {/* Filter row — scope chip + aging tabs */}
+            <div className="flex items-center justify-between flex-wrap gap-x-6 gap-y-3 mt-5 md:mt-6">
+              <div className="flex items-center gap-5 flex-wrap">
+                {userIsTeamLeadOrAdmin && rooms.data && (
+                  <ScopeDropdown
+                    rooms={rooms.data.rooms}
+                    value={salesRoomId}
+                    onChange={(v) => {
+                      setSalesRoomId(v);
+                      setOffset(0);
+                    }}
+                  />
+                )}
 
-              {/* Aging bucket segmented control */}
-              <div
-                className="flex items-center gap-1 bg-paper rounded-xl p-1"
-                style={{ boxShadow: "inset 0 0 0 1px #E5E7EB" }}
-              >
-                {(
-                  [
-                    { v: "", label: "Hammasi" },
-                    { v: "0_30", label: "0-30" },
-                    { v: "30_60", label: "31-60" },
-                    { v: "60_90", label: "61-90" },
-                    { v: "90_plus", label: "90+" },
-                  ] as const
-                ).map((b) => (
-                  <button
-                    key={b.v}
-                    onClick={() => { setAgingBucket(b.v); setOffset(0); }}
-                    className={[
-                      "h-9 px-3.5 rounded-[10px] text-[13px] font-semibold transition-colors",
-                      agingBucket === b.v
-                        ? b.v === "90_plus"
-                          ? "bg-white text-coraldk border border-coral/40 shadow-sm"
-                          : "bg-white text-ink shadow-sm border border-line"
-                        : "text-ink3 bg-transparent border border-transparent",
-                    ].join(" ")}
-                  >
-                    {b.label}
-                  </button>
-                ))}
+                {/* Aging segmented — tab-bar style with mint underline */}
+                <div className="flex items-center gap-1 -mb-px">
+                  {(
+                    [
+                      { v: "", label: "Hammasi" },
+                      { v: "0_30", label: "0–30" },
+                      { v: "30_60", label: "31–60" },
+                      { v: "60_90", label: "61–90" },
+                      { v: "90_plus", label: "90+" },
+                    ] as const
+                  ).map((b) => (
+                    <button
+                      key={b.v}
+                      onClick={() => {
+                        setAgingBucket(b.v);
+                        setOffset(0);
+                      }}
+                      className={[
+                        "seg-tab",
+                        agingBucket === b.v ? "active" : "",
+                        b.v === "90_plus" ? "coral" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                    >
+                      {b.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Live indicator — right-aligned */}
+              <div className="live-line">
+                <span className="dot-live" />
+                <span>
+                  {ageSec != null
+                    ? t("debt.updated_ago", { s: ageSec })
+                    : t("common.loading")}
+                </span>
               </div>
             </div>
-          </div>
 
-          {/* ----------------------------------------------------------
-              6. Live indicator + count
-              ---------------------------------------------------------- */}
-          <div className="flex items-center justify-between mb-3 px-1">
-            <div className="flex items-center gap-2">
-              <span className="dot-live" />
-              <span className="text-[11px] text-ink3 font-mono">
-                {ageSec != null
-                  ? t("debt.updated_ago", { s: ageSec })
-                  : t("common.loading")}
-              </span>
-            </div>
-            {summary && (
-              <div className="flex items-center gap-2">
-                <span
-                  className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold"
-                  style={{ background: "#F3F4F6", color: "#374151", boxShadow: "inset 0 0 0 1px #E5E7EB" }}
-                >
-                  {summary.debtor_count} ta
-                </span>
-                <span
-                  className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold"
-                  style={{ background: "#FEF2F2", color: "#DC2626", boxShadow: "inset 0 0 0 1px #FECACA" }}
-                >
-                  {summary.debtor_over_90_count} ta 90+
-                </span>
+            <hr className="hairline mt-5 md:mt-6" aria-hidden />
+          </section>
+
+          {/* ============================================================
+              5. DEBTOR LIST — magazine table on desktop, editorial cards on mobile
+              ============================================================ */}
+          <section className="mt-2">
+            {worklist.isLoading && (
+              <div className="py-24 text-center">
+                <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-ink3">
+                  Yuklanmoqda
+                </div>
               </div>
             )}
-          </div>
 
-          {/* ----------------------------------------------------------
-              7. Debtor list — mobile cards / desktop grid
-              ---------------------------------------------------------- */}
-          {worklist.isLoading && (
-            <Card className="p-8 mb-4">
-              <div className="eyebrow text-center">{t("common.loading")}</div>
-            </Card>
-          )}
-
-          {!worklist.isLoading && worklistRows.length === 0 && (
-            <Card className="py-16 md:py-24 mb-4">
-              <div className="text-center">
-                <div className="font-display font-semibold text-2xl text-foreground">
+            {!worklist.isLoading && worklistRows.length === 0 && (
+              <div className="py-24 md:py-32 text-center">
+                <h2 className="hero-title text-[42px] text-ink">
                   {t("debt.empty_title")}
-                  <span className="font-display-italic text-primary">.</span>
-                </div>
-                <div className="text-sm text-muted-foreground mt-3 max-w-[40ch] mx-auto">
+                </h2>
+                <p className="standfirst mt-4 mx-auto">
                   {t("debt.empty_worklist")}
-                </div>
+                </p>
               </div>
-            </Card>
-          )}
+            )}
 
-          {!worklist.isLoading && worklistRows.length > 0 && (
-            <>
-              {/* ---- MOBILE: card stack ---- */}
-              <div className="md:hidden flex flex-col gap-3 mb-4">
-                {worklistRows.map((row, i) => (
-                  <DebtorCard
-                    key={row.person_id}
-                    row={row}
-                    index={i}
-                    onClick={() =>
-                      navigate(`/collection/debt/client/${row.person_id}`)
-                    }
-                  />
-                ))}
-              </div>
-
-              {/* ---- DESKTOP: card-wrapped 12-col grid ---- */}
-              <div className="hidden md:block bg-white rounded-2xl shadow-card overflow-hidden mb-4">
-                {/* List header */}
-                <div className="flex items-center px-4 py-3 border-b border-line">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-ink text-[14px]">
-                      Qarzdorlar ro'yxati
-                    </span>
-                    <span
-                      className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold"
-                      style={{ background: "#F3F4F6", color: "#374151", boxShadow: "inset 0 0 0 1px #E5E7EB" }}
-                    >
-                      {summary?.debtor_count ?? 0} ta
-                    </span>
-                    {(summary?.debtor_over_90_count ?? 0) > 0 && (
-                      <span
-                        className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold"
-                        style={{ background: "#FEF2F2", color: "#DC2626", boxShadow: "inset 0 0 0 1px #FECACA" }}
-                      >
-                        {summary?.debtor_over_90_count} ta 90+
-                      </span>
-                    )}
-                  </div>
-                  <div className="ml-auto flex items-center gap-2 text-[11px] text-ink3 font-mono">
-                    <span className="dot-live" />
-                    yangilanmoqda · har 60s
+            {!worklist.isLoading && worklistRows.length > 0 && (
+              <>
+                {/* MOBILE: editorial card stack with hairline rules */}
+                <div className="md:hidden -mx-4">
+                  <div className="bg-white">
+                    {worklistRows.map((row, i) => (
+                      <DebtorCard
+                        key={row.person_id}
+                        row={row}
+                        index={i}
+                        onClick={() =>
+                          navigate(`/collection/debt/client/${row.person_id}`)
+                        }
+                      />
+                    ))}
                   </div>
                 </div>
 
-                {/* Column header row */}
-                <div
-                  className="grid grid-cols-12 items-center border-b border-line bg-paper"
-                  style={{ height: 36 }}
-                >
-                  <div className="col-span-1 text-center eyebrow text-[10px] px-3">P</div>
-                  <div className="col-span-4 eyebrow text-[10px] px-3">Mijoz</div>
-                  <div className="col-span-2 eyebrow text-[10px] px-3 text-right">Summa</div>
-                  <div className="col-span-2 eyebrow text-[10px] px-3">Yosh</div>
-                  <div className="col-span-2 eyebrow text-[10px] px-3">Oxirgi aloqa</div>
-                  <div className="col-span-1 eyebrow text-[10px] px-3 text-right">Aksiya</div>
-                </div>
-
-                {/* Rows */}
-                {worklistRows.map((row) => (
-                  <DebtorRow
-                    key={row.person_id}
-                    row={row}
-                    onClick={() =>
-                      navigate(`/collection/debt/client/${row.person_id}`)
-                    }
-                  />
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* ----------------------------------------------------------
-              8. Pagination
-              ---------------------------------------------------------- */}
-          {worklist.data && worklist.data.total > limit && (
-            <div className="mb-6">
-              <Card className="p-0 overflow-hidden">
-                <Pagination
-                  offset={offset}
-                  limit={limit}
-                  total={worklist.data.total}
-                  onOffset={setOffset}
-                />
-              </Card>
-            </div>
-          )}
-
-          {/* ----------------------------------------------------------
-              9. By-collector rollup (admin / team-lead only)
-              ---------------------------------------------------------- */}
-          {showByCollector && (
-            <div className="bg-white rounded-2xl shadow-card p-4 mb-4">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <div className="eyebrow text-ink3">Admin · sotuvchi bo'yicha</div>
-                  <div className="font-semibold text-ink text-[14px] mt-0.5">
-                    Sotuvchilar rollup
-                  </div>
-                </div>
-                {salesRoomId && (
-                  <button
-                    onClick={() => { setSalesRoomId(""); setOffset(0); }}
-                    className="text-[11px] text-ink3 hover:text-primary font-semibold"
-                  >
-                    Filtrni tozalash
-                  </button>
-                )}
-              </div>
-
-              {/* Column labels */}
-              <div className="grid grid-cols-12 eyebrow mb-2" style={{ fontSize: 9, letterSpacing: ".14em" }}>
-                <div className="col-span-6">Sotuvchi</div>
-                <div className="col-span-3 text-right">Mijoz</div>
-                <div className="col-span-3 text-right">Qarz</div>
-              </div>
-              <div className="h-px my-2" style={{ background: "linear-gradient(90deg,transparent,#E5E7EB 20%,#E5E7EB 80%,transparent)" }} />
-
-              {/* Collector rows — top 3 bars: mint, next 3: amber, rest: gray */}
-              {worklist.data?.by_collector.map((r, i) => {
-                const maxOut = Math.max(
-                  ...( worklist.data?.by_collector.map((x) => x.outstanding) ?? [1] ),
-                  1,
-                );
-                const barPct = Math.max(8, (r.outstanding / maxOut) * 100);
-                const barColor = i < 3 ? "#10B981" : i < 6 ? "#F59E0B" : "#9CA3AF";
-                const active = salesRoomId === r.room_id;
-                return (
+                {/* DESKTOP: magazine table — no card chrome, hairline rules */}
+                <div className="hidden md:block bg-white -mx-4 lg:-mx-7 rounded-none border-y border-ink/[0.06]">
+                  {/* Column header — uppercase mono, generous padding */}
                   <div
-                    key={r.room_id}
-                    onClick={() => { setSalesRoomId(active ? "" : r.room_id); setOffset(0); }}
-                    className={[
-                      "flex items-center gap-2.5 py-2.5 cursor-pointer",
-                      i > 0 ? "border-t border-dashed border-line" : "",
-                      active ? "opacity-100" : "opacity-90 hover:opacity-100",
-                    ].join(" ")}
+                    className="grid grid-cols-12 items-center px-7 py-4 border-b border-ink/[0.06]"
                   >
-                    {/* Avatar */}
-                    <div
-                      className="w-[30px] h-[30px] rounded-full flex items-center justify-center shrink-0 text-white text-[11px] font-bold"
-                      style={{
-                        background: [
-                          "linear-gradient(135deg,#10B981,#047857)",
-                          "linear-gradient(135deg,#7C3AED,#4C1D95)",
-                          "linear-gradient(135deg,#0EA5E9,#075985)",
-                          "linear-gradient(135deg,#F472B6,#9D174D)",
-                          "linear-gradient(135deg,#F59E0B,#B45309)",
-                        ][i % 5],
-                      }}
-                    >
-                      {r.room_name
-                        .trim()
-                        .split(/\s+/)
-                        .slice(0, 2)
-                        .map((p) => p[0])
-                        .join("")
-                        .toUpperCase()}
+                    <div className="col-span-1 text-center text-[9px] font-mono uppercase tracking-[0.22em] text-ink3">
+                      P
                     </div>
-                    {/* Name + mini bar */}
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-ink text-[13px]">{r.room_name}</div>
-                      <div className="mt-1.5 h-[3px] bg-line rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full"
-                          style={{ width: `${barPct}%`, background: barColor }}
-                        />
-                      </div>
+                    <div className="col-span-4 text-[9px] font-mono uppercase tracking-[0.22em] text-ink3">
+                      Mijoz
                     </div>
-                    {/* Stats */}
-                    <div className="text-right shrink-0">
-                      <div className="text-[12px] text-ink3 font-mono">{r.debtors_count} mijoz</div>
-                      <div className="font-semibold text-ink text-[13px] font-mono">
-                        {formatUsd(r.outstanding)}
-                      </div>
+                    <div className="col-span-2 text-right pr-4 text-[9px] font-mono uppercase tracking-[0.22em] text-ink3">
+                      Summa
+                    </div>
+                    <div className="col-span-2 text-[9px] font-mono uppercase tracking-[0.22em] text-ink3">
+                      Yosh
+                    </div>
+                    <div className="col-span-2 text-[9px] font-mono uppercase tracking-[0.22em] text-ink3">
+                      Oxirgi aloqa
+                    </div>
+                    <div className="col-span-1 text-right text-[9px] font-mono uppercase tracking-[0.22em] text-ink3">
+                      Aksiya
                     </div>
                   </div>
-                );
-              })}
 
-              {/* Mini stats — placeholder (API doesn't provide recovery%) */}
-              <div
-                className="h-px my-3"
-                style={{ background: "linear-gradient(90deg,transparent,#E5E7EB 20%,#E5E7EB 80%,transparent)" }}
+                  {worklistRows.map((row, i) => (
+                    <DebtorRow
+                      key={row.person_id}
+                      row={row}
+                      index={i}
+                      onClick={() =>
+                        navigate(`/collection/debt/client/${row.person_id}`)
+                      }
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </section>
+
+          {/* ============================================================
+              6. PAGINATION
+              ============================================================ */}
+          {worklist.data && worklist.data.total > limit && (
+            <div className="mt-8 md:mt-10 px-1">
+              <Pagination
+                offset={offset}
+                limit={limit}
+                total={worklist.data.total}
+                onOffset={setOffset}
               />
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <div className="eyebrow" style={{ fontSize: 9 }}>Eng yaxshi</div>
-                  <div className="font-semibold text-mintdk text-[13px] mt-0.5 font-mono">—</div>
-                  <div className="text-[10px] text-ink3 font-mono">recovery %</div>
-                </div>
-                <div>
-                  <div className="eyebrow" style={{ fontSize: 9 }}>O'rtacha</div>
-                  <div className="font-semibold text-ink text-[13px] mt-0.5 font-mono">—</div>
-                  <div className="text-[10px] text-ink3 font-mono">recovery</div>
-                </div>
-                <div>
-                  <div className="eyebrow" style={{ fontSize: 9 }}>Eng past</div>
-                  <div className="font-semibold text-coral text-[13px] mt-0.5 font-mono">—</div>
-                  <div className="text-[10px] text-ink3 font-mono">recovery %</div>
-                </div>
-              </div>
-
-              <button
-                className="mt-3 w-full h-10 rounded-xl bg-paper text-ink2 text-[12px] font-semibold flex items-center justify-center gap-1"
-                style={{ boxShadow: "inset 0 0 0 1px #E5E7EB" }}
-                onClick={() => setSalesRoomId("")}
-              >
-                Hammasi ({worklist.data?.by_collector.length ?? 0} sotuvchi)
-              </button>
             </div>
           )}
 
-          {/* ----------------------------------------------------------
-              10. Aging buckets section
-              ---------------------------------------------------------- */}
-          {worklistRows.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-card p-4 mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <div className="eyebrow text-ink3">Yosh taqsimoti</div>
-                  <div className="font-semibold text-ink text-[14px] mt-0.5">
-                    Aging buckets
-                  </div>
-                </div>
-                {(summary?.debtor_over_90_count ?? 0) > 0 && (
-                  <span
-                    className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold"
-                    style={{ background: "#FEF2F2", color: "#DC2626", boxShadow: "inset 0 0 0 1px #FECACA" }}
-                  >
-                    {summary?.debtor_over_90_count} ta 90+
-                  </span>
-                )}
-              </div>
-              <div className="text-[10px] text-ink3 font-mono mb-3">joriy ko'rish bo'yicha</div>
+          {/* ============================================================
+              7. BY-COLLECTOR ROLLUP — admin-only
+              ============================================================ */}
+          {showByCollector && worklist.data && (
+            <ByCollectorSection
+              data={worklist.data.by_collector}
+              activeRoomId={salesRoomId}
+              onRoomToggle={(id) => {
+                setSalesRoomId(salesRoomId === id ? "" : id);
+                setOffset(0);
+              }}
+              onClear={() => {
+                setSalesRoomId("");
+                setOffset(0);
+              }}
+            />
+          )}
 
-              <div className="space-y-2">
-                {/* 0-30 kun */}
-                <div>
-                  <div className="flex items-center justify-between text-[11px] mb-1">
-                    <span className="text-ink2 font-semibold">0 - 30 kun</span>
-                    <span className="font-mono text-ink3">
-                      {worklistRows.filter((r) => r.aging_0_30 > 0).length} mijoz
-                    </span>
-                  </div>
-                  <div className="age-bar">
-                    <span className="age-0" style={{ flex: agingPcts.a0 }} />
-                    <span style={{ background: "#F3F4F6", flex: 100 - agingPcts.a0 }} />
-                  </div>
-                </div>
-
-                {/* 31-60 kun */}
-                <div>
-                  <div className="flex items-center justify-between text-[11px] mb-1">
-                    <span className="text-ink2 font-semibold">31 - 60 kun</span>
-                    <span className="font-mono text-ink3">
-                      {worklistRows.filter((r) => r.aging_30_60 > 0).length} mijoz
-                    </span>
-                  </div>
-                  <div className="age-bar">
-                    <span className="age-30" style={{ flex: agingPcts.a30 }} />
-                    <span style={{ background: "#F3F4F6", flex: 100 - agingPcts.a30 }} />
-                  </div>
-                </div>
-
-                {/* 61-90 kun */}
-                <div>
-                  <div className="flex items-center justify-between text-[11px] mb-1">
-                    <span className="text-ink2 font-semibold">61 - 90 kun</span>
-                    <span className="font-mono text-ink3">
-                      {worklistRows.filter((r) => r.aging_60_90 > 0).length} mijoz
-                    </span>
-                  </div>
-                  <div className="age-bar">
-                    <span className="age-60" style={{ flex: agingPcts.a60 }} />
-                    <span style={{ background: "#F3F4F6", flex: 100 - agingPcts.a60 }} />
-                  </div>
-                </div>
-
-                {/* 90+ kun */}
-                <div>
-                  <div className="flex items-center justify-between text-[11px] mb-1">
-                    <span className="text-coral font-semibold">90+ kun</span>
-                    <span className="font-mono text-coral">
-                      {worklistRows.filter((r) => r.aging_90_plus > 0).length} mijoz
-                      {summary?.total_over_90
-                        ? ` · ${formatUsd(summary.total_over_90)}`
-                        : ""}
-                    </span>
-                  </div>
-                  <div className="age-bar">
-                    <span className="age-90" style={{ flex: agingPcts.a90 }} />
-                    <span style={{ background: "#F3F4F6", flex: 100 - agingPcts.a90 }} />
-                  </div>
-                </div>
-              </div>
-            </div>
+          {/* ============================================================
+              8. AGING BUCKETS — section
+              ============================================================ */}
+          {worklistRows.length > 0 && summary && (
+            <AgingBucketsSection
+              rows={worklistRows}
+              pcts={agingPcts}
+              over90Count={summary.debtor_over_90_count}
+              over90Total={summary.total_over_90}
+            />
           )}
         </>
       ) : (
-        /* ============================================================
-           PREPAYMENTS TAB — kept intact from previous implementation
-           ============================================================ */
-        <>
+        // ============================================================
+        // PREPAYMENTS TAB — kept structurally intact
+        // ============================================================
+        <section className="mt-12">
           <div className="mt-6 flex items-center gap-3">
             <div className="flex-1">
               <Input
@@ -878,86 +632,414 @@ export default function Debt() {
                 }}
               />
             </div>
-            <div className="eyebrow text-ink3 shrink-0 tabular-nums">
+            <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-ink3 shrink-0">
               {(prepayments.data?.total ?? 0).toLocaleString()}{" "}
               {t("debt.tab.prepayments").toLowerCase()}
             </div>
           </div>
 
-          <div className="mt-4 flex flex-col gap-3">
+          <div className="mt-6 flex flex-col gap-4">
             {(prepayments.data?.rows ?? []).map((r) => (
               <PrepaymentCard key={r.person_id} row={r} locale={locale} />
             ))}
 
             {!prepayments.isLoading &&
               (prepayments.data?.rows.length ?? 0) === 0 && (
-                <Card className="py-16 md:py-24">
-                  <div className="text-center">
-                    <div className="font-display font-semibold text-2xl text-foreground">
-                      {t("debt.empty_prepayments_title")}
-                      <span className="font-display-italic text-primary">.</span>
-                    </div>
-                    <div className="text-sm text-muted-foreground mt-3 max-w-[40ch] mx-auto">
-                      {t("debt.empty_prepayments")}
-                    </div>
-                  </div>
-                </Card>
+                <div className="py-24 md:py-32 text-center">
+                  <h2 className="hero-title text-[42px] text-ink">
+                    {t("debt.empty_prepayments_title")}
+                  </h2>
+                  <p className="standfirst mt-4 mx-auto">
+                    {t("debt.empty_prepayments")}
+                  </p>
+                </div>
               )}
           </div>
 
           {prepayments.data && prepayments.data.total > limit && (
-            <div className="mt-6">
-              <Card className="p-0 overflow-hidden">
-                <Pagination
-                  offset={offset}
-                  limit={limit}
-                  total={prepayments.data.total}
-                  onOffset={setOffset}
-                />
-              </Card>
+            <div className="mt-8">
+              <Pagination
+                offset={offset}
+                limit={limit}
+                total={prepayments.data.total}
+                onOffset={setOffset}
+              />
             </div>
           )}
-        </>
+        </section>
       )}
     </div>
   );
 }
 
-// ---- Prepayment card (kept from previous impl) ----------------------------
+// ============================================================================
+// SUB-COMPONENTS
+// ============================================================================
+
+/** A single number in the secondary editorial band. */
+function BandStat({
+  label,
+  value,
+  suffix,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string;
+  suffix?: string;
+  tone?: "neutral" | "coral" | "amber";
+}) {
+  const valueClass =
+    tone === "coral"
+      ? "text-coraldk"
+      : tone === "amber"
+        ? "text-[#B45309]"
+        : "text-ink";
+
+  return (
+    <div className="px-5 md:px-7 py-5 md:py-6 bg-transparent">
+      <div className="text-[9px] font-mono uppercase tracking-[0.22em] text-ink3 mb-2.5">
+        {label}
+      </div>
+      <div className="flex items-baseline gap-2">
+        <span className={`hero-num text-[28px] md:text-[34px] ${valueClass}`}>
+          {value}
+        </span>
+        {suffix && (
+          <span className="text-[11px] font-mono text-ink3 tracking-[0.04em]">
+            {suffix}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Refined scope dropdown — rendered as a button with a soft chevron. */
+function ScopeDropdown({
+  rooms,
+  value,
+  onChange,
+}: {
+  rooms: Room[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const active = !!value;
+  const activeRoom = rooms.find((r) => r.room_id === value);
+
+  return (
+    <div className="relative">
+      <button
+        className={[
+          "inline-flex items-center gap-2 h-9 px-3.5 rounded-full text-[12px] font-medium tracking-[-0.005em] transition-all",
+          active
+            ? "bg-ink text-white shadow-[0_4px_12px_-4px_rgba(17,24,39,0.18)]"
+            : "bg-transparent text-ink2 shadow-[inset_0_0_0_1px_rgba(17,24,39,0.14)] hover:shadow-[inset_0_0_0_1px_rgba(17,24,39,0.24)]",
+        ].join(" ")}
+      >
+        <span>{active ? activeRoom?.room_name ?? "Filter" : "Mening sotuvchilarim"}</span>
+        <ChevronDown className="w-3 h-3 opacity-70" strokeWidth={2} />
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="absolute inset-0 opacity-0 cursor-pointer w-full"
+        >
+          <option value="">Hammasi</option>
+          {rooms.map((r) => (
+            <option key={r.room_id} value={r.room_id}>
+              {r.room_name}
+            </option>
+          ))}
+        </select>
+      </button>
+    </div>
+  );
+}
+
+/** By-collector section — full-width hairline composition, not a card. */
+function ByCollectorSection({
+  data,
+  activeRoomId,
+  onRoomToggle,
+  onClear,
+}: {
+  data: WorklistResp["by_collector"];
+  activeRoomId: string;
+  onRoomToggle: (id: string) => void;
+  onClear: () => void;
+}) {
+  const maxOut = Math.max(...data.map((x) => x.outstanding), 1);
+
+  return (
+    <section
+      className="mt-16 md:mt-24 reveal-up"
+      style={{ animationDelay: "120ms" }}
+    >
+      {/* Section header */}
+      <div className="flex items-end justify-between mb-7 gap-4">
+        <div>
+          <div className="text-[9px] font-mono uppercase tracking-[0.22em] text-ink3 mb-2">
+            Admin
+          </div>
+          <h2 className="hero-title text-[28px] md:text-[34px] text-ink">
+            Sotuvchilar bo'yicha
+          </h2>
+        </div>
+        {activeRoomId && (
+          <button
+            onClick={onClear}
+            className="text-[12px] text-ink3 hover:text-ink font-sans tracking-[-0.005em] transition-colors"
+          >
+            Filtrni tozalash →
+          </button>
+        )}
+      </div>
+
+      <hr className="hairline mb-1" aria-hidden />
+
+      <div>
+        {data.map((r, i) => {
+          const barPct = Math.max(8, (r.outstanding / maxOut) * 100);
+          const isTop3 = i < 3;
+          const isMid = i >= 3 && i < 6;
+          const barColor = isTop3 ? "#10B981" : isMid ? "#F59E0B" : "#9CA3AF";
+          const isActive = activeRoomId === r.room_id;
+          const initials = r.room_name
+            .trim()
+            .split(/\s+/)
+            .slice(0, 2)
+            .map((p) => p[0])
+            .join("")
+            .toUpperCase();
+
+          return (
+            <div
+              key={r.room_id}
+              onClick={() => onRoomToggle(r.room_id)}
+              className={[
+                "row-editorial cursor-pointer",
+                "grid grid-cols-12 items-center px-7 py-5 border-b border-ink/[0.06]",
+                isActive ? "bg-mintbg/40" : "",
+              ].join(" ")}
+            >
+              {/* Rank + avatar */}
+              <div className="col-span-1 flex items-center gap-3 pr-4">
+                <span className="text-[10px] font-mono text-ink4 tracking-[0.04em]">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+              </div>
+
+              {/* Avatar + name + bar */}
+              <div className="col-span-7 flex items-center gap-4 pr-6 min-w-0">
+                <div
+                  className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-white font-semibold tracking-[0.02em]"
+                  style={{
+                    background: [
+                      "linear-gradient(135deg,#1F2937,#374151)",
+                      "linear-gradient(135deg,#7E22CE,#581C87)",
+                      "linear-gradient(135deg,#0E7490,#155E75)",
+                      "linear-gradient(135deg,#9F1239,#881337)",
+                      "linear-gradient(135deg,#92400E,#78350F)",
+                    ][i % 5],
+                    fontSize: 11,
+                  }}
+                >
+                  {initials}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-sans font-semibold text-ink text-[14px] truncate leading-tight tracking-[-0.005em]">
+                    {r.room_name}
+                  </div>
+                  <div className="mt-2 h-[3px] bg-ink/[0.05] rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full draw-in-w"
+                      style={{
+                        width: `${barPct}%`,
+                        background: barColor,
+                        animationDelay: `${i * 60}ms`,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Mijoz count */}
+              <div className="col-span-2 text-right pr-4">
+                <div className="text-[12px] font-mono text-ink3 tracking-[0.02em]">
+                  {r.debtors_count} mijoz
+                </div>
+              </div>
+
+              {/* Outstanding */}
+              <div className="col-span-2 text-right">
+                <div className="hero-num text-[18px] text-ink leading-none">
+                  {formatUsdCompact(r.outstanding)}
+                </div>
+                <div className="text-[9px] font-mono text-ink4 mt-1 tracking-[0.16em] uppercase">
+                  USD
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+/** Aging buckets section — refined typographic composition. */
+function AgingBucketsSection({
+  rows,
+  pcts,
+  over90Count,
+  over90Total,
+}: {
+  rows: WorklistRow[];
+  pcts: { a0: number; a30: number; a60: number; a90: number; grand: number };
+  over90Count: number;
+  over90Total: number;
+}) {
+  const buckets = [
+    {
+      label: "0 – 30 kun",
+      count: rows.filter((r) => r.aging_0_30 > 0).length,
+      pct: pcts.a0,
+      color: "#10B981",
+      labelClass: "text-ink2",
+      countClass: "text-ink3",
+    },
+    {
+      label: "31 – 60 kun",
+      count: rows.filter((r) => r.aging_30_60 > 0).length,
+      pct: pcts.a30,
+      color: "#34D399",
+      labelClass: "text-ink2",
+      countClass: "text-ink3",
+    },
+    {
+      label: "61 – 90 kun",
+      count: rows.filter((r) => r.aging_60_90 > 0).length,
+      pct: pcts.a60,
+      color: "#F59E0B",
+      labelClass: "text-[#B45309]",
+      countClass: "text-ink3",
+    },
+    {
+      label: "90+ kun",
+      count: rows.filter((r) => r.aging_90_plus > 0).length,
+      pct: pcts.a90,
+      color: "#FB923C",
+      labelClass: "text-coraldk",
+      countClass: "text-coraldk",
+    },
+  ];
+
+  return (
+    <section
+      className="mt-16 md:mt-24 reveal-up"
+      style={{ animationDelay: "180ms" }}
+    >
+      <div className="flex items-end justify-between mb-7 gap-4">
+        <div>
+          <div className="text-[9px] font-mono uppercase tracking-[0.22em] text-ink3 mb-2">
+            Yosh taqsimoti
+          </div>
+          <h2 className="hero-title text-[28px] md:text-[34px] text-ink">
+            Aging buckets
+          </h2>
+          <p className="standfirst mt-2 text-[14px]">
+            Joriy ko'rish bo'yicha — ekrandagi mijozlar.
+          </p>
+        </div>
+        {over90Count > 0 && (
+          <div className="text-right shrink-0">
+            <div className="text-[9px] font-mono uppercase tracking-[0.22em] text-ink3 mb-1">
+              90+ summa
+            </div>
+            <div className="hero-num text-[26px] text-coraldk leading-none">
+              {formatUsdCompact(over90Total)}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <hr className="hairline mb-6" aria-hidden />
+
+      <div className="space-y-5 md:space-y-6">
+        {buckets.map((b, i) => (
+          <div key={b.label}>
+            <div className="flex items-baseline justify-between mb-2.5">
+              <span className={`text-[13px] font-sans font-semibold tracking-[-0.005em] ${b.labelClass}`}>
+                {b.label}
+              </span>
+              <span className={`text-[12px] font-mono ${b.countClass} tracking-[0.02em]`}>
+                {b.count} mijoz
+                {b.label === "90+ kun" && over90Total > 0 && (
+                  <span className="ml-2">· {formatUsdCompact(over90Total)}</span>
+                )}
+              </span>
+            </div>
+            <div
+              className="rounded-full overflow-hidden"
+              style={{ background: "rgba(17,24,39,0.04)", height: 4 }}
+            >
+              <div
+                className="h-full rounded-full draw-in-w"
+                style={{
+                  width: `${b.pct}%`,
+                  background: b.color,
+                  animationDelay: `${100 + i * 80}ms`,
+                }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ---- Prepayment card (kept editorial-clean) -------------------------------
 
 function PrepaymentCard({ row, locale }: { row: PrepayRow; locale: string }) {
   const { t } = useTranslation();
+  void locale;
+
   return (
-    <Card className="p-5 md:p-7 grid gap-4 md:grid-cols-[minmax(0,1fr)_auto]">
+    <Card className="p-6 md:p-8 grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
       <div>
-        <h3 className="font-display font-semibold text-xl text-foreground leading-tight">
+        <h3 className="hero-title text-[22px] md:text-[26px] text-ink leading-tight">
           {row.name ?? "—"}
         </h3>
-        <div className="mt-1 eyebrow text-muted-foreground flex items-center gap-x-2 flex-wrap normal-case text-xs">
+        <div className="mt-3 text-[12px] font-mono text-ink3 flex items-center gap-x-4 gap-y-1 flex-wrap tracking-[0.02em]">
           {row.region_name && <span>{row.region_name}</span>}
           {row.tin && (
             <>
-              <span className="text-muted-foreground/50">·</span>
-              <span className="font-mono">{row.tin}</span>
+              <span className="text-ink4">·</span>
+              <span>{row.tin}</span>
             </>
           )}
           {row.last_payment_date && (
             <>
-              <span className="text-muted-foreground/50">·</span>
+              <span className="text-ink4">·</span>
               <span>
                 {t("debt.col.last_payment")}:{" "}
-                <span className="font-semibold">{renderDate(row.last_payment_date, locale)}</span>
+                <span className="font-semibold text-ink2">
+                  {renderDate(row.last_payment_date)}
+                </span>
               </span>
             </>
           )}
         </div>
       </div>
       <div className="md:text-right">
-        <div className="eyebrow text-muted-foreground">{t("debt.col.credit")}</div>
-        <div className="kpi-num tabular-nums text-emerald-700 dark:text-emerald-400 leading-none mt-2 text-[2rem]">
+        <div className="text-[9px] font-mono uppercase tracking-[0.22em] text-mintdk mb-1.5">
+          Kredit balans
+        </div>
+        <div className="hero-num text-[34px] md:text-[40px] text-mintdk leading-none">
           + {formatUsd(row.credit_balance)}
         </div>
-        <div className="eyebrow text-muted-foreground mt-2 tabular-nums normal-case text-xs">
+        <div className="text-[10px] font-mono text-ink3 mt-2 tracking-[0.04em]">
           {t("debt.of_n_invoiced", { amount: formatUsd(row.gross_invoiced) })}
         </div>
       </div>
