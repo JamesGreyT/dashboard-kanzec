@@ -91,6 +91,103 @@
       "empty": "Hali segment ma'lumotlari yo'q."
     }
   },
+  "debt": {
+    "section": "Qarzlar",
+    "searchHint": "Mijoz, INN yoki telefon bo'yicha qidirish…",
+    "overduePromise": "muddati o'tgan",
+    "tabs": {
+      "worklist": "Qarz mijozlar",
+      "aging": "Qarz tahlili",
+      "prepayments": "Oldindan to'lovlar"
+    },
+    "worklist": {
+      "title": "Qarz mijozlar"
+    },
+    "stats": {
+      "totalDebt": "Umumiy qarz",
+      "over90": "90+ kun kechikkan",
+      "over90Short": "90+ kun",
+      "debtors": "Qarzdorlar",
+      "overduePromises": "Muddati o'tgan va'dalar"
+    },
+    "filters": {
+      "room": "Manager",
+      "direction": "Yo'nalish",
+      "aging": "Aging guruhi",
+      "outcome": "Natija",
+      "overduePromisesOnly": "Faqat muddati o'tgan va'dalar"
+    },
+    "aging": {
+      "current": "0–30",
+      "30-60": "30–60",
+      "60-90": "60–90",
+      "90+": "90+"
+    },
+    "outcomes": {
+      "promise": "Va'da",
+      "no_answer": "Javob yo'q",
+      "wrong_number": "Noto'g'ri raqam",
+      "partial_payment": "Qisman to'lov",
+      "dispute": "Bahslashish",
+      "paid": "To'landi"
+    },
+    "cols": {
+      "client": "Mijoz",
+      "manager": "Manager",
+      "region": "Hudud",
+      "outstanding": "Qarz qoldigi",
+      "daysOverdue": "Kun",
+      "aging": "Aging",
+      "lastContact": "Oxirgi aloqa",
+      "totalDebt": "Umumiy qarz",
+      "notDue": "Muddati kelmagan",
+      "bucket1": "1–30 kun",
+      "bucket2": "31–60 kun",
+      "bucket3": "61–90 kun",
+      "bucket4": "90+ kun",
+      "creditBalance": "Ortiqcha to'lov",
+      "lastPayment": "Oxirgi to'lov"
+    },
+    "empty": {
+      "line1": "Qarz mijozlar yo'q.",
+      "line2": "Hozircha bu yerda hech narsa yo'q.",
+      "line2withFilters": "Tanlangan filtrlarga mos mijozlar topilmadi."
+    },
+    "client": {
+      "dossier": "Mijoz hujjati",
+      "tin": "INN",
+      "code": "Kod",
+      "since": "ro'yxatdan o'tgan",
+      "totalDebt": "Umumiy qarz",
+      "contact": "Aloqa ma'lumotlari",
+      "phone": "Telefon",
+      "address": "Manzil",
+      "manager": "Manager",
+      "parent": "Bosh tashkilot",
+      "category": "Kategoriya",
+      "note": "Izoh",
+      "ordersTimeline": "Buyurtmalar",
+      "paymentsTimeline": "To'lovlar",
+      "contactLog": "Aloqa tarixi",
+      "noOrders": "Buyurtmalar topilmadi.",
+      "noPayments": "To'lovlar topilmadi.",
+      "noContacts": "Hali aloqa qayd etilmagan.",
+      "logContact": "Aloqa qayd etish",
+      "logIt": "Qayd etish",
+      "editContact": "Aloqani tahrirlash",
+      "outcome": "Natija",
+      "promisedAmount": "Va'da qilingan summa",
+      "promisedBy": "Sanaga qadar",
+      "followUpDate": "Keyingi aloqa sanasi",
+      "notePlaceholder": "Suhbat tafsilotlari, kelishuvlar…",
+      "saveFailed": "Saqlash muvaffaqiyatsiz.",
+      "outOfScope": "Bu mijoz sizning yo'nalishingizdan tashqarida.",
+      "backToWorklist": "Ro'yxatga qaytish",
+      "by": "ga qadar",
+      "followUp": "Keyingi aloqa",
+      "confirmDelete": "Yozuvni o'chirilsinmi?"
+    }
+  },
   "data": {
     "meta": {
       "registryOf": "Registr"

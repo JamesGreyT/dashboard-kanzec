@@ -91,6 +91,103 @@
       "empty": "No segment data yet."
     }
   },
+  "debt": {
+    "section": "Collection",
+    "searchHint": "Search by name, TIN, or phone…",
+    "overduePromise": "overdue",
+    "tabs": {
+      "worklist": "Worklist",
+      "aging": "Aging",
+      "prepayments": "Prepayments"
+    },
+    "worklist": {
+      "title": "Debt worklist"
+    },
+    "stats": {
+      "totalDebt": "Total outstanding",
+      "over90": "Over 90 days",
+      "over90Short": "over 90d",
+      "debtors": "Debtors",
+      "overduePromises": "Overdue promises"
+    },
+    "filters": {
+      "room": "Manager",
+      "direction": "Direction",
+      "aging": "Aging bucket",
+      "outcome": "Outcome",
+      "overduePromisesOnly": "Overdue promises only"
+    },
+    "aging": {
+      "current": "0–30",
+      "30-60": "30–60",
+      "60-90": "60–90",
+      "90+": "90+"
+    },
+    "outcomes": {
+      "promise": "Promise",
+      "no_answer": "No answer",
+      "wrong_number": "Wrong number",
+      "partial_payment": "Partial payment",
+      "dispute": "Dispute",
+      "paid": "Paid"
+    },
+    "cols": {
+      "client": "Client",
+      "manager": "Manager",
+      "region": "Region",
+      "outstanding": "Outstanding",
+      "daysOverdue": "Days",
+      "aging": "Aging",
+      "lastContact": "Last contact",
+      "totalDebt": "Total debt",
+      "notDue": "Not yet due",
+      "bucket1": "1–30 d",
+      "bucket2": "31–60 d",
+      "bucket3": "61–90 d",
+      "bucket4": "90+ d",
+      "creditBalance": "Credit balance",
+      "lastPayment": "Last payment"
+    },
+    "empty": {
+      "line1": "No debtors.",
+      "line2": "Nothing here yet.",
+      "line2withFilters": "No clients match the active filters."
+    },
+    "client": {
+      "dossier": "Client dossier",
+      "tin": "TIN",
+      "code": "Code",
+      "since": "since",
+      "totalDebt": "Total outstanding",
+      "contact": "Contact",
+      "phone": "Phone",
+      "address": "Address",
+      "manager": "Manager",
+      "parent": "Parent",
+      "category": "Category",
+      "note": "Note",
+      "ordersTimeline": "Orders",
+      "paymentsTimeline": "Payments",
+      "contactLog": "Contact log",
+      "noOrders": "No orders.",
+      "noPayments": "No payments.",
+      "noContacts": "No contacts logged yet.",
+      "logContact": "Log contact",
+      "logIt": "Log it",
+      "editContact": "Edit contact",
+      "outcome": "Outcome",
+      "promisedAmount": "Promised amount",
+      "promisedBy": "By date",
+      "followUpDate": "Follow-up date",
+      "notePlaceholder": "Call notes, agreements…",
+      "saveFailed": "Save failed.",
+      "outOfScope": "This client is outside your scope.",
+      "backToWorklist": "Back to worklist",
+      "by": "by",
+      "followUp": "Follow-up",
+      "confirmDelete": "Delete this entry?"
+    }
+  },
   "data": {
     "meta": {
       "registryOf": "Registry of"

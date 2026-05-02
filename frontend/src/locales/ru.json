@@ -91,6 +91,103 @@
       "empty": "Данных по сегментам пока нет."
     }
   },
+  "debt": {
+    "section": "Долги",
+    "searchHint": "Поиск по клиенту, ИНН или телефону…",
+    "overduePromise": "просрочено",
+    "tabs": {
+      "worklist": "Должники",
+      "aging": "Анализ долга",
+      "prepayments": "Предоплаты"
+    },
+    "worklist": {
+      "title": "Должники"
+    },
+    "stats": {
+      "totalDebt": "Общий долг",
+      "over90": "90+ дней просрочки",
+      "over90Short": "90+ дн.",
+      "debtors": "Должников",
+      "overduePromises": "Просроченные обещания"
+    },
+    "filters": {
+      "room": "Менеджер",
+      "direction": "Направление",
+      "aging": "Группа долга",
+      "outcome": "Исход",
+      "overduePromisesOnly": "Только просроченные обещания"
+    },
+    "aging": {
+      "current": "0–30",
+      "30-60": "30–60",
+      "60-90": "60–90",
+      "90+": "90+"
+    },
+    "outcomes": {
+      "promise": "Обещание",
+      "no_answer": "Не отвечает",
+      "wrong_number": "Неверный номер",
+      "partial_payment": "Частичная оплата",
+      "dispute": "Спор",
+      "paid": "Оплачено"
+    },
+    "cols": {
+      "client": "Клиент",
+      "manager": "Менеджер",
+      "region": "Регион",
+      "outstanding": "Остаток",
+      "daysOverdue": "Дни",
+      "aging": "Aging",
+      "lastContact": "Последний контакт",
+      "totalDebt": "Общий долг",
+      "notDue": "Не просрочено",
+      "bucket1": "1–30 дн.",
+      "bucket2": "31–60 дн.",
+      "bucket3": "61–90 дн.",
+      "bucket4": "90+ дн.",
+      "creditBalance": "Кредитный остаток",
+      "lastPayment": "Последняя оплата"
+    },
+    "empty": {
+      "line1": "Должников нет.",
+      "line2": "Пока пусто.",
+      "line2withFilters": "Под выбранные фильтры клиентов не найдено."
+    },
+    "client": {
+      "dossier": "Досье клиента",
+      "tin": "ИНН",
+      "code": "Код",
+      "since": "в системе с",
+      "totalDebt": "Общий долг",
+      "contact": "Контакты",
+      "phone": "Телефон",
+      "address": "Адрес",
+      "manager": "Менеджер",
+      "parent": "Голов. компания",
+      "category": "Категория",
+      "note": "Заметка",
+      "ordersTimeline": "Заказы",
+      "paymentsTimeline": "Платежи",
+      "contactLog": "Журнал контактов",
+      "noOrders": "Заказов нет.",
+      "noPayments": "Платежей нет.",
+      "noContacts": "Контакты ещё не зарегистрированы.",
+      "logContact": "Зарегистрировать контакт",
+      "logIt": "Зарегистрировать",
+      "editContact": "Редактировать контакт",
+      "outcome": "Исход",
+      "promisedAmount": "Обещанная сумма",
+      "promisedBy": "До даты",
+      "followUpDate": "Следующий контакт",
+      "notePlaceholder": "Детали разговора, договорённости…",
+      "saveFailed": "Не удалось сохранить.",
+      "outOfScope": "Этот клиент вне вашей зоны ответственности.",
+      "backToWorklist": "К списку",
+      "by": "до",
+      "followUp": "Следующий контакт",
+      "confirmDelete": "Удалить запись?"
+    }
+  },
   "data": {
     "meta": {
       "registryOf": "Реестр"

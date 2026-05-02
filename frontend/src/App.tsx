@@ -14,6 +14,8 @@ import Dashboard from '@/pages/Dashboard'
 import OrdersPage from '@/pages/data/Orders'
 import PaymentsDataPage from '@/pages/data/Payments'
 import LegalPersonsPage from '@/pages/data/LegalPersons'
+import Worklist from '@/pages/collection/Worklist'
+import ClientDetail from '@/pages/collection/ClientDetail'
 
 /**
  * Renders a full-screen spinner while the AuthContext bootstrap is in flight.
@@ -90,8 +92,8 @@ export default function App() {
                     <Route path="/data/payments" element={<PaymentsDataPage />} />
                     <Route path="/data/legal-persons" element={<LegalPersonsPage />} />
 
-                    <Route path="/collection/worklist" element={<PlaceholderPage titleKey="nav.items.worklist" />} />
-                    <Route path="/collection/debt/client/:personId" element={<PlaceholderPage titleKey="nav.items.worklist" />} />
+                    <Route path="/collection/worklist" element={<Worklist />} />
+                    <Route path="/collection/debt/client/:personId" element={<ClientDetail />} />
 
                     <Route path="/analytics/sales" element={<PlaceholderPage titleKey="nav.items.sales" />} />
                     <Route path="/analytics/payments" element={<PlaceholderPage titleKey="nav.items.payments" />} />
