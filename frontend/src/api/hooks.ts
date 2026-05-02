@@ -533,11 +533,20 @@ export type DaysliceProjection = {
   }
 }
 
-export function useDaysliceProjection(opts: { enabled: boolean }) {
+export function useDaysliceProjection(
+  opts: { enabled: boolean } & Pick<DaysliceFilters, 'as_of' | 'years' | 'direction'> = { enabled: true },
+) {
+  const params = {
+    as_of: opts.as_of || undefined,
+    years: opts.years ?? undefined,
+    direction: opts.direction || undefined,
+  }
   return useQuery({
-    queryKey: ['dayslice', 'projection'],
-    queryFn: async () => (await api.get<DaysliceProjection>('/dayslice/projection')).data,
+    queryKey: ['dayslice', 'projection', params],
+    queryFn: async () =>
+      (await api.get<DaysliceProjection>('/dayslice/projection', { params })).data,
     enabled: opts.enabled,
+    placeholderData: (prev) => prev,
   })
 }
 

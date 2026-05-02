@@ -1,6 +1,6 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Save, X, AlertTriangle, Edit3 } from 'lucide-react'
+import { X } from 'lucide-react'
 
 import PageHeader from '@/components/PageHeader'
 import MatrixTable from '@/components/analytics/MatrixTable'
@@ -9,11 +9,8 @@ import {
   useDaysliceProjection,
   useDaysliceRegionPivot,
   useDaysliceDrill,
-  useDayslicePlan,
-  useUpdateDayslicePlan,
   useSnapshotsDirections,
   type DaysliceScoreboard,
-  type DaysliceePlanRow,
 } from '@/api/hooks'
 import { formatNumber, formatPercent } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -26,18 +23,46 @@ const PLAYFAIR = "'Playfair Display', Georgia, serif"
 const DM_SANS = "'DM Sans', system-ui"
 const PLEX_MONO = "'IBM Plex Mono', ui-monospace, monospace"
 
+// Month picker helpers — the `<input type="month">` value is "YYYY-MM";
+// translate to a query-friendly `as_of` ISO date (YYYY-MM-DD).
+function currentMonthValue(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+function asOfFromMonth(monthValue: string): string | undefined {
+  // Empty month value → no filter, backend defaults to today.
+  if (!monthValue) return undefined
+  const [yStr, mStr] = monthValue.split('-')
+  const y = Number(yStr)
+  const m = Number(mStr)
+  if (!Number.isFinite(y) || !Number.isFinite(m)) return undefined
+
+  const now = new Date()
+  const isCurrent = y === now.getFullYear() && m === now.getMonth() + 1
+  if (isCurrent) {
+    // Mid-month: anchor on today so the slice reads month_start..today.
+    return now.toISOString().slice(0, 10)
+  }
+  // Past or future month: anchor on the last calendar day of that month.
+  // Day 0 of next month = last day of current month.
+  const last = new Date(y, m, 0)
+  return `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}-${String(last.getDate()).padStart(2, '0')}`
+}
+
 export default function Dayslice() {
   const { t } = useTranslation()
   const [direction, setDirection] = useState('')
   const [years, setYears] = useState(4)
+  const [month, setMonth] = useState<string>(() => currentMonthValue())
   const [drill, setDrill] = useState<{ measure: 'sotuv' | 'kirim'; manager: string; year: number } | null>(null)
-  const [planOpen, setPlanOpen] = useState(false)
 
   const directionsQ = useSnapshotsDirections()
-  const filters = { direction, years }
+  const as_of = asOfFromMonth(month)
+  const filters = { direction, years, as_of }
 
   const scoreboardQ = useDaysliceScoreboard(filters)
-  const projectionQ = useDaysliceProjection({ enabled: true })
+  const projectionQ = useDaysliceProjection({ enabled: true, as_of, years, direction })
   const regionQ = useDaysliceRegionPivot(filters)
 
   const slice = scoreboardQ.data?.slice ?? projectionQ.data?.slice
@@ -69,6 +94,27 @@ export default function Dayslice() {
           <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70 mr-1" style={{ fontFamily: PLEX_MONO }}>
             {t('data.filters.label')}
           </span>
+          {/* Month picker — defaults to current month so the page boots with
+              the live slice. Selecting a past month anchors `as_of` on the
+              last day of that month (so the slice fills the whole month);
+              the current month stays anchored on today, so day_n/month_days
+              still reads as a real MTD progression. */}
+          <input
+            type="month"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+            max={currentMonthValue()}
+            className={cn('month-btn font-medium normal-case', month !== currentMonthValue() && 'active')}
+            aria-label={t('admin.dayslice.month')}
+          />
+          <button
+            type="button"
+            onClick={() => setMonth(currentMonthValue())}
+            disabled={month === currentMonthValue()}
+            className="month-btn normal-case disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {t('admin.dayslice.thisMonth')}
+          </button>
           <select
             value={direction}
             onChange={(e) => setDirection(e.target.value)}
@@ -90,14 +136,6 @@ export default function Dayslice() {
               </button>
             ))}
           </div>
-          <button
-            type="button"
-            onClick={() => setPlanOpen(true)}
-            className="month-btn inline-flex items-center gap-1.5 normal-case ml-auto"
-          >
-            <Edit3 size={11} />
-            {t('admin.dayslice.editPlan')}
-          </button>
         </div>
       </header>
 
@@ -153,9 +191,6 @@ export default function Dayslice() {
           year={drill.year}
           onClose={() => setDrill(null)}
         />
-      )}
-      {planOpen && (
-        <PlanEditorModal onClose={() => setPlanOpen(false)} />
       )}
     </div>
   )
@@ -412,167 +447,3 @@ function DrillModal({
   )
 }
 
-// ── Plan editor modal ───────────────────────────────────────────────────
-
-function PlanEditorModal({ onClose }: { onClose: () => void }) {
-  const { t } = useTranslation()
-  const now = new Date()
-  const [year, setYear] = useState(now.getFullYear())
-  const [month, setMonth] = useState(now.getMonth() + 1)
-  const planQ = useDayslicePlan(year, month)
-  const update = useUpdateDayslicePlan()
-  const scoreboardQ = useDaysliceScoreboard({ years: 1 })
-
-  const [rows, setRows] = useState<DaysliceePlanRow[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const [saved, setSaved] = useState(false)
-
-  // Initialise editable rows once data lands. setRows runs once per dataset
-  // change, not per render — guarded by length checks to avoid clobbering
-  // the user's in-progress edits.
-  useEffect(() => {
-    if (planQ.data?.rows && planQ.data.rows.length > 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setRows(planQ.data.rows)
-    } else if (scoreboardQ.data?.sotuv?.rows && rows.length === 0) {
-      setRows(
-        scoreboardQ.data.sotuv.rows.map((r) => ({ manager: r.manager, plan_sotuv: null, plan_kirim: null })),
-      )
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [planQ.data, scoreboardQ.data])
-
-  function setCell(idx: number, field: 'plan_sotuv' | 'plan_kirim', value: string) {
-    const n = value === '' ? null : Number(value)
-    if (value !== '' && (!Number.isFinite(n) || (n as number) < 0)) return
-    setRows((prev) => {
-      const next = [...prev]
-      next[idx] = { ...next[idx], [field]: n }
-      return next
-    })
-    setSaved(false)
-  }
-
-  async function onSave() {
-    setError(null)
-    try {
-      await update.mutateAsync({ year, month, rows })
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
-    } catch (err: unknown) {
-      const detail = (err as { response?: { data?: { detail?: string } } }).response?.data?.detail
-      setError(detail ?? t('admin.dayslice.saveFailed'))
-    }
-  }
-
-  return (
-    <>
-      <div className="fixed inset-0 z-30 bg-black/30" onClick={onClose} aria-hidden />
-      <div
-        className="fixed left-1/2 top-1/2 z-40 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-card border border-border rounded-xl p-6 lg:p-7 shadow-xl animate-fade-up max-h-[85vh] overflow-y-auto"
-        role="dialog"
-        aria-modal="true"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-semibold leading-none" style={{ fontFamily: PLAYFAIR }}>
-            {t('admin.dayslice.editPlan')}
-          </h2>
-          <button type="button" onClick={onClose} className="p-1 -m-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors" aria-label={t('common.close')}>
-            <X size={16} />
-          </button>
-        </div>
-
-        <div className="flex items-center gap-2 mb-4" style={{ fontFamily: DM_SANS }}>
-          <input
-            type="number"
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
-            className="inv-filter"
-            style={{ width: 90 }}
-          />
-          <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="inv-filter">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
-              <option key={m} value={m}>
-                {m.toString().padStart(2, '0')}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="overflow-x-auto -mx-2">
-          <table className="w-full text-sm" style={{ fontFamily: DM_SANS }}>
-            <thead>
-              <tr>
-                <th className="px-3 py-2 text-left text-[10px] uppercase tracking-[0.12em] text-muted-foreground border-b border-border">{t('admin.dayslice.manager')}</th>
-                <th className="px-3 py-2 text-right text-[10px] uppercase tracking-[0.12em] text-muted-foreground border-b border-border">{t('analytics.comparison.sotuv')}</th>
-                <th className="px-3 py-2 text-right text-[10px] uppercase tracking-[0.12em] text-muted-foreground border-b border-border">{t('analytics.comparison.kirim')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 ? (
-                <tr><td colSpan={3} className="py-6 text-center text-sm italic text-muted-foreground" style={{ fontFamily: PLAYFAIR }}>{t('admin.dayslice.noManagers')}</td></tr>
-              ) : (
-                rows.map((row, idx) => (
-                  <tr key={row.manager}>
-                    <td className="px-3 py-2 border-b border-border/40" style={{ fontFamily: PLAYFAIR, fontWeight: 600 }}>{row.manager}</td>
-                    <td className="px-3 py-2 border-b border-border/40 text-right">
-                      <input
-                        type="number"
-                        step="any"
-                        min={0}
-                        value={row.plan_sotuv ?? ''}
-                        onChange={(e) => setCell(idx, 'plan_sotuv', e.target.value)}
-                        placeholder="—"
-                        className="inv-filter w-32 text-right"
-                        style={{ fontFamily: PLAYFAIR }}
-                      />
-                    </td>
-                    <td className="px-3 py-2 border-b border-border/40 text-right">
-                      <input
-                        type="number"
-                        step="any"
-                        min={0}
-                        value={row.plan_kirim ?? ''}
-                        onChange={(e) => setCell(idx, 'plan_kirim', e.target.value)}
-                        placeholder="—"
-                        className="inv-filter w-32 text-right"
-                        style={{ fontFamily: PLAYFAIR }}
-                      />
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {error && (
-          <div className="mt-4 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-xs flex items-start gap-2">
-            <AlertTriangle size={12} className="mt-0.5 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
-        {saved && (
-          <p className="mt-4 text-xs italic text-[#9E7B2F]" style={{ fontFamily: DM_SANS }}>
-            ✓ {t('admin.dayslice.planSaved')}
-          </p>
-        )}
-
-        <div className="flex items-center justify-end gap-2 pt-4 mt-4 border-t border-border/40">
-          <button type="button" onClick={onClose} className="text-xs px-3 py-1.5 text-muted-foreground hover:text-foreground transition-colors">
-            {t('common.close')}
-          </button>
-          <button
-            type="button"
-            onClick={onSave}
-            disabled={update.isPending}
-            className="text-xs px-3.5 py-1.5 rounded bg-[#D4A843] hover:bg-[#C49833] disabled:bg-[#D4A843]/30 text-black font-semibold inline-flex items-center gap-1.5 transition-colors"
-          >
-            <Save size={11} />
-            {update.isPending ? t('common.loading') : t('common.save')}
-          </button>
-        </div>
-      </div>
-    </>
-  )
-}

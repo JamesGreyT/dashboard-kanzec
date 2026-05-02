@@ -337,11 +337,8 @@
       "mtdAt": "day",
       "ofMonthMean": "of mean",
       "drillTitle": "Drill",
-      "editPlan": "Edit plan",
-      "manager": "Manager",
-      "noManagers": "No managers.",
-      "saveFailed": "Save failed.",
-      "planSaved": "Plan saved."
+      "month": "Month",
+      "thisMonth": "This month"
     }
   },
   "analytics": {
