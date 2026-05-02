@@ -293,12 +293,14 @@ export default function Debt() {
               3. KPI Strip — 4 cards horizontal desktop / 2x2 mobile
               Each card: eyebrow → value → sub-detail (8-12px gap each)
               ---------------------------------------------------------- */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          {/* KPI strip: horizontal snap-scroll on mobile so large numbers fit cleanly;
+              regular 4-col grid on desktop */}
+          <div className="flex overflow-x-auto snap-x snap-mandatory gap-3 pb-2 -mx-4 px-4 no-scrollbar md:overflow-visible md:grid md:grid-cols-4 md:mx-0 md:px-0 mb-4">
             {/* (a) Jami qarz — total outstanding */}
-            <div className="bg-white rounded-2xl shadow-card p-4 flex flex-col gap-0">
+            <div className="bg-white rounded-2xl shadow-card p-4 flex flex-col gap-0 snap-center w-[78%] shrink-0 md:w-auto md:shrink">
               <div className="eyebrow text-ink3">Jami qarz</div>
               <div className="mt-2">
-                <span className="kpi-num text-[28px] md:text-[36px] text-ink">
+                <span className="kpi-num text-[22px] md:text-[36px] text-ink">
                   {formatUsd(summary?.total_outstanding ?? 0)}
                 </span>
               </div>
@@ -308,10 +310,10 @@ export default function Debt() {
             </div>
 
             {/* (b) Qarzdorlar — debtor_count */}
-            <div className="bg-white rounded-2xl shadow-card p-4 flex flex-col gap-0">
+            <div className="bg-white rounded-2xl shadow-card p-4 flex flex-col gap-0 snap-center w-[78%] shrink-0 md:w-auto md:shrink">
               <div className="eyebrow text-ink3">Qarzdorlar</div>
               <div className="mt-2 flex items-baseline gap-1.5">
-                <span className="kpi-num text-[28px] md:text-[36px] text-ink">
+                <span className="kpi-num text-[22px] md:text-[36px] text-ink">
                   {(summary?.debtor_count ?? 0).toLocaleString()}
                 </span>
                 <span className="text-ink3 text-[11px] font-mono">mijoz</span>
@@ -322,10 +324,10 @@ export default function Debt() {
             </div>
 
             {/* (c) 90+ kun — debtor_over_90_count / total_over_90 */}
-            <div className="bg-white rounded-2xl shadow-card p-4 flex flex-col gap-0">
+            <div className="bg-white rounded-2xl shadow-card p-4 flex flex-col gap-0 snap-center w-[78%] shrink-0 md:w-auto md:shrink">
               <div className="eyebrow" style={{ color: "#B91C1C" }}>90+ kun · xavf</div>
               <div className="mt-2 flex items-baseline gap-1.5">
-                <span className="kpi-num text-[28px] md:text-[36px] text-coral">
+                <span className="kpi-num text-[22px] md:text-[36px] text-coral">
                   {(summary?.debtor_over_90_count ?? 0).toLocaleString()}
                 </span>
                 <span className="text-ink3 text-[11px] font-mono">
@@ -353,14 +355,14 @@ export default function Debt() {
 
             {/* (d) Muddati o'tgan va'dalar — total_overdue_promises */}
             <div
-              className="rounded-2xl shadow-card p-4 flex flex-col gap-0"
+              className="rounded-2xl shadow-card p-4 flex flex-col gap-0 snap-center w-[78%] shrink-0 md:w-auto md:shrink"
               style={{ background: "linear-gradient(180deg,#FFFFFF 0%, #F0FDF4 100%)" }}
             >
               <div className="eyebrow" style={{ color: "#059669" }}>
                 Muddati o'tgan va'dalar
               </div>
               <div className="mt-2">
-                <span className="kpi-num text-[28px] md:text-[36px] text-mintdk">
+                <span className="kpi-num text-[22px] md:text-[36px] text-mintdk">
                   {formatUsd(summary?.total_overdue_promises ?? 0)}
                 </span>
               </div>

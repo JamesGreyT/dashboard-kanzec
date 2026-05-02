@@ -137,7 +137,7 @@ export default function DebtorRow({
 
       {/* Yosh — aging bar + days. min-w-0 prevents the flex child from overflowing its grid column. */}
       <div className="col-span-2 min-w-0">
-        <div className="w-full">
+        <div className="w-[100px]">
           {agingTotal > 0 ? (
             <div className="age-bar">
               {row.aging_0_30 > 0 && (
