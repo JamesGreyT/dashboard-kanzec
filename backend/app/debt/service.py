@@ -867,6 +867,10 @@ async def compute_ledger(
     2022-09-13 and synthetic $opening_credit payment of the same date.
     """
     person_f, scope_params = _scope_fragments(scope)
+    # The monthly_paid CTE JOINs payment p + deal_clients dc, both of which
+    # expose person_id. The unqualified {person_f} would be ambiguous there,
+    # so build a `p.`-qualified clone for that one CTE.
+    person_payment_f = person_f.replace("person_id::text", "p.person_id::text") if person_f else ""
     params: dict[str, Any] = {
         **scope_params,
         "min_owed": float(_LEDGER_MIN_OWED),
@@ -935,29 +939,28 @@ async def compute_ledger(
          {person_f}
        GROUP BY person_id::text
     ),
+    -- Per-client list of (person_id, deadline_start) for clients that have
+    -- a deal_deadline_start. Used to filter the payment ledger by per-row
+    -- date threshold in monthly_paid.
+    deal_clients AS (
+      SELECT person_id::text AS person_id,
+             deal_deadline_start
+        FROM smartup_rep.legal_person
+       WHERE deal_deadline_start IS NOT NULL
+    ),
     -- Sum of payments since each problem-client's deal_deadline_start.
     -- Used by the deal_status CASE below: for PROBLEM_MONTHLY clients we
     -- compare this to (months_elapsed × deal_monthly_amount).
-    --
-    -- We can't JOIN payment + legal_person here because {person_f} uses
-    -- unqualified `person_id`, which becomes ambiguous when both tables
-    -- expose that column. Instead, drive the filter by an IN subquery
-    -- against the legal_person eligibility set.
     monthly_paid AS (
-      SELECT person_id::text AS person_id,
-             SUM(amount) AS paid_since_epoch
-        FROM smartup_rep.payment
-       WHERE person_id IS NOT NULL
-         AND person_id::text IN (
-           SELECT person_id::text FROM smartup_rep.legal_person
-            WHERE deal_deadline_start IS NOT NULL
-         )
-         AND payment_date >= (
-           SELECT deal_deadline_start FROM smartup_rep.legal_person lp
-            WHERE lp.person_id::text = smartup_rep.payment.person_id::text
-         )
-         {person_f}
-       GROUP BY person_id::text
+      SELECT dc.person_id,
+             SUM(p.amount) AS paid_since_epoch
+        FROM deal_clients dc
+        JOIN smartup_rep.payment p
+          ON p.person_id::text = dc.person_id
+         AND p.payment_date >= dc.deadline_start
+       WHERE p.person_id IS NOT NULL
+         {person_payment_f}
+       GROUP BY dc.person_id
     ),
     -- Universe of debtors: anyone with orders OR with an opening balance
     -- (even a client with only $X opening debt and no post-2022 activity
