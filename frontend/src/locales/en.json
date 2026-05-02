@@ -1,0 +1,66 @@
+{
+  "auth": {
+    "tagline": "Operations console",
+    "username": "Username",
+    "password": "Password",
+    "signIn": "Sign in",
+    "signingIn": "Signing in…",
+    "invalidCredentials": "Invalid username or password",
+    "loginFailed": "Sign-in failed. Please try again.",
+    "footer": "Internal use only"
+  },
+  "common": {
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "noData": "No data",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "retry": "Try again",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "language": "Language",
+    "signOut": "Sign out",
+    "toggleTheme": "Toggle theme",
+    "accessDenied": "Access denied",
+    "accessDeniedDesc": "You don't have access to this page:",
+    "comingSoon": "This page will land in a later session.",
+    "search": "Search",
+    "all": "All",
+    "apply": "Apply",
+    "reset": "Reset"
+  },
+  "roles": {
+    "admin": "Administrator",
+    "operator": "Operator",
+    "viewer": "Viewer"
+  },
+  "nav": {
+    "groups": {
+      "main": "Primary",
+      "strategic": "Strategic",
+      "data": "Data",
+      "collection": "Collection",
+      "analytics": "Analytics",
+      "operations": "Operations",
+      "admin": "Administration"
+    },
+    "items": {
+      "dashboard": "Dashboard",
+      "dayslice": "Day slice",
+      "orders": "Orders",
+      "dataPayments": "Payments",
+      "legalPersons": "Legal persons",
+      "worklist": "Worklist",
+      "sales": "Sales",
+      "payments": "Payments",
+      "returns": "Returns",
+      "comparison": "Comparison",
+      "reports": "Reports",
+      "alerts": "Alerts",
+      "users": "Users",
+      "audit": "Audit"
+    }
+  }
+}

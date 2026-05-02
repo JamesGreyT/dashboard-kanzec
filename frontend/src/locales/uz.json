@@ -1,0 +1,66 @@
+{
+  "auth": {
+    "tagline": "Operatsion boshqaruv",
+    "username": "Foydalanuvchi",
+    "password": "Parol",
+    "signIn": "Kirish",
+    "signingIn": "Kirilmoqda...",
+    "invalidCredentials": "Foydalanuvchi nomi yoki parol noto'g'ri",
+    "loginFailed": "Kirish amalga oshmadi. Qayta urinib ko'ring.",
+    "footer": "Faqat ichki foydalanish uchun"
+  },
+  "common": {
+    "loading": "Yuklanmoqda…",
+    "error": "Xatolik yuz berdi",
+    "noData": "Ma'lumot yo'q",
+    "cancel": "Bekor qilish",
+    "confirm": "Tasdiqlash",
+    "retry": "Qayta urinish",
+    "save": "Saqlash",
+    "delete": "O'chirish",
+    "edit": "Tahrirlash",
+    "close": "Yopish",
+    "language": "Til",
+    "signOut": "Chiqish",
+    "toggleTheme": "Mavzuni almashtirish",
+    "accessDenied": "Ruxsat yo'q",
+    "accessDeniedDesc": "Sizda quyidagi sahifaga kirish huquqi yo'q:",
+    "comingSoon": "Bu sahifa keyingi bosqichda ishga tushiriladi.",
+    "search": "Qidirish",
+    "all": "Barchasi",
+    "apply": "Qo'llash",
+    "reset": "Tozalash"
+  },
+  "roles": {
+    "admin": "Administrator",
+    "operator": "Operator",
+    "viewer": "Kuzatuvchi"
+  },
+  "nav": {
+    "groups": {
+      "main": "Asosiy",
+      "strategic": "Strategik",
+      "data": "Ma'lumotlar",
+      "collection": "Qarzlar",
+      "analytics": "Analitika",
+      "operations": "Operatsiyalar",
+      "admin": "Administratsiya"
+    },
+    "items": {
+      "dashboard": "Boshqaruv paneli",
+      "dayslice": "Kunlik kesim",
+      "orders": "Buyurtmalar",
+      "dataPayments": "To'lovlar",
+      "legalPersons": "Yuridik shaxslar",
+      "worklist": "Qarz mijozlar",
+      "sales": "Sotuv",
+      "payments": "To'lovlar",
+      "returns": "Qaytarishlar",
+      "comparison": "Taqqoslash",
+      "reports": "Hisobotlar",
+      "alerts": "Ogohlantirishlar",
+      "users": "Foydalanuvchilar",
+      "audit": "Audit"
+    }
+  }
+}
