@@ -26,14 +26,14 @@ export default function Layout() {
   }, [])
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background text-foreground grain-overlay relative">
+    <div className="app-shell grain-overlay relative flex h-[100dvh] overflow-hidden text-foreground">
       <GlobalLoadingBar />
       {/* Mobile Header (visible only on small screens) */}
-      <div className="md:hidden flex items-center justify-between p-4 border-b border-border bg-sidebar absolute top-0 left-0 right-0 z-20">
+      <div className="md:hidden absolute top-0 left-0 right-0 z-20 flex items-center justify-between border-b border-border/70 bg-sidebar/90 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-2">
           <span className="font-bold text-sm tracking-tight text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>Kanzec</span>
         </div>
-        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1.5 text-muted-foreground hover:text-foreground" aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}>
+        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="rounded-md border border-border/70 bg-card/70 p-1.5 text-muted-foreground transition-colors hover:text-foreground" aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}>
           {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
@@ -50,13 +50,13 @@ export default function Layout() {
       {/* Mobile Backdrop */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-20 md:hidden backdrop-blur-sm"
+          className="fixed inset-0 z-20 bg-black/45 backdrop-blur-sm md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Main Content Area */}
-      <main id="main" className="flex-1 overflow-y-auto w-full p-4 pt-20 md:p-6 lg:p-8 pb-20 relative z-10">
+      <main id="main" className="relative z-10 w-full flex-1 overflow-y-auto px-4 pb-20 pt-18 md:px-6 md:py-6 lg:px-8 lg:py-8">
         <Outlet />
       </main>
     </div>

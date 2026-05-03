@@ -136,7 +136,7 @@ function NavGroupSection({
       {!collapsed && (
         <button
           onClick={() => setOpen((o) => !o)}
-          className="w-full flex items-center justify-between px-3 py-1 rounded text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80 hover:text-foreground transition-colors"
+          className="flex w-full items-center justify-between rounded-md px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80 transition-colors hover:bg-accent/50 hover:text-foreground"
           aria-expanded={open}
         >
           <span>{t(`nav.groups.${group.labelKey}`)}</span>
@@ -154,13 +154,13 @@ function NavGroupSection({
             title={collapsed ? t(`nav.items.${labelKey}`) : undefined}
             className={({ isActive }) =>
               cn(
-                'flex items-center rounded-lg text-sm transition-all duration-200',
+                'flex items-center rounded-md text-sm transition-all duration-200',
                 collapsed
                   ? 'justify-center w-10 h-10 mx-auto'
                   : 'gap-2.5 px-3 py-1.5 min-h-7',
                 isActive
                   ? 'nav-active'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/60',
+                  : 'text-muted-foreground hover:bg-accent/65 hover:text-foreground',
               )
             }
             onClick={onClose}
@@ -223,7 +223,7 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
   return (
     <aside
       className={cn(
-        'flex flex-col h-screen overflow-y-auto bg-sidebar border-r border-border shrink-0 transition-[width] duration-200',
+        'flex h-[100dvh] shrink-0 flex-col overflow-y-auto border-r border-sidebar-border/80 bg-sidebar/92 shadow-[12px_0_38px_-34px_rgba(36,31,24,0.65)] backdrop-blur transition-[width] duration-200',
         // Mobile drawer always shows the full width; the collapsed flag only
         // affects the desktop layout.
         'w-[80vw] max-w-80',
@@ -233,28 +233,33 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
       {/* Brand — soft hairline divider, generous breathing */}
       <div className={cn('flex items-center', collapsed ? 'justify-center px-2 py-5' : 'justify-between px-4 py-5')}>
         {collapsed ? (
-          <span className="font-bold text-lg text-foreground" style={{ fontFamily: PLAYFAIR }}>
+          <span className="rounded-md border border-primary/20 bg-primary/10 px-2 py-1 text-lg font-bold text-foreground" style={{ fontFamily: PLAYFAIR }}>
             K
           </span>
         ) : (
-          <span className="font-bold text-base tracking-tight text-foreground" style={{ fontFamily: PLAYFAIR }}>
-            Kanzec
-          </span>
+          <div>
+            <span className="text-base font-bold tracking-normal text-foreground" style={{ fontFamily: PLAYFAIR }}>
+              Kanzec
+            </span>
+            <p className="mt-0.5 text-[10px] uppercase tracking-[0.12em] text-muted-foreground" style={{ fontFamily: DM_SANS }}>
+              Operations
+            </p>
+          </div>
         )}
         <button
           type="button"
           onClick={() => setCollapsed((c) => !c)}
-          className="hidden md:inline-flex p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+          className="hidden rounded-md border border-transparent p-1 text-muted-foreground transition-colors hover:border-border hover:bg-accent hover:text-foreground md:inline-flex"
           aria-label={collapsed ? t('common.expandSidebar') : t('common.collapseSidebar')}
           title={`${collapsed ? t('common.expandSidebar') : t('common.collapseSidebar')} (Ctrl+\\)`}
         >
           {collapsed ? <ChevronsRight size={14} /> : <ChevronsLeft size={14} />}
         </button>
       </div>
-      <div className="h-px bg-border/40 mx-3" aria-hidden />
+      <div className="mx-3 h-px bg-sidebar-border/70" aria-hidden />
 
       {/* Navigation */}
-      <nav className={cn('flex-1 py-3 space-y-2', collapsed ? 'px-2' : 'px-2')} aria-label="Main navigation">
+      <nav className={cn('flex-1 space-y-2 py-3', collapsed ? 'px-2' : 'px-2.5')} aria-label="Main navigation">
         {filteredGroups.map((group, idx) => (
           <NavGroupSection
             key={group.labelKey}
@@ -268,16 +273,16 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
 
       {/* Footer — collapsed = avatar + theme stacked; expanded = chip + settings strip */}
       {collapsed ? (
-        <div className="px-2 py-3 border-t border-border flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-2 border-t border-sidebar-border/80 px-2 py-3">
           <div
-            className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px] uppercase"
+            className="flex h-8 w-8 items-center justify-center rounded-md border border-primary/20 bg-primary/12 text-[10px] font-bold uppercase text-primary"
             title={`${user?.username ?? ''} · ${user?.role ? t(`roles.${user.role}`) : ''}`}
           >
             {user?.username?.substring(0, 2) || 'U'}
           </div>
           <button
             onClick={toggle}
-            className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             aria-label={t('common.toggleTheme')}
             title={t('common.toggleTheme')}
           >
@@ -285,7 +290,7 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
           </button>
           <button
             onClick={logout}
-            className="p-1.5 rounded hover:bg-red-500/10 text-red-500/80 hover:text-red-500 transition-colors"
+            className="rounded-md p-1.5 text-red-500/80 transition-colors hover:bg-red-500/10 hover:text-red-500"
             aria-label={t('common.signOut')}
             title={t('common.signOut')}
           >
@@ -293,10 +298,10 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
           </button>
         </div>
       ) : (
-        <div className="px-3 py-3 border-t border-border flex flex-col gap-2">
+        <div className="flex flex-col gap-2 border-t border-sidebar-border/80 px-3 py-3">
           {/* User chip */}
-          <div className="flex items-center gap-2 px-1.5 py-1">
-            <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[9px] uppercase shrink-0">
+          <div className="flex items-center gap-2 rounded-md border border-border/50 bg-card/55 px-2 py-1.5">
+            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/15 text-[9px] font-bold uppercase text-primary">
               {user?.username?.substring(0, 2) || 'U'}
             </div>
             <p className="text-xs truncate" style={{ fontFamily: DM_SANS }}>
@@ -311,10 +316,10 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
           </div>
 
           {/* Settings strip — theme + language sit on their own muted ground */}
-          <div className="flex items-center justify-between gap-1 px-1.5 py-1 rounded-lg bg-accent/30">
+          <div className="flex items-center justify-between gap-1 rounded-md bg-accent/45 px-1.5 py-1">
             <button
               onClick={toggle}
-              className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+              className="rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               aria-label={t('common.toggleTheme')}
               title={t('common.toggleTheme')}
             >
@@ -328,7 +333,7 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
                   className={cn(
                     'px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors',
                     lang === code
-                      ? 'bg-[#D4A843] text-black'
+                      ? 'bg-primary text-primary-foreground'
                       : 'text-muted-foreground hover:text-foreground hover:bg-accent/60',
                   )}
                 >
@@ -338,12 +343,12 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
             </div>
           </div>
 
-          <div className="h-px bg-border/40" aria-hidden />
+          <div className="h-px bg-border/50" aria-hidden />
 
           {/* Sign out — pulled below a hairline so it's clearly its own action */}
           <button
             onClick={logout}
-            className="w-full flex items-center justify-center gap-2 py-1.5 text-xs font-semibold text-red-500/80 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors border border-transparent hover:border-red-500/20"
+            className="flex w-full items-center justify-center gap-2 rounded-md border border-transparent py-1.5 text-xs font-semibold text-red-500/80 transition-colors hover:border-red-500/20 hover:bg-red-500/10 hover:text-red-500"
           >
             <LogOut size={13} />
             {t('common.signOut')}

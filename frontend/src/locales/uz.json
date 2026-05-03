@@ -18,17 +18,12 @@
     "invalidRange": "Sana oralig'i noto'g'ri."
   },
   "auth": {
-    "tagline": "Operatsion boshqaruv",
     "username": "Foydalanuvchi",
     "password": "Parol",
     "signIn": "Kirish",
     "signingIn": "Kirilmoqda...",
     "invalidCredentials": "Foydalanuvchi nomi yoki parol noto'g'ri",
     "loginFailed": "Kirish amalga oshmadi. Qayta urinib ko'ring.",
-    "footer": "Faqat ichki foydalanish uchun",
-    "contactAdmin": "Parolni unutdingizmi?",
-    "contactAdminHelp": "Parolni tiklash uchun administrator bilan bog'laning",
-    "subhead": "Daftar · 2026",
     "showPassword": "Parolni ko'rsatish",
     "hidePassword": "Parolni yashirish"
   },

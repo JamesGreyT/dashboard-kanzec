@@ -35,7 +35,7 @@ import Audit from '@/pages/admin/Audit'
 
 function ChartFallback() {
   return (
-    <div className="h-screen w-full flex items-center justify-center text-muted-foreground">
+    <div className="flex min-h-[100dvh] w-full items-center justify-center text-muted-foreground">
       <div className="animate-spin w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full" />
     </div>
   )
@@ -52,7 +52,7 @@ function BootstrapGate({ children }: { children: React.ReactNode }) {
   const { isLoading } = useAuth()
   if (isLoading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-background text-muted-foreground">
+      <div className="app-shell flex min-h-[100dvh] w-full items-center justify-center text-muted-foreground">
         <div className="animate-spin w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full" />
       </div>
     )

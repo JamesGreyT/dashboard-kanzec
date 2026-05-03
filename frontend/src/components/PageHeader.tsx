@@ -52,7 +52,7 @@ export default function PageHeader({ variant = 'compact' }: { variant?: 'dashboa
   const isDashboard = variant === 'dashboard'
 
   return (
-    <header className="flex items-baseline justify-between gap-3 pb-3 mb-6 border-b border-border/40 animate-fade-up">
+    <header className="mb-6 flex items-center justify-between gap-3 border-b border-border/60 bg-background/35 pb-3 backdrop-blur-sm animate-fade-up">
       {isDashboard ? (
         <span
           className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground truncate"
@@ -61,11 +61,11 @@ export default function PageHeader({ variant = 'compact' }: { variant?: 'dashboa
           {t('common.today')} · {stamp}
         </span>
       ) : (
-        <span aria-hidden />
+        <span className="h-px flex-1 bg-gradient-to-r from-border/80 to-transparent" aria-hidden />
       )}
 
       {user && (
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex shrink-0 items-center gap-2 rounded-md border border-border/65 bg-card/72 px-2.5 py-1 shadow-[0_14px_34px_-32px_rgba(36,31,24,0.4)]">
           <span
             className="text-xs text-foreground/90 truncate"
             style={{ fontFamily: DM_SANS }}

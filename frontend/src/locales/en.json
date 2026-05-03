@@ -18,17 +18,12 @@
     "invalidRange": "Invalid date range."
   },
   "auth": {
-    "tagline": "Operations console",
     "username": "Username",
     "password": "Password",
     "signIn": "Sign in",
     "signingIn": "Signing in…",
     "invalidCredentials": "Invalid username or password",
     "loginFailed": "Sign-in failed. Please try again.",
-    "footer": "Internal use only",
-    "contactAdmin": "Forgot password?",
-    "contactAdminHelp": "Contact your administrator to reset the password",
-    "subhead": "Ledger · 2026",
     "showPassword": "Show password",
     "hidePassword": "Hide password"
   },

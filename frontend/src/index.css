@@ -5,17 +5,17 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-brand: #D4A843;
-  --color-brand-dark: #B8922E;
-  --color-brand-glow: #D4A84340;
-  --color-sidebar: #08080C;
-  --color-surface: #0F0F17;
-  --color-surface-2: #161622;
-  --color-border: #1E1E2E;
-  --color-gold: #D4A843;
-  --color-gold-dim: #D4A84330;
-  --color-emerald: #34D399;
-  --color-coral: #F87171;
+  --color-brand: #B8892D;
+  --color-brand-dark: #8D6720;
+  --color-brand-glow: #B8892D38;
+  --color-sidebar: #F1EEE7;
+  --color-surface: #F7F5EF;
+  --color-surface-2: #ECE7DA;
+  --color-border: #D9D1C0;
+  --color-gold: #B8892D;
+  --color-gold-dim: #B8892D2E;
+  --color-emerald: #2F8F6B;
+  --color-coral: #C95656;
   --font-display: 'Playfair Display', Georgia, serif;
   --font-body: 'DM Sans', system-ui, sans-serif;
 }
@@ -59,72 +59,72 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: #FAF8F5;
-  --foreground: #2C2418;
-  --card: #FFFFFF;
-  --card-foreground: #2C2418;
-  --popover: #FFFFFF;
-  --popover-foreground: #2C2418;
-  --primary: #9E7B2F;
-  --primary-foreground: #FFFFFF;
-  --secondary: #F3EDE4;
-  --secondary-foreground: #2C2418;
-  --muted: #F3EDE4;
-  --muted-foreground: #8A7D6B;
-  --accent: #F0E9DD;
-  --accent-foreground: #2C2418;
-  --destructive: #DC4A4A;
-  --border: #E6DFD3;
-  --input: #F3EDE4;
-  --ring: #B8922E;
-  --chart-1: #B8922E;
-  --chart-2: #1E8A5E;
-  --chart-3: #5B5FD6;
-  --chart-4: #C94E8A;
-  --chart-5: #2A8EC5;
-  --sidebar: #F5F1EB;
-  --sidebar-foreground: #2C2418;
-  --sidebar-primary: #9E7B2F;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #EDE7DC;
-  --sidebar-accent-foreground: #2C2418;
-  --sidebar-border: #E6DFD3;
-  --sidebar-ring: #B8922E;
+  --radius: 0.5rem;
+  --background: #F7F5EF;
+  --foreground: #241F18;
+  --card: #FFFEFB;
+  --card-foreground: #241F18;
+  --popover: #FFFEFB;
+  --popover-foreground: #241F18;
+  --primary: #8D6720;
+  --primary-foreground: #FFFEFB;
+  --secondary: #ECE7DA;
+  --secondary-foreground: #241F18;
+  --muted: #ECE7DA;
+  --muted-foreground: #716858;
+  --accent: #E7E2D5;
+  --accent-foreground: #241F18;
+  --destructive: #C95656;
+  --border: #D9D1C0;
+  --input: #F1EDE3;
+  --ring: #B8892D;
+  --chart-1: #B8892D;
+  --chart-2: #2F8F6B;
+  --chart-3: #376FA8;
+  --chart-4: #9B5A8E;
+  --chart-5: #B05E3D;
+  --sidebar: #F1EEE7;
+  --sidebar-foreground: #241F18;
+  --sidebar-primary: #8D6720;
+  --sidebar-primary-foreground: #FFFEFB;
+  --sidebar-accent: #E6E0D2;
+  --sidebar-accent-foreground: #241F18;
+  --sidebar-border: #D9D1C0;
+  --sidebar-ring: #B8892D;
 }
 
 .dark {
-  --background: #0A0A0F;
-  --foreground: #E8E4DD;
-  --card: #111118;
-  --card-foreground: #E8E4DD;
-  --popover: #111118;
-  --popover-foreground: #E8E4DD;
-  --primary: #D4A843;
-  --primary-foreground: #0A0A0F;
-  --secondary: #1A1A28;
-  --secondary-foreground: #E8E4DD;
-  --muted: #1A1A28;
-  --muted-foreground: #8B8B9E;
-  --accent: #1E1E2E;
-  --accent-foreground: #E8E4DD;
-  --destructive: #F87171;
-  --border: #1E1E2E;
-  --input: #1A1A28;
-  --ring: #D4A843;
-  --chart-1: #D4A843;
-  --chart-2: #34D399;
-  --chart-3: #818CF8;
-  --chart-4: #F472B6;
-  --chart-5: #38BDF8;
-  --sidebar: #08080C;
-  --sidebar-foreground: #E8E4DD;
-  --sidebar-primary: #D4A843;
-  --sidebar-primary-foreground: #0A0A0F;
-  --sidebar-accent: #14141E;
-  --sidebar-accent-foreground: #E8E4DD;
-  --sidebar-border: #1E1E2E;
-  --sidebar-ring: #D4A843;
+  --background: #11100E;
+  --foreground: #ECE7DA;
+  --card: #171511;
+  --card-foreground: #ECE7DA;
+  --popover: #171511;
+  --popover-foreground: #ECE7DA;
+  --primary: #C89A3A;
+  --primary-foreground: #11100E;
+  --secondary: #242019;
+  --secondary-foreground: #ECE7DA;
+  --muted: #242019;
+  --muted-foreground: #A69C89;
+  --accent: #2C261C;
+  --accent-foreground: #ECE7DA;
+  --destructive: #E06B68;
+  --border: #342D21;
+  --input: #242019;
+  --ring: #C89A3A;
+  --chart-1: #C89A3A;
+  --chart-2: #4FA47D;
+  --chart-3: #6C91C8;
+  --chart-4: #B97BA8;
+  --chart-5: #D08052;
+  --sidebar: #15130F;
+  --sidebar-foreground: #ECE7DA;
+  --sidebar-primary: #C89A3A;
+  --sidebar-primary-foreground: #11100E;
+  --sidebar-accent: #211D16;
+  --sidebar-accent-foreground: #ECE7DA;
+  --sidebar-border: #342D21;
+  --sidebar-ring: #C89A3A;
 }
 
 @layer base {
@@ -134,32 +134,66 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'DM Sans', system-ui, sans-serif;
+    text-rendering: geometricPrecision;
+    font-feature-settings: "ss01", "tnum";
   }
   h1, h2, h3 {
     font-family: 'Playfair Display', Georgia, serif;
   }
 }
 
+.app-shell {
+  background:
+    linear-gradient(90deg, rgba(36, 31, 24, 0.035) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(36, 31, 24, 0.026) 1px, transparent 1px),
+    radial-gradient(circle at 0 0, rgba(184, 137, 45, 0.08), transparent 28rem),
+    var(--background);
+  background-size: 48px 48px, 48px 48px, auto, auto;
+}
+.dark .app-shell {
+  background:
+    linear-gradient(90deg, rgba(236, 231, 218, 0.045) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(236, 231, 218, 0.035) 1px, transparent 1px),
+    radial-gradient(circle at 0 0, rgba(200, 154, 58, 0.08), transparent 30rem),
+    var(--background);
+  background-size: 52px 52px, 52px 52px, auto, auto;
+}
+
+.grain-overlay::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.2;
+  mix-blend-mode: multiply;
+  background-image: repeating-linear-gradient(0deg, rgba(36, 31, 24, 0.03) 0 1px, transparent 1px 3px);
+}
+.dark .grain-overlay::after {
+  opacity: 0.12;
+  mix-blend-mode: screen;
+}
+
 /* ── Cards ─────────────────────────────────────────────────── */
 .dark .glass-card {
-  background: var(--card);
+  background: color-mix(in srgb, var(--card) 92%, transparent);
   border: 1px solid var(--border);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025), 0 18px 40px -34px rgba(0, 0, 0, 0.8);
 }
 .dark .glass-card:hover {
-  border-color: rgba(212, 168, 67, 0.15);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  border-color: rgba(200, 154, 58, 0.24);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 22px 48px -34px rgba(0, 0, 0, 0.9);
 }
 .glass-card {
-  background: var(--card);
+  background: color-mix(in srgb, var(--card) 94%, transparent);
   border: 1px solid var(--border);
-  border-radius: 0.75rem;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  border-radius: 0.625rem;
+  transition: border-color 0.22s ease, box-shadow 0.22s ease, transform 0.22s ease, background-color 0.22s ease;
+  box-shadow: 0 18px 44px -36px rgba(62, 47, 22, 0.34);
 }
 .glass-card:hover {
-  border-color: rgba(158, 123, 47, 0.25);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-color: rgba(141, 103, 32, 0.32);
+  box-shadow: 0 24px 56px -40px rgba(62, 47, 22, 0.44);
 }
 
 /* ── KPI Glow Card ──────────────────────────────────────────── */
@@ -173,9 +207,9 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 2px;
-  background: var(--glow-color, #D4A843);
-  opacity: 0.5;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--glow-color, #B8892D), transparent);
+  opacity: 0.75;
 }
 
 /* ── Animations ─────────────────────────────────────────────── */
@@ -234,7 +268,7 @@
 .shimmer-skeleton {
   position: relative;
   overflow: hidden;
-  background: #E6DFD3;
+  background: #DED6C6;
   border-radius: 6px;
 }
 .dark .shimmer-skeleton {
@@ -244,7 +278,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(158, 123, 47, 0.08), transparent);
+  background: linear-gradient(90deg, transparent, rgba(184, 137, 45, 0.12), transparent);
   animation: shimmer 1.8s ease-in-out infinite;
 }
 .dark .shimmer-skeleton::after {
@@ -260,55 +294,56 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #D5CDBE;
+  background: #C9BFAE;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #BDB3A2;
+  background: #AFA18B;
 }
 .dark ::-webkit-scrollbar-thumb {
-  background: #2E2E3E;
+  background: #3A3328;
 }
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #3E3E4E;
+  background: #514633;
 }
 
 /* ── Table Enhancements ─────────────────────────────────────── */
 .premium-table tbody tr {
   position: relative;
-  transition: background-color 0.15s, box-shadow 0.15s;
+  transition: background-color 0.16s ease, box-shadow 0.16s ease, color 0.16s ease;
 }
 .premium-table tbody tr:hover {
-  background-color: rgba(158, 123, 47, 0.10);
+  background-color: rgba(141, 103, 32, 0.075);
   /* Inset gold left rail on hover — operator's eye lands on the row,
      not the cell. Same vocabulary as .nav-active::before but inset so
      it doesn't break the rounded card edges of the table wrapper. */
-  box-shadow: inset 3px 0 0 0 #D4A843;
+  box-shadow: inset 2px 0 0 0 #B8892D;
 }
 .dark .premium-table tbody tr:hover {
-  background-color: rgba(212, 168, 67, 0.07);
+  background-color: rgba(200, 154, 58, 0.08);
 }
 .premium-table tbody tr:nth-child(even) {
-  background-color: rgba(44, 36, 24, 0.02);
+  background-color: rgba(36, 31, 24, 0.018);
 }
 .dark .premium-table tbody tr:nth-child(even) {
   background-color: rgba(255, 255, 255, 0.015);
 }
 .premium-table tbody tr:nth-child(even):hover {
   /* Override stripe so hover tint reads cleanly */
-  background-color: rgba(158, 123, 47, 0.10);
+  background-color: rgba(141, 103, 32, 0.075);
 }
 .dark .premium-table tbody tr:nth-child(even):hover {
-  background-color: rgba(212, 168, 67, 0.07);
+  background-color: rgba(200, 154, 58, 0.08);
 }
 .premium-table thead th {
   position: sticky;
   top: 0;
-  background: #FFFFFF;
+  background: color-mix(in srgb, var(--card) 96%, var(--background));
   z-index: 2;
+  box-shadow: inset 0 -1px 0 var(--border);
 }
 .dark .premium-table thead th {
-  background: #111118;
+  background: color-mix(in srgb, var(--card) 94%, var(--background));
 }
 
 /* ── Empty cell convention ─────────────────────────────────── */
@@ -324,8 +359,8 @@
 /* ── Active Nav Indicator ───────────────────────────────────── */
 .nav-active {
   position: relative;
-  background: linear-gradient(135deg, rgba(212, 168, 67, 0.15), rgba(212, 168, 67, 0.05));
-  color: #D4A843 !important;
+  background: color-mix(in srgb, var(--primary) 13%, transparent);
+  color: var(--primary) !important;
   font-weight: 600;
 }
 .nav-active::before {
@@ -334,8 +369,8 @@
   left: 0;
   top: 4px;
   bottom: 4px;
-  width: 3px;
-  background: #D4A843;
+  width: 2px;
+  background: var(--primary);
   border-radius: 0 3px 3px 0;
 }
 
@@ -346,22 +381,22 @@
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #8A7D6B;
+  color: var(--muted-foreground);
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 .dark .section-title {
-  color: #8B8B9E;
+  color: var(--muted-foreground);
 }
 .section-title::after {
   content: '';
   flex: 1;
   height: 1px;
-  background: linear-gradient(90deg, #E6DFD3, transparent);
+  background: linear-gradient(90deg, var(--border), transparent);
 }
 .dark .section-title::after {
-  background: linear-gradient(90deg, #1E1E2E, transparent);
+  background: linear-gradient(90deg, var(--border), transparent);
 }
 
 /* ── Month Picker ───────────────────────────────────────────── */
