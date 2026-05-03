@@ -13,6 +13,8 @@ from ..client_signals import compute_attention, compute_deal_status
 from ..debt.service import _jsonify_mapping, _scope_fragments, get_client_detail
 from ..scope import UserScope
 
+_MIN_COMPLETE_SALES_DAY_ROWS = 10
+
 
 @dataclass
 class ClientListFilters:
@@ -29,9 +31,9 @@ class ClientListFilters:
     sort: str = ""
 
 
-def _last90_window() -> tuple[date, date]:
-    today = date.today()
-    return today - timedelta(days=89), today
+def _last90_window(end_date: date | None = None) -> tuple[date, date]:
+    end = end_date or date.today()
+    return end - timedelta(days=89), end
 
 
 def _safe_int(v: Any) -> int:
@@ -54,8 +56,33 @@ def _weekly_series(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     ]
 
 
+async def _latest_complete_sales_date(session: AsyncSession) -> date:
+    sql = """
+    WITH ranked_days AS (
+      SELECT delivery_date, COUNT(*) AS row_count
+        FROM smartup_rep.deal_order
+       WHERE delivery_date IS NOT NULL
+       GROUP BY delivery_date
+    )
+    SELECT COALESCE(
+      (
+        SELECT delivery_date
+          FROM ranked_days
+         WHERE row_count >= :min_rows
+         ORDER BY delivery_date DESC
+         LIMIT 1
+      ),
+      (SELECT MAX(delivery_date) FROM smartup_rep.deal_order),
+      CURRENT_DATE
+    ) AS as_of_date
+    """
+    value = (await session.execute(text(sql), {"min_rows": _MIN_COMPLETE_SALES_DAY_ROWS})).scalar_one()
+    return value if isinstance(value, date) else date.today()
+
+
 async def _fetch_rfm_map(session: AsyncSession) -> dict[str, dict[str, Any]]:
-    start, end = _last90_window()
+    end = await _latest_complete_sales_date(session)
+    start, end = _last90_window(end)
     sql = build_rfm_sql(window_start=start, window_end=end)
     rows = (await session.execute(text(sql))).mappings().all()
     return {str(r["person_id"]): dict(r) for r in rows}
@@ -65,14 +92,15 @@ async def _fetch_base_rows(
     session: AsyncSession,
     *,
     scope: UserScope | None,
+    sales_as_of: date,
     person_id: int | None = None,
 ) -> list[dict[str, Any]]:
     person_f, scope_params = _scope_fragments(scope)
-    start90, today = _last90_window()
+    start90, sales_window_end = _last90_window(sales_as_of)
     params: dict[str, Any] = {
         **scope_params,
         "last90_s": start90,
-        "today": today,
+        "sales_as_of": sales_window_end,
         "default_term": 30,
     }
     person_where = ""
@@ -121,7 +149,7 @@ async def _fetch_base_rows(
              COALESCE(SUM(GREATEST(product_amount, 0)), 0) AS sales_90d,
              COUNT(DISTINCT deal_id) FILTER (WHERE product_amount > 0) AS orders_90d
         FROM real_orders
-       WHERE delivery_date BETWEEN :last90_s AND :today
+       WHERE delivery_date BETWEEN :last90_s AND :sales_as_of
        GROUP BY person_id
     ),
     pay_all AS (
@@ -136,7 +164,7 @@ async def _fetch_base_rows(
       SELECT person_id,
              COALESCE(SUM(amount), 0) AS payments_90d
         FROM real_pay_events
-       WHERE payment_date BETWEEN :last90_s AND :today
+       WHERE payment_date BETWEEN :last90_s AND :sales_as_of
        GROUP BY person_id
     ),
     attribution AS (
@@ -449,11 +477,11 @@ async def list_clients(
     limit: int,
     offset: int,
 ) -> dict[str, Any]:
-    today = date.today()
-    base_rows = await _fetch_base_rows(session, scope=scope)
+    sales_as_of = await _latest_complete_sales_date(session)
+    base_rows = await _fetch_base_rows(session, scope=scope, sales_as_of=sales_as_of)
     rfm_map = await _fetch_rfm_map(session)
 
-    decorated = [_decorate_row(r, today=today, rfm=rfm_map.get(str(r["person_id"]))) for r in base_rows]
+    decorated = [_decorate_row(r, today=sales_as_of, rfm=rfm_map.get(str(r["person_id"]))) for r in base_rows]
     filtered = _apply_filters(decorated, filters)
     ordered = _sort_rows(filtered, filters.sort)
     page_rows = ordered[offset : offset + limit]
@@ -508,13 +536,13 @@ async def get_client_intelligence(
     scope: UserScope | None,
     person_id: int,
 ) -> dict[str, Any]:
-    today = date.today()
-    base_rows = await _fetch_base_rows(session, scope=scope, person_id=person_id)
+    sales_as_of = await _latest_complete_sales_date(session)
+    base_rows = await _fetch_base_rows(session, scope=scope, sales_as_of=sales_as_of, person_id=person_id)
     if not base_rows:
         return {}
 
     rfm_map = await _fetch_rfm_map(session)
-    row = _decorate_row(base_rows[0], today=today, rfm=rfm_map.get(str(person_id)))
+    row = _decorate_row(base_rows[0], today=sales_as_of, rfm=rfm_map.get(str(person_id)))
     detail = await get_client_detail(
         session,
         scope=scope,
@@ -527,7 +555,7 @@ async def get_client_intelligence(
     if not detail:
         return {}
 
-    start90, end90 = _last90_window()
+    start90, end90 = _last90_window(sales_as_of)
     weekly_sql = """
     WITH weeks AS (
       SELECT generate_series(
