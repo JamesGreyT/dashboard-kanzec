@@ -499,6 +499,10 @@ export function useClientsIntelligenceList(filters: ClientsIntelligenceFilters) 
           params: paramsForClientsIntelligence(filters),
         })
       ).data,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
     placeholderData: (prev) => prev,
   })
 }
@@ -509,6 +513,10 @@ export function useClientIntelligenceDetail(personId: number | null) {
     queryFn: async () =>
       (await api.get<ClientIntelligenceDetail>(`/clients/${personId}/intelligence`)).data,
     enabled: personId !== null,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
     placeholderData: (prev) => prev,
   })
 }
