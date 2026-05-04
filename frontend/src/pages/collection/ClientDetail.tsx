@@ -232,74 +232,94 @@ export default function ClientDetail() {
                       />
                     </div>
 
-                    <div className="mt-6 border-t border-border/60 pt-4">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground" style={{ fontFamily: PLEX_MONO }}>
+                    {quickActions.length > 0 && (
+                      <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-border/60 pt-4">
+                        <p className="mr-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground" style={{ fontFamily: PLEX_MONO }}>
                           {t('debt.client.quickActions')}
                         </p>
-                        {canEdit && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingEntry(null)
-                              setLogModalOpen(true)
-                            }}
-                            className="inline-flex items-center gap-1.5 text-xs text-[#9E7B2F] transition-colors hover:text-[#7A5E20]"
-                            style={{ fontFamily: DM_SANS }}
-                          >
-                            <Plus size={12} />
-                            {t('debt.client.logContact')}
-                          </button>
-                        )}
-                      </div>
-                      <div className="mt-3 flex flex-wrap gap-2">
                         {quickActions.map((action) => (
                           <a
                             key={action.label}
                             href={action.href}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/80 px-3 py-2 text-sm text-foreground transition-colors hover:border-[#D4A843]/40 hover:text-[#9E7B2F]"
+                            className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-background/80 px-3 py-1.5 text-xs text-foreground transition-colors hover:border-[#D4A843]/40 hover:text-[#9E7B2F]"
                             style={{ fontFamily: DM_SANS }}
                           >
-                            <action.icon size={14} />
+                            <action.icon size={12} />
                             {action.label}
-                            <ArrowUpRight size={12} className="text-muted-foreground/70" />
+                            <ArrowUpRight size={10} className="text-muted-foreground/70" />
                           </a>
                         ))}
                       </div>
-                    </div>
+                    )}
                   </div>
 
-                  <aside className="rounded-[1.5rem] border border-border/70 bg-background/65 px-4 py-4 lg:px-5">
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground" style={{ fontFamily: PLEX_MONO }}>
-                      {t('debt.client.collectionPulse')}
-                    </p>
-                    <div className="mt-4 space-y-4">
-                      <PulseRow
-                        label={t('debt.client.currentExposure')}
-                        value={`${formatNumber(totalDebt)} USD`}
-                        tone="critical"
-                      />
-                      <PulseRow
+                  <aside className="flex flex-col rounded-[1.5rem] border border-border/70 bg-background/65 px-4 py-4 lg:px-5 min-h-[280px]">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground" style={{ fontFamily: PLEX_MONO }}>
+                        {t('debt.client.contactLog')}
+                      </p>
+                      {canEdit && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingEntry(null)
+                            setLogModalOpen(true)
+                          }}
+                          className="inline-flex items-center gap-1 rounded-full border border-[#D4A843]/30 bg-[#D4A843]/10 px-2.5 py-1 text-[10px] font-medium text-[#9E7B2F] transition-colors hover:bg-[#D4A843]/15 hover:text-[#7A5E20]"
+                          style={{ fontFamily: DM_SANS }}
+                        >
+                          <Plus size={10} />
+                          {t('debt.client.logContact')}
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      <PulseChip
                         label={t('debt.client.lastContactOutcome')}
                         value={latestContact ? t(`debt.outcomes.${latestContact.outcome}`, latestContact.outcome) : '—'}
                       />
-                      <PulseRow
+                      <PulseChip
                         label={t('debt.client.followUpDue')}
-                        value={latestContact?.follow_up_date ? formatLongDate(latestContact.follow_up_date, i18n.language) : '—'}
+                        value={latestContact?.follow_up_date ? formatShortDate(latestContact.follow_up_date, i18n.language) : '—'}
                       />
-                      <PulseRow
+                      <PulseChip
                         label={t('debt.client.recentPromise')}
-                        value={latestPromised
-                          ? [
-                              latestPromised.promised_amount ? formatCurrency(latestPromised.promised_amount, null) : null,
-                              latestPromised.promised_by_date
-                                ? formatShortDate(latestPromised.promised_by_date, i18n.language)
-                                : null,
-                            ].filter(Boolean).join(' · ')
-                          : t('debt.client.noPromise')}
+                        value={latestPromised?.promised_amount
+                          ? formatCurrency(latestPromised.promised_amount, null)
+                          : '—'}
                       />
+                    </div>
+
+                    <div className="mt-4 flex-1 overflow-y-auto pr-1" style={{ maxHeight: 280 }}>
+                      {isLoading ? (
+                        <div className="space-y-2">
+                          {Array.from({ length: 2 }).map((_, index) => (
+                            <div key={index} className="shimmer-skeleton h-14 w-full rounded-xl" />
+                          ))}
+                        </div>
+                      ) : contactLog.length === 0 ? (
+                        <p className="text-sm italic text-muted-foreground" style={{ fontFamily: PLAYFAIR }}>
+                          {t('debt.client.noContacts')}
+                        </p>
+                      ) : (
+                        <ul className="space-y-2">
+                          {contactLog.slice(0, 6).map((entry) => (
+                            <CompactContactItem
+                              key={entry.id}
+                              entry={entry}
+                              lang={i18n.language}
+                              canEditEntry={canEdit && (user?.role === 'admin' || user?.id === entry.author_id)}
+                              onEdit={() => {
+                                setEditingEntry(entry)
+                                setLogModalOpen(true)
+                              }}
+                            />
+                          ))}
+                        </ul>
+                      )}
                     </div>
                   </aside>
                 </div>
@@ -344,13 +364,13 @@ export default function ClientDetail() {
 
                 <div className="space-y-5 xl:col-span-8 2xl:col-span-9">
                   <section className="rounded-[1.5rem] border border-border/70 bg-card px-5 py-5 lg:px-6 animate-fade-up animate-fade-up-delay-3">
-                    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+                    <div className="grid grid-cols-1 gap-6 2xl:grid-cols-[1.3fr_0.9fr]">
                       <div>
                         <SectionHeader
                           title={t('debt.client.financialBase')}
                           aside={`${data.orders_total} ${t('debt.client.ordersCount')} · ${data.payments_total} ${t('debt.client.paymentsCount')}`}
                         />
-                        <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
+                        <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3 2xl:grid-cols-5">
                           <MetricTile label={t('debt.client.grossInvoiced')} value={formatNumber(aging.gross_invoiced)} />
                           <MetricTile label={t('debt.client.grossPaid')} value={formatNumber(aging.gross_paid)} tone="monitor" />
                           <MetricTile label={t('debt.client.openingDebt')} value={formatNumber(aging.opening_debt)} />
@@ -417,45 +437,19 @@ export default function ClientDetail() {
                     </TimelinePanel>
                   </div>
 
-                  <section className="rounded-[1.5rem] border border-border/70 bg-card px-5 py-5 lg:px-6 animate-fade-up animate-fade-up-delay-4">
-                    <div className="flex flex-col gap-3 border-b border-border/60 pb-4 lg:flex-row lg:items-end lg:justify-between">
-                      <div>
-                        <span className="section-title">{t('debt.client.contactLog')}</span>
-                        <p className="mt-2 text-sm text-muted-foreground" style={{ fontFamily: DM_SANS }}>
-                          {t('debt.client.contactLogSubtitle')}
-                        </p>
+                  {contactLog.length > 6 && (
+                    <section className="rounded-[1.5rem] border border-border/70 bg-card px-5 py-5 lg:px-6 animate-fade-up animate-fade-up-delay-4">
+                      <div className="flex flex-col gap-3 border-b border-border/60 pb-4 lg:flex-row lg:items-end lg:justify-between">
+                        <div>
+                          <span className="section-title">{t('debt.client.contactLog')}</span>
+                          <p className="mt-2 text-sm text-muted-foreground" style={{ fontFamily: DM_SANS }}>
+                            {t('debt.client.contactLogSubtitle')}
+                          </p>
+                        </div>
                       </div>
-                      {canEdit && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingEntry(null)
-                            setLogModalOpen(true)
-                          }}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-[#D4A843]/30 bg-[#D4A843]/10 px-3 py-2 text-xs font-medium text-[#9E7B2F] transition-colors hover:bg-[#D4A843]/15 hover:text-[#7A5E20]"
-                          style={{ fontFamily: DM_SANS }}
-                        >
-                          <Plus size={12} />
-                          {t('debt.client.logContact')}
-                        </button>
-                      )}
-                    </div>
 
-                    {isLoading ? (
-                      <div className="mt-5 space-y-3">
-                        {Array.from({ length: 4 }).map((_, index) => (
-                          <div key={index} className="shimmer-skeleton h-20 w-full rounded-2xl" />
-                        ))}
-                      </div>
-                    ) : contactLog.length === 0 ? (
-                      <div className="mt-6">
-                        <p className="text-base italic text-muted-foreground" style={{ fontFamily: PLAYFAIR }}>
-                          {t('debt.client.noContacts')}
-                        </p>
-                      </div>
-                    ) : (
                       <ul className="mt-5 space-y-3">
-                        {contactLog.map((entry) => (
+                        {contactLog.slice(6).map((entry) => (
                           <ContactLogItem
                             key={entry.id}
                             entry={entry}
@@ -468,8 +462,8 @@ export default function ClientDetail() {
                           />
                         ))}
                       </ul>
-                    )}
-                  </section>
+                    </section>
+                  )}
                 </div>
               </div>
             </>
@@ -537,27 +531,73 @@ function SignalMetric({
   )
 }
 
-function PulseRow({
-  label,
-  value,
-  tone = 'default',
-}: {
-  label: string
-  value: string
-  tone?: 'default' | 'critical'
-}) {
+function PulseChip({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-border/50 pb-4 last:border-b-0 last:pb-0">
-      <span className="text-sm text-muted-foreground" style={{ fontFamily: DM_SANS }}>
+    <div className="rounded-lg border border-border/60 bg-background/80 px-2.5 py-2 min-w-0">
+      <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground truncate" style={{ fontFamily: PLEX_MONO }}>
         {label}
-      </span>
-      <span
-        className={cn('text-right text-sm font-medium', tone === 'critical' && 'text-[#F87171]')}
-        style={{ fontFamily: DM_SANS }}
-      >
+      </p>
+      <p className="mt-1 text-xs font-medium text-foreground truncate" style={{ fontFamily: DM_SANS }} title={value}>
         {value}
-      </span>
+      </p>
     </div>
+  )
+}
+
+function CompactContactItem({
+  entry,
+  lang,
+  canEditEntry,
+  onEdit,
+}: {
+  entry: ContactLogEntry
+  lang: string
+  canEditEntry: boolean
+  onEdit: () => void
+}) {
+  const { t } = useTranslation()
+  return (
+    <li className="rounded-xl border border-border/60 bg-card/80 px-3 py-2.5" style={{ fontFamily: DM_SANS }}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className={`action-badge ${outcomeBadgeVariant(entry.outcome)} !text-[9px] !px-1.5 !py-0.5`}>
+              {t(`debt.outcomes.${entry.outcome}`, entry.outcome)}
+            </span>
+            <span className="text-[9px] uppercase tracking-[0.1em] text-muted-foreground truncate" style={{ fontFamily: PLEX_MONO }}>
+              {formatShortDate(entry.created_at, lang)}
+            </span>
+          </div>
+          {entry.note && (
+            <p className="mt-1 text-[11px] leading-snug text-foreground/80 line-clamp-2 italic">
+              {entry.note}
+            </p>
+          )}
+          {(entry.promised_amount || entry.promised_by_date) && (
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              {entry.promised_amount && (
+                <span className="font-semibold text-foreground/90">
+                  {formatCurrency(entry.promised_amount, null)}
+                </span>
+              )}
+              {entry.promised_by_date && (
+                <span className="ml-1.5">· {formatShortDate(entry.promised_by_date, lang)}</span>
+              )}
+            </p>
+          )}
+        </div>
+        {canEditEntry && (
+          <button
+            type="button"
+            onClick={onEdit}
+            className="shrink-0 text-muted-foreground transition-colors hover:text-[#9E7B2F]"
+            aria-label="Edit"
+          >
+            <Edit2 size={11} />
+          </button>
+        )}
+      </div>
+    </li>
   )
 }
 
@@ -572,10 +612,13 @@ function SectionShell({ title, children }: { title: string; children: ReactNode 
 
 function SectionHeader({ title, aside }: { title: string; aside?: string }) {
   return (
-    <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
-      <span className="section-title flex-1">{title}</span>
+    <div className="flex flex-col gap-1 lg:flex-row lg:items-baseline lg:justify-between lg:gap-3">
+      <span className="section-title flex-1 truncate">{title}</span>
       {aside && (
-        <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground" style={{ fontFamily: PLEX_MONO }}>
+        <span
+          className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground shrink-0"
+          style={{ fontFamily: PLEX_MONO }}
+        >
           {aside}
         </span>
       )}
@@ -593,18 +636,22 @@ function MetricTile({
   tone?: 'default' | 'monitor' | 'plan' | 'critical'
 }) {
   return (
-    <div className="rounded-[1.2rem] border border-border/60 bg-background/70 px-4 py-4">
-      <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground" style={{ fontFamily: PLEX_MONO }}>
+    <div className="rounded-[1.2rem] border border-border/60 bg-background/70 px-3 py-3 min-w-0">
+      <p
+        className="text-[9px] uppercase tracking-[0.12em] leading-[1.3] text-muted-foreground break-words"
+        style={{ fontFamily: PLEX_MONO }}
+      >
         {label}
       </p>
       <p
         className={cn(
-          'mt-3 text-xl font-semibold tracking-tight',
+          'mt-2 text-lg font-semibold tracking-tight tabular-nums truncate',
           tone === 'monitor' && 'text-[#34D399]',
           tone === 'plan' && 'text-[#60A5FA]',
           tone === 'critical' && 'text-[#F87171]',
         )}
         style={{ fontFamily: PLAYFAIR }}
+        title={value}
       >
         {value}
       </p>
