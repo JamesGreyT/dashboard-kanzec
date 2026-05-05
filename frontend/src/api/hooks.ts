@@ -360,6 +360,9 @@ export type ClientsIntelligenceSummary = {
   attention_recovery: number
   attention_dormant: number
   attention_growth: number
+  action_needed_count: number
+  leakage_count: number
+  expected_recovery_total: number
   sales_90d_total: number
   payments_90d_total: number
   current_debt_total: number
@@ -388,9 +391,18 @@ export type ClientsIntelligenceRow = {
   payments_90d: number
   current_debt: number
   overdue_debt: number
+  bucket_1_30: number
+  bucket_31_60: number
+  bucket_61_90: number
   bucket_90_plus: number
   collection_ratio_90d: number | null
   has_overdue_promise: boolean
+  last_promised_amount: number | null
+  last_promised_by_date: string | null
+  pay_probability: number
+  expected_recovery: number
+  exposure_ratio: number
+  velocity_ratio: number | null
 }
 
 export type ClientsIntelligenceListResponse = {

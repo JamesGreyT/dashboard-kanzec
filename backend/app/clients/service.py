@@ -9,7 +9,13 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .._analytics.rfm import build_rfm_sql
-from ..client_signals import compute_attention, compute_deal_status
+from ..client_signals import (
+    compute_attention,
+    compute_deal_status,
+    compute_pay_probability,
+    compute_velocity_ratio,
+    is_high_rfm,
+)
 from ..debt.service import _jsonify_mapping, _scope_fragments, get_client_detail
 from ..scope import UserScope
 
@@ -97,9 +103,11 @@ async def _fetch_base_rows(
 ) -> list[dict[str, Any]]:
     person_f, scope_params = _scope_fragments(scope)
     start90, sales_window_end = _last90_window(sales_as_of)
+    start180 = sales_window_end - timedelta(days=180)
     params: dict[str, Any] = {
         **scope_params,
         "last90_s": start90,
+        "last180_s": start180,
         "sales_as_of": sales_window_end,
         "default_term": 30,
     }
@@ -165,6 +173,20 @@ async def _fetch_base_rows(
              COALESCE(SUM(amount), 0) AS payments_90d
         FROM real_pay_events
        WHERE payment_date BETWEEN :last90_s AND :sales_as_of
+       GROUP BY person_id
+    ),
+    pay_180 AS (
+      SELECT person_id,
+             COALESCE(SUM(amount), 0) AS payments_180d
+        FROM real_pay_events
+       WHERE payment_date BETWEEN :last180_s AND :sales_as_of
+       GROUP BY person_id
+    ),
+    sales_180 AS (
+      SELECT person_id,
+             COALESCE(SUM(GREATEST(product_amount, 0)), 0) AS sales_180d
+        FROM real_orders
+       WHERE delivery_date BETWEEN :last180_s AND :sales_as_of
        GROUP BY person_id
     ),
     attribution AS (
@@ -284,6 +306,8 @@ async def _fetch_base_rows(
            COALESCE(pa.lifetime_payments_amount, 0) AS lifetime_payments_amount,
            COALESCE(sa90.sales_90d, 0) AS sales_90d,
            COALESCE(p90.payments_90d, 0) AS payments_90d,
+           COALESCE(sa180.sales_180d, 0) AS sales_180d,
+           COALESCE(p180.payments_180d, 0) AS payments_180d,
            COALESCE(sa90.orders_90d, 0) AS orders_90d,
            CASE
              WHEN COALESCE(sa90.orders_90d, 0) = 0 THEN 0
@@ -324,6 +348,8 @@ async def _fetch_base_rows(
       LEFT JOIN sales_90 sa90 ON sa90.person_id = u.person_id
       LEFT JOIN pay_all pa ON pa.person_id = u.person_id
       LEFT JOIN pay_90 p90 ON p90.person_id = u.person_id
+      LEFT JOIN pay_180 p180 ON p180.person_id = u.person_id
+      LEFT JOIN sales_180 sa180 ON sa180.person_id = u.person_id
       LEFT JOIN aging ag ON ag.person_id = u.person_id
       LEFT JOIN smartup_rep.legal_person lp ON lp.person_id::text = u.person_id
       LEFT JOIN dominant_room dr ON dr.person_id = u.person_id
@@ -345,10 +371,15 @@ def _decorate_row(
 ) -> dict[str, Any]:
     current_debt = float(row.get("current_debt") or 0)
     overdue_debt = float(row.get("overdue_debt") or 0)
+    bucket_61_90 = float(row.get("bucket_61_90") or 0)
     bucket_90_plus = float(row.get("bucket_90_plus") or 0)
     sales_90d = float(row.get("sales_90d") or 0)
     payments_90d = float(row.get("payments_90d") or 0)
+    payments_180d = float(row.get("payments_180d") or 0)
     collection_ratio = (payments_90d / sales_90d * 100) if sales_90d > 0 else None
+    velocity_ratio = compute_velocity_ratio(payments_90d, payments_180d)
+    exposure_ratio_raw = current_debt / sales_90d if sales_90d > 0 else (10.0 if current_debt > 0 else 0.0)
+    exposure_ratio = round(min(exposure_ratio_raw, 9.99), 2)
 
     last_purchase_date = date.fromisoformat(row["last_purchase_date"]) if row.get("last_purchase_date") else None
     last_payment_date = date.fromisoformat(row["last_payment_date"]) if row.get("last_payment_date") else None
@@ -381,6 +412,16 @@ def _decorate_row(
         rfm_segment=rfm_segment,
     )
 
+    pay_probability = compute_pay_probability(
+        attention_state=attention_state,
+        deal_status=deal_status,
+        has_overdue_promise=bool(row.get("has_overdue_promise")),
+        bucket_90_plus=bucket_90_plus,
+        bucket_61_90=bucket_61_90,
+        velocity_ratio=velocity_ratio,
+    )
+    expected_recovery = round(current_debt * pay_probability, 2)
+
     return {
         **row,
         "person_id": _safe_int(row["person_id"]),
@@ -393,6 +434,10 @@ def _decorate_row(
         "last_purchase_days": last_purchase_days,
         "last_payment_days": last_payment_days,
         "collection_ratio_90d": round(collection_ratio, 1) if collection_ratio is not None else None,
+        "velocity_ratio": velocity_ratio,
+        "exposure_ratio": exposure_ratio,
+        "pay_probability": round(pay_probability, 3),
+        "expected_recovery": expected_recovery,
     }
 
 
@@ -442,27 +487,43 @@ def _apply_filters(rows: list[dict[str, Any]], filters: ClientListFilters) -> li
     return out
 
 
+_NUMERIC_SORT_KEYS = {
+    "sales_90d",
+    "payments_90d",
+    "current_debt",
+    "bucket_90_plus",
+    "overdue_debt",
+    "last_purchase_days",
+    "last_payment_days",
+    "attention_score",
+    "expected_recovery",
+    "pay_probability",
+    "exposure_ratio",
+    "velocity_ratio",
+}
+
+
 def _sort_rows(rows: list[dict[str, Any]], sort: str) -> list[dict[str, Any]]:
     sort_key, _, sort_dir_raw = sort.partition(":")
     sort_dir = sort_dir_raw.lower() if sort_dir_raw else "desc"
     reverse = sort_dir != "asc"
 
     if not sort_key:
+        # Default ranking: most financially urgent first.
+        # expected_recovery already encodes (current_debt × P_pay), so it
+        # surfaces "biggest catch-up wins" before "smallest healthy debts".
         def key(row: dict[str, Any]) -> tuple[Any, ...]:
             return (
+                float(row.get("expected_recovery") or 0),
                 row.get("attention_score") or 0,
                 float(row.get("bucket_90_plus") or 0),
-                float(row.get("overdue_debt") or 0),
-                row.get("last_purchase_days") if row.get("last_purchase_days") is not None else -1,
-                -(float(row.get("payments_90d") or 0)),
-                float(row.get("sales_90d") or 0),
                 str(row.get("client_name") or ""),
             )
 
         return sorted(rows, key=key, reverse=True)
 
     def pick(row: dict[str, Any]) -> Any:
-        if sort_key in {"sales_90d", "payments_90d", "current_debt", "bucket_90_plus", "overdue_debt", "last_purchase_days", "last_payment_days", "attention_score"}:
+        if sort_key in _NUMERIC_SORT_KEYS:
             return float(row.get(sort_key) or 0)
         return str(row.get(sort_key) or "").lower()
 
@@ -486,12 +547,24 @@ async def list_clients(
     ordered = _sort_rows(filtered, filters.sort)
     page_rows = ordered[offset : offset + limit]
 
+    leakage_count = sum(
+        1
+        for r in filtered
+        if is_high_rfm(r.get("rfm_score"))
+        and (r.get("last_purchase_days") or 0) >= 60
+    )
+    action_needed_count = sum(
+        1 for r in filtered if r["attention_state"] in {"recover_now", "collect_fast"}
+    )
     summary = {
         "total_clients": len(filtered),
         "attention_critical": sum(1 for r in filtered if r["attention_state"] in {"recover_now", "collect_fast", "promise_watch"}),
         "attention_recovery": sum(1 for r in filtered if r["attention_state"] == "recover_now"),
         "attention_dormant": sum(1 for r in filtered if r["attention_state"] == "dormant"),
         "attention_growth": sum(1 for r in filtered if r["attention_state"] == "grow"),
+        "action_needed_count": action_needed_count,
+        "leakage_count": leakage_count,
+        "expected_recovery_total": round(sum(float(r.get("expected_recovery") or 0) for r in filtered), 2),
         "sales_90d_total": round(sum(float(r.get("sales_90d") or 0) for r in filtered), 2),
         "payments_90d_total": round(sum(float(r.get("payments_90d") or 0) for r in filtered), 2),
         "current_debt_total": round(sum(float(r.get("current_debt") or 0) for r in filtered), 2),
@@ -521,9 +594,18 @@ async def list_clients(
             "payments_90d": float(r.get("payments_90d") or 0),
             "current_debt": float(r.get("current_debt") or 0),
             "overdue_debt": float(r.get("overdue_debt") or 0),
+            "bucket_1_30": float(r.get("bucket_1_30") or 0),
+            "bucket_31_60": float(r.get("bucket_31_60") or 0),
+            "bucket_61_90": float(r.get("bucket_61_90") or 0),
             "bucket_90_plus": float(r.get("bucket_90_plus") or 0),
             "collection_ratio_90d": r.get("collection_ratio_90d"),
             "has_overdue_promise": bool(r.get("has_overdue_promise")),
+            "last_promised_amount": float(r["last_promised_amount"]) if r.get("last_promised_amount") is not None else None,
+            "last_promised_by_date": r.get("last_promised_by_date"),
+            "pay_probability": float(r.get("pay_probability") or 0),
+            "expected_recovery": float(r.get("expected_recovery") or 0),
+            "exposure_ratio": float(r.get("exposure_ratio") or 0),
+            "velocity_ratio": r.get("velocity_ratio"),
         }
         for r in page_rows
     ]

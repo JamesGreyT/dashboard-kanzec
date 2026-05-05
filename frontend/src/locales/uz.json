@@ -152,7 +152,11 @@
         "grow": "O'stirish",
         "sales90d": "90 kunlik sotuv",
         "payments90d": "90 kunlik to'lov",
-        "overdueDebt": "Muddati o'tgan qarz"
+        "overdueDebt": "Muddati o'tgan qarz",
+        "actionNeeded": "Harakat kerak",
+        "expectedRecovery": "Kutilayotgan tushum",
+        "leakage": "Sezilmas chiqib ketish",
+        "leakageHint": "RFM yuqori, lekin sustlikka ketayotgan mijozlar"
       },
       "views": {
         "all": "Barchasi",
@@ -168,7 +172,18 @@
         "group": "Guruh",
         "rfm": "RFM",
         "dormant": "Sustlik",
-        "daysDormant": "{{days}}+ kun"
+        "daysDormant": "{{days}}+ kun",
+        "promiseOverdue": "Va'da muddati o'tgan",
+        "aging60Plus": "60+ kun qarz",
+        "tier": {
+          "view": "Ko'rinish",
+          "triage": "Tartibga solish",
+          "slicers": "Qo'shimcha"
+        },
+        "slicersButton": "+ Bo'lim",
+        "slicersActive": "{{count}} ta faol",
+        "openMobileSheet": "Filtrlar",
+        "mobileSheetTitle": "Mijozlarni filtrlash"
       },
       "cols": {
         "client": "Mijoz",
@@ -180,7 +195,53 @@
         "sales90d": "Sotuv 90 kun",
         "payments90d": "To'lov 90 kun",
         "currentDebt": "Joriy qarz",
-        "debt90Plus": "90+ qarz"
+        "debt90Plus": "90+ qarz",
+        "payProb": "P(to'lov)",
+        "expectedRec": "Kutilayotgan",
+        "aging": "Qarz yoshi",
+        "exposure": "Risk",
+        "trend": "Trend",
+        "salesPay90d": "Sotuv / To'lov 90 kun",
+        "dealAndGroup": "Deal · Guruh"
+      },
+      "trend": {
+        "up": "O'sib bormoqda",
+        "down": "Pasaymoqda",
+        "flat": "Barqaror",
+        "noData": "Ma'lumot yetarli emas"
+      },
+      "aging": {
+        "label": "Qarz yoshi tarkibi",
+        "noDebt": "Qarz yo'q"
+      },
+      "exposureHint": "Joriy qarz / 90 kunlik sotuv",
+      "stopSelling": "Sotuvni to'xtatish",
+      "density": {
+        "compact": "Zich",
+        "comfortable": "Bo'sh",
+        "label": "Zichlik"
+      },
+      "sort": {
+        "by": "Saralash",
+        "default": "Kutilayotgan tushum",
+        "active": "{{column}} bo'yicha tartiblangan",
+        "asc": "o'sish",
+        "desc": "kamayish"
+      },
+      "managerStat": "{{count}} mijoz · {{rate}}% muddati o'tgan",
+      "footer": {
+        "summary": "{{from}}–{{to}} / {{total}} mijoz",
+        "rowsPer": "Qator",
+        "jumpTo": "Sahifaga o'tish"
+      },
+      "kpi": {
+        "actionNeededHint": "Darhol + tez yig'ish",
+        "noSparkline": "Trend hozircha mavjud emas"
+      },
+      "modalDrillout": {
+        "managerPeers": "Bu menejerning boshqa mijozlari",
+        "segmentPeers": "Shu segmentdagilar",
+        "withSameAttention": "shu e'tibor holatida"
       },
       "attention": {
         "recover_now": "Darhol undirish",

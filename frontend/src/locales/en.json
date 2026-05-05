@@ -152,7 +152,11 @@
         "grow": "Grow",
         "sales90d": "Sales 90d",
         "payments90d": "Payments 90d",
-        "overdueDebt": "Overdue debt"
+        "overdueDebt": "Overdue debt",
+        "actionNeeded": "Action needed",
+        "expectedRecovery": "Expected recovery",
+        "leakage": "Silent attrition",
+        "leakageHint": "High-RFM clients drifting dormant"
       },
       "views": {
         "all": "All",
@@ -168,7 +172,18 @@
         "group": "Group",
         "rfm": "RFM",
         "dormant": "Dormancy",
-        "daysDormant": "{{days}}+ days"
+        "daysDormant": "{{days}}+ days",
+        "promiseOverdue": "Promise overdue",
+        "aging60Plus": "60+ days aging",
+        "tier": {
+          "view": "View",
+          "triage": "Triage",
+          "slicers": "More"
+        },
+        "slicersButton": "+ Slicer",
+        "slicersActive": "{{count}} active",
+        "openMobileSheet": "Filters",
+        "mobileSheetTitle": "Filter clients"
       },
       "cols": {
         "client": "Client",
@@ -180,7 +195,53 @@
         "sales90d": "Sales 90d",
         "payments90d": "Payments 90d",
         "currentDebt": "Current debt",
-        "debt90Plus": "90+ debt"
+        "debt90Plus": "90+ debt",
+        "payProb": "P(pay)",
+        "expectedRec": "Expected",
+        "aging": "Aging",
+        "exposure": "Exposure",
+        "trend": "Trend",
+        "salesPay90d": "Sales / Pay 90d",
+        "dealAndGroup": "Deal · Group"
+      },
+      "trend": {
+        "up": "Trending up",
+        "down": "Trending down",
+        "flat": "Flat",
+        "noData": "Not enough history"
+      },
+      "aging": {
+        "label": "Aging mix",
+        "noDebt": "No outstanding debt"
+      },
+      "exposureHint": "Current debt / sales 90d",
+      "stopSelling": "Stop selling",
+      "density": {
+        "compact": "Compact",
+        "comfortable": "Comfortable",
+        "label": "Density"
+      },
+      "sort": {
+        "by": "Sort by",
+        "default": "Expected recovery",
+        "active": "Sorted by {{column}}",
+        "asc": "ascending",
+        "desc": "descending"
+      },
+      "managerStat": "{{count}} clients · {{rate}}% past-due",
+      "footer": {
+        "summary": "{{from}}–{{to}} / {{total}} clients",
+        "rowsPer": "Rows",
+        "jumpTo": "Jump to page"
+      },
+      "kpi": {
+        "actionNeededHint": "Recover + collect_fast",
+        "noSparkline": "Trend not yet available"
+      },
+      "modalDrillout": {
+        "managerPeers": "Other clients of this manager",
+        "segmentPeers": "Same RFM segment",
+        "withSameAttention": "with same attention"
       },
       "attention": {
         "recover_now": "Recover now",

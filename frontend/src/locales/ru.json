@@ -152,7 +152,11 @@
         "grow": "Развивать",
         "sales90d": "Продажи 90д",
         "payments90d": "Платежи 90д",
-        "overdueDebt": "Просроченный долг"
+        "overdueDebt": "Просроченный долг",
+        "actionNeeded": "Нужны действия",
+        "expectedRecovery": "Ожидаемый возврат",
+        "leakage": "Тихий отток",
+        "leakageHint": "Высокий RFM, уходящие в спячку"
       },
       "views": {
         "all": "Все",
@@ -168,7 +172,18 @@
         "group": "Группа",
         "rfm": "RFM",
         "dormant": "Спящие",
-        "daysDormant": "{{days}}+ дн."
+        "daysDormant": "{{days}}+ дн.",
+        "promiseOverdue": "Обещание просрочено",
+        "aging60Plus": "Долг 60+ дней",
+        "tier": {
+          "view": "Вид",
+          "triage": "Сортировка",
+          "slicers": "Ещё"
+        },
+        "slicersButton": "+ Срез",
+        "slicersActive": "{{count}} активно",
+        "openMobileSheet": "Фильтры",
+        "mobileSheetTitle": "Фильтр клиентов"
       },
       "cols": {
         "client": "Клиент",
@@ -180,7 +195,53 @@
         "sales90d": "Продажи 90д",
         "payments90d": "Платежи 90д",
         "currentDebt": "Текущий долг",
-        "debt90Plus": "Долг 90+"
+        "debt90Plus": "Долг 90+",
+        "payProb": "P(оплаты)",
+        "expectedRec": "Ожидаемое",
+        "aging": "Возраст долга",
+        "exposure": "Риск",
+        "trend": "Тренд",
+        "salesPay90d": "Продажи / Платежи 90д",
+        "dealAndGroup": "Deal · Группа"
+      },
+      "trend": {
+        "up": "Растёт",
+        "down": "Снижается",
+        "flat": "Стабильно",
+        "noData": "Недостаточно истории"
+      },
+      "aging": {
+        "label": "Структура долга",
+        "noDebt": "Долга нет"
+      },
+      "exposureHint": "Текущий долг / продажи 90д",
+      "stopSelling": "Прекратить продажи",
+      "density": {
+        "compact": "Плотный",
+        "comfortable": "Просторный",
+        "label": "Плотность"
+      },
+      "sort": {
+        "by": "Сортировка",
+        "default": "Ожидаемый возврат",
+        "active": "Сортировка по {{column}}",
+        "asc": "по возрастанию",
+        "desc": "по убыванию"
+      },
+      "managerStat": "{{count}} клиентов · {{rate}}% просрочки",
+      "footer": {
+        "summary": "{{from}}–{{to}} / {{total}} клиентов",
+        "rowsPer": "Строк",
+        "jumpTo": "Перейти на страницу"
+      },
+      "kpi": {
+        "actionNeededHint": "Recover + collect_fast",
+        "noSparkline": "Тренд пока недоступен"
+      },
+      "modalDrillout": {
+        "managerPeers": "Другие клиенты этого менеджера",
+        "segmentPeers": "Этот же RFM-сегмент",
+        "withSameAttention": "с тем же вниманием"
       },
       "attention": {
         "recover_now": "Вернуть сейчас",
