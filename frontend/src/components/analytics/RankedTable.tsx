@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { ChevronUp, ChevronDown } from 'lucide-react'
 import { formatNumber } from '@/lib/format'
 import { cn } from '@/lib/utils'
+import { downloadAuthed } from '@/api/client'
 
 const PLAYFAIR = "'Playfair Display', Georgia, serif"
 const DM_SANS = "'DM Sans', system-ui"
@@ -185,14 +186,20 @@ export default function RankedTable<T extends { person_id?: number | string }>({
               </button>
             </div>
             {exportHref && (
-              <a
-                href={exportHref}
-                download
+              <button
+                type="button"
+                onClick={() => {
+                  // Derive a filename from the URL path: e.g. "/api/sales/clients.xlsx?…"
+                  // → "clients.xlsx". Falls back to "export.xlsx" if the path is exotic.
+                  const path = exportHref.split('?')[0]
+                  const name = path.split('/').pop() || 'export.xlsx'
+                  void downloadAuthed(exportHref, name.endsWith('.xlsx') ? name : `${name}.xlsx`)
+                }}
                 className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-[#9E7B2F] transition-colors ml-2"
                 style={{ fontFamily: "'IBM Plex Mono', ui-monospace, monospace" }}
               >
                 ↓ xlsx
-              </a>
+              </button>
             )}
           </div>
         </footer>

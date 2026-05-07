@@ -16,6 +16,7 @@ import {
   type FilterTriple,
   type TableSchema,
 } from '@/api/hooks'
+import { downloadAuthed } from '@/api/client'
 import { useAuth } from '@/context/AuthContext'
 import {
   formatCell,
@@ -235,15 +236,17 @@ export default function DataViewer({ tableKey, title, editable = false }: Props)
           >
             {title ?? schema?.label ?? '—'}
           </h1>
-          <a
-            href={exportHref}
-            download
+          <button
+            type="button"
+            onClick={() => {
+              void downloadAuthed(exportHref, `${tableKey}.xlsx`)
+            }}
             className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground hover:text-[#9E7B2F] transition-colors shrink-0 pb-2"
             style={{ fontFamily: PLEX_MONO }}
             aria-label={t('data.exportXlsx')}
           >
             ↓ xlsx
-          </a>
+          </button>
         </div>
 
         {/* The search input IS the running rule of the page. */}

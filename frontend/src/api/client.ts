@@ -56,3 +56,27 @@ api.interceptors.response.use(
 )
 
 export default api
+
+/**
+ * Authenticated file download. Plain `<a href download>` cannot attach the
+ * Bearer token, so the backend rejects with 401 JSON instead of returning
+ * a binary file. This helper goes through the axios instance (which adds
+ * the token via the request interceptor and rotates it via the 401 retry
+ * path) and then triggers a save dialog from the resulting Blob.
+ *
+ * `url` may be a full path starting with `/api/...` (matching what the
+ * `*ExportHref` helpers return today) or a path relative to the axios
+ * baseURL — both are accepted.
+ */
+export async function downloadAuthed(url: string, filename: string): Promise<void> {
+  const path = url.startsWith('/api/') ? url.slice('/api'.length) : url
+  const response = await api.get<Blob>(path, { responseType: 'blob' })
+  const blobUrl = URL.createObjectURL(response.data)
+  const a = document.createElement('a')
+  a.href = blobUrl
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(blobUrl)
+}
